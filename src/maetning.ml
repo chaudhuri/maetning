@@ -6,6 +6,7 @@
  *)
 
 open Term
+open Unify
 
 let () =
   if not !Sys.interactive then

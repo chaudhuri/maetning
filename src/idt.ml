@@ -37,8 +37,8 @@ end
 
 module IdtMap = struct
   include Map.Make (IdtOrdered)
-  let insert m (k, v) = add k v m
-  let digest kvs = List.fold_left insert empty kvs
+  let insert m k v = add k v m
+  let digest kvs = List.fold_left (fun m (k, v) -> add k v m) empty kvs
   let find_opt k m =
     try Some (find k m) with Not_found -> None
 end

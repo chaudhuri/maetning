@@ -24,7 +24,7 @@ end with type elt := idt
 
 module IdtMap : sig
   include Map.S
-  val insert : 'v t -> (key * 'v) -> 'v t
+  val insert : 'v t -> key -> 'v -> 'v t
   val digest : (key * 'v) list -> 'v t
   val find_opt : key -> 'v t -> 'v option
 end with type key := idt

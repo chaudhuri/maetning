@@ -20,7 +20,7 @@ and term_ =
 let idx n = {
   term = Idx n ;
   vars = IdtSet.empty ;
-  imax = n ;
+  imax = max n @@ -1 ;
 }
 let var v = {
   term = Var v ;
