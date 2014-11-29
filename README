@@ -1,0 +1,20 @@
+Mætning
+-------
+
+This is an experiment in using the inverse method as an engine for
+disproving non-theorems.
+
+0. Prerequisites
+----------------
+
+* Recent OCaml toolchain (4.02.0+)
+* Findlib
+
+1. Building
+-----------
+
+Run "make" from the topmost directory.
+
+The binary will be called "maetning.native". Depending on your
+operating system, you may need to rename it to "maetning.native.exe"
+in order to run it.
