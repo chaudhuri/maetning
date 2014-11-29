@@ -22,11 +22,13 @@ let idx n = {
   vars = IdtSet.empty ;
   imax = max n @@ -1 ;
 }
-let var v = {
-  term = Var v ;
-  vars = IdtSet.singleton v ;
-  imax = -1 ;
-}
+
+let var v =
+  assert (v.rep.[0] == '\'' || v.rep.[0] == '?') ;
+  { term = Var v ;
+    vars = IdtSet.singleton v ;
+    imax = -1 }
+
 let app f ts = {
   term = App (f, ts) ;
   imax =
@@ -94,6 +96,29 @@ let rec replace ?(depth=0) ~repl t0 =
       end
     | Idx _ -> t0
     | App (f, ts) -> app f (List.map (replace ~depth ~repl) ts)
+
+let join ?depth ss v t =
+  let vtss = IdtMap.digest [v, t] in
+  let ss = IdtMap.map (replace ?depth ~repl:vtss) ss in
+  IdtMap.insert ss v t
+
+let freshen_var =
+  let last = ref 0 in
+  fun v ->
+    let prefix =
+      try String.sub v.rep 0 (String.rindex v.rep '#')
+      with Not_found -> v.rep
+    in
+    incr last ;
+    var @@ intern @@ prefix ^ "#" ^
+                     string_of_int !last
+
+let rec freshen ?depth ~repl t0 =
+  let repl = IdtSet.fold begin fun v repl ->
+      if IdtMap.mem v repl then repl else
+      join repl v @@ freshen_var v
+    end t0.vars repl in
+  (repl, replace ?depth ~repl t0)
 
 let rec format_term ?(cx=[]) ?max_depth () fmt t =
   let open Format in
