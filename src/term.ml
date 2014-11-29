@@ -94,3 +94,45 @@ let rec replace ?(depth=0) ~repl t0 =
       end
     | Idx _ -> t0
     | App (f, ts) -> app f (List.map (replace ~depth ~repl) ts)
+
+let rec format_term ?(cx=[]) ?max_depth () fmt t =
+  let open Format in
+  let ellipse = match max_depth with
+    | None -> false
+    | Some d -> d <= 0 in
+  if ellipse then pp_print_string fmt "_" else
+  match t.term with
+  | Var v ->
+      pp_print_string fmt v.rep
+  | Idx n ->
+      assert (n < List.length cx) ;
+      pp_print_string fmt (List.nth cx n).rep
+  | App (f, []) ->
+      pp_print_string fmt f.rep
+  | App (f, _) when max_depth = Some 1 ->
+      pp_print_string fmt f.rep ;
+      pp_print_string fmt "(...)"
+  | App (f, t0 :: ts) -> begin
+      let max_depth = match max_depth with
+        | None -> None
+        | Some d -> Some (d - 1) in
+      pp_open_hvbox fmt 2 ; begin
+        pp_print_string fmt f.rep ;
+        pp_print_string fmt "(" ;
+        pp_print_cut fmt () ;
+        format_term ~cx ?max_depth () fmt t0 ;
+        List.iter begin fun t ->
+          pp_print_string fmt "," ;
+          pp_print_space fmt () ;
+          format_term ~cx ?max_depth () fmt t ;
+        end ts ;
+        pp_print_string fmt ")" ;
+      end ; pp_close_box fmt () ;
+    end
+
+let term_to_string ?(cx=[]) ?max_depth t =
+  let buf = Buffer.create 19 in
+  let fmt = Format.formatter_of_buffer buf in
+  format_term ~cx ?max_depth () fmt t ;
+  Format.pp_print_flush fmt () ;
+  Buffer.contents buf
