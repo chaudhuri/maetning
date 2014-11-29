@@ -1,3 +1,8 @@
 S src
 B _build/src
 PKG unix
+FLG -slow-paths
+FLG -w @3@5@6@8..12@14@20@26@28@29
+FLG -safe-string
+FLG -strict-sequence
+FLG -ignore-sigint

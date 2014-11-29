@@ -42,20 +42,18 @@ let maybe_make_version_file () =
     close_out oc
   end
 
-open Ocamlbuild_plugin ;;
-
 let () =
   maybe_make_version_file () ;
-  dispatch begin function
-  | After_rules ->
-      flag ["ocaml" ; "compile"] (A "-g") ;
-      Scanf.sscanf Sys.ocaml_version "%d."
-        (fun maj ->
-           if maj >= 4 then
-             flag ["ocaml" ; "compile"] (A "-bin-annot")) ;
-      flag ["ocaml" ; "link"] (A "-g") ;
-      if Sys.os_type = "Unix" then
+  Ocamlbuild_plugin.(
+    dispatch begin function
+    | After_rules ->
+        (* flag ["ocaml" ; "compile"] (A "-g") ; *)
+        flag ["ocaml" ; "compile"] (A "-bin-annot") ;
+        flag ["ocaml" ; "compile"] (A "-safe-string") ;
+        flag ["ocaml" ; "link"] (A "-safe-string") ;
+        (* flag ["ocaml" ; "link"] (A "-g") ; *)
         flag ["ocaml" ; "compile"] (S [A "-w" ; A "@3@5@6@8..12@14@20@26@28@29"]) ;
-      flag ["ocaml" ; "native" ; "compile"] (A "-nodynlink") ;
-  | _ -> ()
-  end
+        flag ["ocaml" ; "native" ; "compile"] (A "-nodynlink") ;
+    | _ -> ()
+    end
+  )
