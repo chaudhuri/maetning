@@ -23,8 +23,11 @@ let idx n = {
   imax = max n @@ -1 ;
 }
 
+let evar_cookie = "?"
+let param_cookie = "\'"
+
 let var v =
-  assert (v.rep.[0] == '\'' || v.rep.[0] == '?') ;
+  assert (v.rep.[0] == evar_cookie.[0] || v.rep.[0] == param_cookie.[0]) ;
   { term = Var v ;
     vars = IdtSet.singleton v ;
     imax = -1 }
@@ -37,6 +40,16 @@ let app f ts = {
     List.fold_left
       (fun vs t -> IdtSet.union vs t.vars) IdtSet.empty ts ;
 }
+
+let fresh_var =
+  let last = ref 0 in
+  fun (flav : [`evar | `param]) ->
+    incr last ;
+    let v = match flav with
+      | `evar -> intern (evar_cookie ^ string_of_int !last)
+      | `param -> intern (param_cookie ^ string_of_int !last)
+    in
+    { term = Var v ; vars = IdtSet.singleton v ; imax = -1 }
 
 type sub =
   | Shift of int
