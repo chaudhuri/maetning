@@ -7,6 +7,7 @@
 
 open Term
 open Unify
+open Form
 
 let () =
   if not !Sys.interactive then
