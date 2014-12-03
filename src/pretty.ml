@@ -47,7 +47,7 @@ let rparen = FUN (fun ff -> pp_print_string ff ")")
 let bracket ?(left=lparen) ?(right=rparen) ?(trans=OPAQUE) ?(indent=2) inner =
   Bracket {left; right; indent; inner; trans}
 
-type dom_op = PRE of prec |POST of prec | NOP
+type dom_op = PRE of prec | POST of prec | NOP
 
 let rec reprec de = match de with
   | Atom _ -> (de, NOP)
@@ -115,21 +115,21 @@ let rec print ff ?(left=lparen) ?(right=rparen) ex =
   | Opapp (prec, appl) -> begin
       match appl with
       | Prefix (op, arg) ->
-          (* pp_open_box ff 2 ; begin *)
+          pp_open_box ff 2 ; begin
             print_atom ff op ;
             maybe_enclose
               ~cond:(prec >? arg && not (is_prefix arg))
               ~left ~right ff arg
-          (* end ; pp_close_box ff () *)
+          end ; pp_close_box ff ()
       | Postfix (arg, op) ->
-          (* pp_open_box ff 2 ; begin *)
+          pp_open_box ff 2 ; begin
             maybe_enclose
               ~cond:(prec >? arg && not (is_postfix arg))
               ~left ~right ff arg ;
             print_atom ff op ;
-          (* end ; pp_close_box ff () *)
+          end ; pp_close_box ff ()
       | Infix (asc, arg1, op, arg2) ->
-          (* pp_open_box ff 2 ; begin *)
+          pp_open_box ff 2 ; begin
             maybe_enclose
               ~cond:(prec >? arg1
                      || is_infix_incompat LEFT prec asc arg1)
@@ -139,7 +139,7 @@ let rec print ff ?(left=lparen) ?(right=rparen) ex =
               ~cond:(prec >? arg2
                      || is_infix_incompat RIGHT prec asc arg2)
               ~left ~right ff arg2
-          (* end ; pp_close_box ff () *)
+          end ; pp_close_box ff ()
     end
 
 and maybe_enclose ~cond ~left ~right ff ex =
@@ -159,6 +159,9 @@ and print_bracket ~left ~right ff br =
     print_atom ff br.right ;
   end ; pp_close_box ff ()
 
+let print ff ?left ?right ex =
+  print ff ?left ?right @@ fst @@ reprec ex
+
 let print_string ?(left=lparen) ?(right=rparen) ex =
   let buf = Buffer.create 19 in
   let ff = formatter_of_buffer buf in
@@ -166,18 +169,20 @@ let print_string ?(left=lparen) ?(right=rparen) ex =
   pp_print_flush ff () ;
   Buffer.contents buf
 
-
 (*
 let test () =
   let ff = std_formatter in
-  let ei = Opapp (10, Infix (LEFT, Atom (STR "pi"),
-                             [STR " ", Opapp (0, Prefix (STR "x\\ ", Atom (STR "x")))])) in
-  print ff ei ; pp_print_newline ff () ;
-  let ep = Opapp (10, Prefix (STR "pi ", Opapp (0, Prefix (STR "x\\ ", Atom (STR "x"))))) in
-  print ff ep ; pp_print_newline ff () ;
-  let fi = Opapp (2, Infix (LEFT, ei, [STR " + ", ei])) in
-  print ff fi ; pp_print_newline ff () ;
-  let fp = Opapp (2, Infix (LEFT, ep, [STR " + ", ep])) in
-  print ff fp ; pp_print_newline ff () ;
-  pp_print_flush ff ()
+  let pp_inbox ff e =
+    pp_open_box ff 0 ; print ff e ; pp_close_box ff () in
+  pp_print_flush ff () ;
+  let a = Atom (STR "a") in
+  let b = Atom (STR "b") in
+  let c = Atom (STR "c") in
+  let ab = Opapp (10, Infix (LEFT, a, FMT " +@ ", b)) in
+  pp_inbox ff ab ; pp_print_newline ff () ;
+  let allxab = Opapp (5, Prefix (FMT "ALL x.@ ", ab)) in
+  pp_inbox ff allxab ; pp_print_newline ff () ;
+  let cxab = Opapp (20, Infix (LEFT, c, FMT " &@ ", allxab)) in
+  pp_inbox ff cxab ; pp_print_newline ff () ;
+  pp_close_box ff ()
 *)

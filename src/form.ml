@@ -36,17 +36,11 @@ let rec polarity f =
   | Or _ | False | Exists _ -> POS
   | Implies _ | Forall _ -> NEG
 
-let make_pos f =
-  { f with form = match f.form with
-       | Shift pf -> pf.form
-       | _ -> if polarity f = POS then f.form else Shift f }
-
-let make_neg f =
-  { f with form = match f.form with
-       | Shift nf -> nf.form
-       | _ -> if polarity f = NEG then f.form else Shift f }
-
-let force = function POS -> make_pos | NEG -> make_neg
+let force pol f =
+  if polarity f = pol then f else
+  match f.form with
+  | Shift f -> f
+  | _ -> { f with form = Shift f }
 
 let shift f = { f with form = Shift f }
 let atom pol pred ts = {
@@ -140,26 +134,32 @@ let rec pretty_form ?(cx=[]) ?max_depth f0 =
   match f0.form with
   | Shift f ->
       let fe = pretty_form ~cx ?max_depth f in
-      Pretty.(Opapp (__shift_prec, Prefix (FMT "#", fe)))
-  | Atom (_, pred, args) ->
+      let op = match polarity f with
+        | NEG -> Pretty.FMT "↓"
+        | POS -> Pretty.FMT "↑"
+      in
+      Pretty.(Opapp (__shift_prec, Prefix (op, fe)))
+  | Atom (pol, pred, args) ->
+      (* let pmark = match pol with POS -> "®" | _ -> "◃" in *)
+      (* let pred = intern @@ pred.rep ^ pmark in *)
       let pe fmt = format_term ~cx ?max_depth () fmt (app pred args) in
       Pretty.(Atom (FUN pe))
   | And (POS, f1, f2) ->
       let f1e = pretty_form ~cx ?max_depth f1 in
       let f2e = pretty_form ~cx ?max_depth f2 in
-      Pretty.(Opapp (__pos_and_prec, Infix (LEFT, f1e, FMT " *@ ", f2e)))
+      Pretty.(Opapp (__pos_and_prec, Infix (LEFT, f1e, FMT " ⊗@ ", f2e)))
   | And (NEG, f1, f2) ->
       let f1e = pretty_form ~cx ?max_depth f1 in
       let f2e = pretty_form ~cx ?max_depth f2 in
-      Pretty.(Opapp (__neg_and_prec, Infix (LEFT, f1e, FMT " &@ ", f2e)))
+      Pretty.(Opapp (__neg_and_prec, Infix (LEFT, f1e, FMT " ∧@ ", f2e)))
   | Or (f1, f2) ->
       let f1e = pretty_form ~cx ?max_depth f1 in
       let f2e = pretty_form ~cx ?max_depth f2 in
-      Pretty.(Opapp (__or_prec, Infix (LEFT, f1e, FMT " +@ ", f2e)))
+      Pretty.(Opapp (__or_prec, Infix (LEFT, f1e, FMT " ∨@ ", f2e)))
   | Implies (f1, f2) ->
       let f1e = pretty_form ~cx ?max_depth f1 in
       let f2e = pretty_form ~cx ?max_depth f2 in
-      Pretty.(Opapp (__implies_prec, Infix (RIGHT, f1e, FMT " =>@ ", f2e)))
+      Pretty.(Opapp (__implies_prec, Infix (RIGHT, f1e, FMT " ⊃@ ", f2e)))
   | True POS ->
       Pretty.(Atom (STR "one"))
   | True NEG ->
@@ -201,16 +201,16 @@ type lform = {
   skel  : form ;
 }
 
-let format_label fmt lf =
+let format_lform fmt lf =
   let open Format in
-  pp_open_vbox fmt 2 ; begin
+  pp_open_box fmt 0 ; begin
     pp_print_string fmt begin match lf.place with
       | Left -> "left "
       | Right -> "right "
     end ;
-    format_term () fmt @@ Term.app lf.label lf.args ;
+    format_form () fmt @@ atom (polarity lf.skel) lf.label lf.args ;
     pp_print_string fmt " :=" ;
-    pp_print_cut fmt () ;
+    pp_print_space fmt () ;
     pp_open_box fmt 2 ; begin
       format_form () fmt lf.skel ;
     end ; pp_close_box fmt () ;
@@ -226,19 +226,40 @@ let is_frontier place pol =
   | Left, NEG -> true
   | _ -> false
 
+let place_term place args =
+  match place with
+  | Left -> Term.(app (intern "left") args)
+  | Right -> Term.(app (intern "right") args)
+
 let relabel ?(place=Right) f =
   let lforms : lform list ref = ref [] in
-  let emit lf = lforms := lf :: !lforms in
+  let atoms  : lform list ref = ref [] in
+  let emit_lform lf =
+    (* Format.(fprintf std_formatter "  emitted %a@." format_lform lf) ; *)
+    lforms := lf :: !lforms in
+  let emit_atom atm =
+    (* Format.(fprintf std_formatter "  emitted %a@." format_lform atm) ; *)
+    atoms := atm :: !atoms in
   let rec spin place args f0 =
+    (* Format.(fprintf std_formatter *)
+    (*           "spin %a %a@." *)
+    (*           (Term.format_term ()) (place_term place args) *)
+    (*           (format_form ()) f0) ; *)
     match f0.form with
     | Shift f when is_frontier place (polarity f) ->
+        (* Format.(fprintf std_formatter "  is a frontier@.") ; *)
         let lab = fresh_label () in
+        (* Format.(fprintf std_formatter "  labelled %s@." lab.rep) ; *)
         let f = spin place args f in
-        emit { place ; label = lab ; args ; skel = f } ;
+        emit_lform { place ; label = lab ; args ; skel = f } ;
         shift @@ atom (polarity f) lab args
-    | Shift f -> shift @@ spin place args f
+    | Shift f ->
+        (* Format.(fprintf std_formatter "  is NOT a frontier@.") ; *)
+        let res = shift @@ spin place args f in
+        (* Format.(fprintf std_formatter "  is therefore %a@." (format_form ()) res) ; *)
+        res
     | Atom (_, pred, args) ->
-        emit { place ; label = pred ; args ; skel = f0 } ;
+        emit_atom { place ; label = pred ; args ; skel = f0 } ;
         f0
     | And (pol, pf1, pf2)  ->
         conj ~pol [spin place args pf1 ; spin place args pf2]
@@ -265,8 +286,8 @@ let relabel ?(place=Right) f =
       end
   in
   let l0 = fresh_label () in
-  emit { place ; label = l0 ; args = [] ; skel = spin place [] f } ;
-  !lforms
+  emit_lform { place ; label = l0 ; args = [] ; skel = spin place [] f } ;
+  (!lforms, !atoms)
 
 module Test = struct
   let (x, y, z) = (intern "x", intern "y", intern "z")
@@ -276,10 +297,15 @@ module Test = struct
   let c = atom POS (intern "c") []
   let f0 = implies [b] @@ disj [a ; b]
   let f1 = implies [conj ~pol:NEG [c ; c]] @@ disj [c ; c]
+  let pp x = atom POS (intern "pp") [x]
+  let nn x = atom NEG (intern "nn") [x]
 
   let test f =
     let open Format in
     fprintf std_formatter "Formatting: @[%a@]@." (format_form ()) f ;
-    let labs = relabel @@ force POS f in
-    List.iter (fprintf std_formatter "%a@." format_label) labs
+    let (lfs, ats) = relabel ~place:Right f in
+    List.iter (fprintf std_formatter "%a@." format_lform) lfs ;
+    fprintf std_formatter "Atoms:@." ;
+    List.iter (fprintf std_formatter "%a@." format_lform) ats
+
 end
