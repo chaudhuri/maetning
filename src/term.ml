@@ -9,8 +9,10 @@ open Idt
 
 type term = {
   term : term_ ;
-  vars : IdtSet.t ;        (* invariant: vars(t) \subseteq t.vars   *)
-  imax : int ;             (* invariant: max(-1::idxs(t)) <= t.imax *)
+  vars : IdtSet.t ;
+  (** invariant: fvs(t) \subseteq t.vars   *)
+  imax : int ;
+  (** invariant: max(-1::fbs(t)) <= t.imax *)
 }
 and term_ =
   | Var of Idt.t

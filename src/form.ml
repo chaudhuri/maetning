@@ -14,7 +14,9 @@ let dual_polarity = function POS -> NEG | NEG -> POS
 type form = {
   form : form_ ;
   vars : IdtSet.t ;
+  (** invariant: fvs(f) \subseteq f.vars   *)
   imax : int ;
+  (** invariant: max(-1::fbs(f)) <= f.imax *)
 }
 and form_ =
   | Atom    of polarity * idt * term list
@@ -140,8 +142,6 @@ let rec pretty_form ?(cx=[]) ?max_depth f0 =
       in
       Pretty.(Opapp (__shift_prec, Prefix (op, fe)))
   | Atom (pol, pred, args) ->
-      (* let pmark = match pol with POS -> "®" | _ -> "◃" in *)
-      (* let pred = intern @@ pred.rep ^ pmark in *)
       let pe fmt = format_term ~cx ?max_depth () fmt (app pred args) in
       Pretty.(Atom (FUN pe))
   | And (POS, f1, f2) ->
