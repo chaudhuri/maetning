@@ -21,20 +21,28 @@ let compatible v t =
     end
   | _ -> failwith "bad variable"
 
-let rec unite ?depth ss t1 t2 =
+let rec vnorm ss t =
+  match t.term with
+  | Var v when IdtMap.mem v ss ->
+      vnorm ss (IdtMap.find v ss)
+  | _ -> t
+
+let rec unite ?depth ?(sym=false) ss t1 t2 =
+  let t1 = vnorm ss t1 in
+  let t2 = vnorm ss t2 in
   if t1 = t2 then (ss, t1) else
   match t1.term, t2.term with
-  | Var v1, _ when IdtMap.mem v1 ss ->
-      unite ?depth ss (IdtMap.find v1 ss) t2
   | Var v1, _ ->
       if IdtSet.mem v1 t2.vars then unif_fail "occur check" ;
       if not @@ compatible v1 t2 then unif_fail "variable incompatibility" ;
       let t = replace ?depth ~repl:ss t2 in
       (join ?depth ss v1 t, t)
-  | _, Var v2 ->
-      unite ?depth ss t2 t1
+  | _, Var v2 when sym ->
+      unite ?depth ~sym ss t2 t1
+  | _, Var _ ->
+      unif_fail "symmetry"
   | App (f1 as f, ts1), App (f2, ts2) when f1 == f2 ->
-      let (ss, ts) = unite_lists ?depth ss ts1 ts2 in
+      let (ss, ts) = unite_lists ?depth ~sym ss ts1 ts2 in
       (ss, app f ts)
   | App (f1, _), App (f2, _) ->
       unif_fail "function-function: %s != %s" f1.rep f2.rep
@@ -45,11 +53,11 @@ let rec unite ?depth ss t1 t2 =
   | App _, Idx _  ->
       unif_fail "incompatible structures"
 
-and unite_lists ?depth ss ts1 ts2 =
+and unite_lists ?depth ?sym ss ts1 ts2 =
   match ts1, ts2 with
   | [], [] -> (ss, [])
   | (t1 :: ts1), (t2 :: ts2) ->
-      let (ss, t) = unite ?depth ss t1 t2 in
-      let (ss, ts) = unite_lists ?depth ss ts1 ts2 in
+      let (ss, t) = unite ?depth ?sym ss t1 t2 in
+      let (ss, ts) = unite_lists ?depth ?sym ss ts1 ts2 in
       (ss, t :: ts)
   | _ -> unif_fail "argument lists not the same length"

@@ -8,6 +8,7 @@
 open Term
 open Unify
 open Form
+open Sequent
 
 let () =
   if not !Sys.interactive then
