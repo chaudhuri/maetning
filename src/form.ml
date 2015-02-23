@@ -142,11 +142,11 @@ let rec pretty_form ?(cx=[]) ?max_depth f0 =
       in
       Pretty.(Opapp (__shift_prec, Prefix (op, fe)))
   | Atom (pol, pred, args) ->
-      let pred = match pol with
-        | POS -> pred.rep ^ "+"
-        | NEG -> pred.rep ^ "-"
-      in
-      let pred = Idt.intern pred in
+      (* let pred = match pol with *)
+      (*   | POS -> pred.rep ^ "+" *)
+      (*   | NEG -> pred.rep ^ "-" *)
+      (* in *)
+      (* let pred = Idt.intern pred in *)
       let pe fmt = format_term ~cx ?max_depth () fmt (app pred args) in
       Pretty.(Atom (FUN pe))
   | And (POS, f1, f2) ->

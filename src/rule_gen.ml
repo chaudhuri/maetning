@@ -13,14 +13,7 @@ open Form
 open Sequent
 open Rule
 
-let generate ~sc ~atoms lforms =
-  let filter_atoms place = List.filter_map begin
-      fun lf ->
-        if lf.place = place then Some (lf.label, lf.args)
-        else None
-    end atoms in
-  let _left_atoms = filter_atoms Left in
-  let _right_atoms = filter_atoms Right in
+let generate_rules ~sc lforms =
   let rec focus_right left right =
     match right.form with
     | Atom (POS, p, pargs) ->
@@ -145,26 +138,6 @@ let generate ~sc ~atoms lforms =
     | Shift _ ->
         assert false
 
-  and _init p pargs candidates =
-    List.filter_map begin fun (q, qargs) ->
-      if p != q then None else
-      try
-        Format.(eprintf "init: trying %a == %a@."
-                  (format_term ()) (app p pargs)
-                  (format_term ()) (app q qargs)) ;
-        let (repl, args) = Unify.unite_lists IdtMap.empty qargs pargs in
-        Format.(eprintf "success!: %a@." (format_term ()) (app p args)) ;
-        Some {prems = [] ;
-              concl = mk_sequent ()
-                  ~left:(Ft.singleton (q, args))
-                  ~right:(p, args) ;
-              eigen = IdtSet.empty}
-      with
-      Unify.Unif msg ->
-          Format.eprintf "failure! %s@." msg ;
-          None
-    end candidates
-
   and init p pargs =
     [{prems = [mk_sequent ()
                  ~left:(Ft.singleton (p, pargs))
@@ -212,7 +185,6 @@ let generate ~sc ~atoms lforms =
   let rules_list = List.map process_lform lforms in
   List.iter (fun rules -> List.iter sc rules) rules_list
 
-
 let freshen_atom lf =
   let (_, f0) = Term.freshen ~repl:IdtMap.empty (app lf.label lf.args) in
   match f0.term with
@@ -220,13 +192,33 @@ let freshen_atom lf =
       {lf with args = args}
   | _ -> assert false
 
+let generate_initials ~sc atoms =
+  let filter_atoms place = List.filter_map begin
+      fun lf ->
+        if lf.place = place then Some (lf.label, lf.args)
+        else None
+    end atoms in
+  let left_atoms = filter_atoms Left in
+  let right_atoms = filter_atoms Right in
+  List.iter begin fun (p, pargs) ->
+    List.iter begin fun (q, qargs) ->
+      if p != q then () else
+      try
+        let (repl, args) = Unify.unite_lists IdtMap.empty pargs qargs in
+        mk_sequent ()
+          ~left:(Ft.singleton (p, args))
+          ~right:(p, args) |> sc
+      with
+      Unify.Unif _ -> ()
+    end right_atoms
+  end left_atoms
+
 module Test = struct
 
   let test f =
     let (lforms, atoms) = Form.Test.test f in
     let atoms = List.map freshen_atom atoms in
-    generate lforms
-      ~atoms:atoms
-      ~sc:Rule.Test.print
+    generate_rules lforms ~sc:Rule.Test.print ;
+    generate_initials atoms ~sc:Sequent.Test.print
 
 end

@@ -145,16 +145,8 @@ let join ?depth ss v t =
   let ss = IdtMap.map (replace ?depth ~repl:vtss) ss in
   IdtMap.insert ss v t
 
-let freshen_var =
-  let last = ref 0 in
-  fun v ->
-    let prefix =
-      try String.sub v.rep 0 (String.rindex v.rep '#')
-      with Not_found -> v.rep
-    in
-    incr last ;
-    var @@ intern @@ prefix ^ "#" ^
-                     string_of_int !last
+let freshen_var v =
+  fresh_var (if v.rep.[0] == param_cookie.[0] then `param else `evar)
 
 let rec freshen ?depth ~repl t0 =
   let repl = IdtSet.fold begin fun v repl ->
