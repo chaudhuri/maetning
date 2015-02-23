@@ -142,6 +142,11 @@ let rec pretty_form ?(cx=[]) ?max_depth f0 =
       in
       Pretty.(Opapp (__shift_prec, Prefix (op, fe)))
   | Atom (pol, pred, args) ->
+      let pred = match pol with
+        | POS -> pred.rep ^ "+"
+        | NEG -> pred.rep ^ "-"
+      in
+      let pred = Idt.intern pred in
       let pe fmt = format_term ~cx ?max_depth () fmt (app pred args) in
       Pretty.(Atom (FUN pe))
   | And (POS, f1, f2) ->
@@ -286,7 +291,12 @@ let relabel ?(place=Right) f =
       end
   in
   let l0 = fresh_label () in
-  emit_lform { place ; label = l0 ; args = [] ; skel = spin place [] f } ;
+  let f0 = match place, polarity f with
+    | Left, POS
+    | Right, NEG -> shift f
+    | _ -> f
+  in
+  emit_lform { place ; label = l0 ; args = [] ; skel = spin place [] f0 } ;
   (!lforms, !atoms)
 
 module Test = struct
@@ -306,6 +316,7 @@ module Test = struct
     let (lfs, ats) = relabel ~place:Right f in
     List.iter (fprintf std_formatter "%a@." format_lform) lfs ;
     fprintf std_formatter "Atoms:@." ;
-    List.iter (fprintf std_formatter "%a@." format_lform) ats
+    List.iter (fprintf std_formatter "%a@." format_lform) ats ;
+    (lfs, ats)
 
 end

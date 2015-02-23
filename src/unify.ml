@@ -21,6 +21,18 @@ let compatible v t =
     end
   | _ -> failwith "bad variable"
 
+let is_evar v = v.rep.[0] == Term.evar_cookie.[0]
+let is_evar_term t =
+  match t.term with
+  | Var v -> is_evar v
+  | _ -> false
+
+let is_param v = v.rep.[0] == Term.param_cookie.[0]
+let is_param_term t =
+  match t.term with
+  | Var v -> is_param v
+  | _ -> false
+
 let rec vnorm ss t =
   match t.term with
   | Var v when IdtMap.mem v ss ->
@@ -32,6 +44,8 @@ let rec unite ?depth ?(sym=true) ss t1 t2 =
   let t2 = vnorm ss t2 in
   if t1 = t2 then (ss, t1) else
   match t1.term, t2.term with
+  | Var v1, Var v2 when is_param v1 && is_evar v2 && sym ->
+      unite ?depth ~sym ss t2 t1
   | Var v1, _ ->
       if IdtSet.mem v1 t2.vars then unif_fail "occur check" ;
       if not @@ compatible v1 t2 then unif_fail "variable incompatibility" ;

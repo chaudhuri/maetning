@@ -10,6 +10,7 @@ open Unify
 open Form
 open Sequent
 open Rule
+open Rule_gen
 
 let () =
   if not !Sys.interactive then
