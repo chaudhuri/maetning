@@ -309,7 +309,11 @@ let relabel ?(place=Right) f =
     | Right, NEG -> shift f
     | _ -> f
   in
-  emit_lform { place ; label = l0 ; args = [] ; skel = spin place [] f0 } ;
+  let weaker_place = function
+    | Left _ -> Left Local
+    | Right -> Right
+  in
+  emit_lform { place ; label = l0 ; args = [] ; skel = spin (weaker_place place) [] f0 } ;
   (!lforms, !atoms)
 
 module Test = struct

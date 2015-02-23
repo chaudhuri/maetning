@@ -307,7 +307,7 @@ module Test = struct
       let add_rule add_seq rr =
         if rr.prems = [] then add_seq rr.concl
         else begin
-          (* Rule.Test.print rr ; *)
+          Rule.Test.print rr ;
           rules := rr :: !rules
         end
       in
@@ -328,7 +328,7 @@ module Test = struct
           else begin
             Sequent.Test.print sq ;
             if subsume sq goal_seq then raise (Escape sq) ;
-            sos := sq :: !sos
+            sos := !sos @ [sq]
           end
         in
         List.iter begin fun rr ->
@@ -346,6 +346,7 @@ module Test = struct
                end !active
              end !rules
           ) ;
+        (* Unix.sleep 1 *)
       done ;
       None
     end with
@@ -355,6 +356,44 @@ module Test = struct
 
   let gtest n =
     match inverse_method ~left:even_theory ~pseudo:(even_prune n) even_right with
+    | None ->
+        Format.printf "Not provable@."
+    | Some pf -> begin
+        match
+          Ft.to_list pf.left |>
+          List.Exceptionless.find (fun (p, _) -> Form.is_pseudo p)
+        with
+        | None -> Format.printf "Proved!@."
+        | Some (p, _) -> Format.printf "UNSOUND: Used pseudo %s.@." p.rep
+      end
+
+  let lf = app (intern "lf") []
+  let nd tl tr = app (intern "nd") [tl ; tr]
+  let bal t x = atom NEG (intern "bal") [t ; x]
+  let bal_th = [ bal lf z ;
+                 forall (intern "x")
+                   (forall (intern "t")
+                      (let t = idx 0 in
+                       let x = idx 1 in
+                       implies [bal t x] (bal (nd t t) (s x)))) ]
+  let bal_prune n =
+    let rec spin t = function
+      | 0 -> wrap (forall (intern "x")
+                     (bal t (idx 0)))
+               (n + 1)
+      | k ->
+          spin (nd t (idx (n - k + 2))) (k - 1)
+    and wrap t = function
+      | 0 -> t
+      | k ->
+          wrap (forall (intern ("tt" ^ string_of_int k)) t) (k - 1)
+    in
+    spin (idx 1) n
+
+  let bal_right = exists (intern "x") (bal (nd lf (nd lf lf)) (idx 0))
+
+  let baltest n =
+    match inverse_method ~left:bal_th ~pseudo:[ bal_prune n ] bal_right with
     | None ->
         Format.printf "Not provable@."
     | Some pf -> begin
