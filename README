@@ -7,8 +7,8 @@ disproving non-theorems.
 0. Prerequisites
 ----------------
 
-* Recent OCaml toolchain (4.02.0+)
-* Findlib
+* Recent OCaml toolchain (programmed using 4.02.1)
+* OCaml Batteries Included (`opam install batteries`)
 
 1. Building
 -----------
