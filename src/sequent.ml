@@ -36,7 +36,7 @@ module Sq : sig
     (** invariant: fvs(sq.left) \cup fvs(sq.right) \subseteq sq.vars *)
     inits : ISet.t
   }
-  val mk_sequent : left:ctx -> right:latm option -> inits:ISet.t -> sequent
+  val mk_sequent : ?inits:ISet.t -> ?right:latm -> ?left:ctx -> unit -> sequent
 end = struct
   type sequent = {sqid : int ; left : ctx ; right : latm option ;
                   vars : IdtSet.t ; inits : ISet.t}
@@ -45,7 +45,7 @@ end = struct
     let __last = ref 0 in
     fun () -> incr __last ; !__last
 
-  let mk_sequent ~left ~right ~inits =
+  let mk_sequent ?(inits=ISet.empty) ?right ?(left=Ft.empty) () =
     let sqid = next_sqid () in
     let terms = match right with
       | None -> left
@@ -85,7 +85,7 @@ let freshen ?(repl=IdtMap.empty) s0 =
         let (repl, elem) = freshen_latm ~repl elem in
         (repl, Ft.snoc left elem)
     end (repl, Ft.empty) s0.left in
-  mk_sequent ~left ~right ~inits:s0.inits
+  mk_sequent ~left ?right ~inits:s0.inits
 
 let subsume_one ~repl (p, pargs) cx =
   let rec spin repls cx =
@@ -150,10 +150,131 @@ let subsume_test_left sl0 tl0 =
   in
   gen sl0
 
+let subsume_exn ss0 tt0 =
+  if subsume_test_right ss0.right tt0.right &&
+     subsume_test_left ss0.left tt0.left
+  then subsume_full_exn ss0 tt0
+  else Unify.unif_fail "subsume_tests"
+
 let subsume ss0 tt0 =
-  subsume_test_right ss0.right tt0.right &&
-  subsume_test_left ss0.left tt0.left &&
-  begin
-    try ignore (subsume_full_exn ss0 tt0) ; true
-    with Unify.Unif _ -> false
-  end
+  try ignore (subsume_exn ss0 tt0) ; true
+  with Unify.Unif _ -> false
+
+let replace_latm ~repl (p, args) =
+  (p, List.map (Term.replace ~repl) args)
+
+let replace_sequent ~repl sq =
+  let left = Ft.map (replace_latm ~repl) sq.left in
+  let right = Option.map (replace_latm ~repl) sq.right in
+  mk_sequent ~left ?right ~inits:sq.inits ()
+
+let factor_one ~sc sq =
+  let rec gen left right =
+    match Ft.front right with
+    | None -> ()
+    | Some (right, ((p, pargs) as l)) ->
+        test left p pargs Ft.empty right ;
+        gen (Ft.snoc left l) right
+  and test left p pargs middle right =
+    match Ft.front right with
+    | None -> ()
+    | Some (right, ((q, qargs) as m)) ->
+        if p == q then begin
+          try
+            let (repl, pargs) = Unify.unite_lists IdtMap.empty pargs qargs in
+            let left = Ft.map (replace_latm ~repl) left in
+            let middle = Ft.map (replace_latm ~repl) middle in
+            let right = Ft.map (replace_latm ~repl) right in
+            let left = Ft.append left @@ Ft.append middle right in
+            let left = Ft.snoc left (p, pargs) in
+            let right = Option.map (replace_latm ~repl) sq.right in
+            sc @@ mk_sequent ~left ?right ~inits:sq.inits ()
+          with
+          Unify.Unif _ -> ()
+        end ;
+        test left p pargs (Ft.snoc middle m) right
+  in
+  gen Ft.empty sq.left
+
+let rec factor ~sc sq =
+  let dones = ref [] in
+  let worklist = ref [sq] in
+  while !worklist <> [] do
+    let sq = List.hd !worklist in
+    worklist := List.tl !worklist ;
+    dones := sq :: !dones ;
+    factor_one ~sc:(fun sq -> worklist := sq :: !worklist) sq ;
+  done ;
+  List.iter sc !dones
+
+let format_sequent ?max_depth () fmt sq =
+  let open Format in
+  pp_open_box fmt 0 ; begin
+    pp_open_hovbox fmt 2 ; begin
+      begin match Ft.front sq.left with
+      | None ->
+          pp_print_as fmt 1 "·"
+      | Some (left, (p, ts)) ->
+          format_term ?max_depth () fmt (app p ts) ;
+          Ft.iter begin
+            fun (p, ts) ->
+              pp_print_string fmt "," ;
+              pp_print_space fmt () ;
+              format_term ?max_depth () fmt (app p ts) ;
+          end left
+      end ;
+      pp_print_string fmt " -->" ;
+      pp_print_space fmt () ; begin
+        match sq.right with
+        | Some (p, ts) ->
+            format_term ?max_depth () fmt (app p ts)
+        | None ->
+            pp_print_as fmt 1 "·"
+      end ;
+    end ; pp_close_box fmt () ;
+  end ; pp_close_box fmt ()
+
+let sequent_to_string ?max_depth sq =
+  let buf = Buffer.create 19 in
+  let fmt = Format.formatter_of_buffer buf in
+  format_sequent ?max_depth () fmt sq ;
+  Format.pp_print_flush fmt () ;
+  Buffer.contents buf
+
+type t = sequent
+
+module Test = struct
+  let p = Idt.intern "p"
+  let q = Idt.intern "q"
+  let z = Idt.intern "z"
+  let s = Idt.intern "s"
+  let _X = fresh_var `evar
+  let _a = fresh_var `param
+  let _b = fresh_var `param
+
+  let init0 =
+    let left = Ft.of_list [(p, [_X]) ; (p, [_a]); (p, [_b])] in
+    let right = Some (q, [_X; _a; _b]) in
+    mk_sequent ~left ?right ~inits:ISet.empty
+
+  let print sq =
+      Format.(fprintf std_formatter "[%d] %a@." sq.sqid (format_sequent ()) sq)
+
+  let test sq =
+    let seen = ref [] in
+    let doit sq =
+      print sq ;
+      match
+        List.Exceptionless.find begin
+          fun oldsq -> subsume oldsq sq
+        end !seen
+      with
+      | Some sq ->
+          Format.(fprintf std_formatter "   (subsumed by: %d)@." sq.sqid)
+      | None ->
+          seen := sq :: !seen
+    in
+    factor sq ~sc:doit ;
+    Format.(fprintf std_formatter "Here's what remains after factoring:@.") ;
+    List.iter print (List.rev !seen)
+end

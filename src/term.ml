@@ -1,3 +1,9 @@
+(* 
+ * Author: Kaustuv Chaudhuri <kaustuv.chaudhuri@inria.fr>
+ * Copyright (C) 2015  Inria (Institut National de Recherche
+ *                     en Informatique et en Automatique)
+ * See LICENSE for licensing details.
+ *)
 (*
  * Author: Kaustuv Chaudhuri <kaustuv.chaudhuri@inria.fr>
  * Copyright (C) 2014  INRIA (Institut National de Recherche
@@ -33,6 +39,11 @@ let var v =
   { term = Var v ;
     vars = IdtSet.singleton v ;
     imax = -1 }
+
+let unvar t =
+  match t.term with
+  | Var v -> v
+  | _ -> failwith "unvar"
 
 let app f ts = {
   term = App (f, ts) ;
@@ -112,6 +123,23 @@ let rec replace ?(depth=0) ~repl t0 =
     | Idx _ -> t0
     | App (f, ts) -> app f (List.map (replace ~depth ~repl) ts)
 
+let replace_eigen ~repl v =
+  match IdtMap.find_opt v repl with
+  | Some t -> unvar t
+  | None -> v
+
+let replace_eigen_list ~repl evs =
+  List.fold_left begin
+    fun evs v ->
+      replace_eigen ~repl v :: evs
+  end [] evs
+
+let replace_eigen_set ~repl evset =
+  IdtSet.fold begin
+    fun v evset ->
+      IdtSet.add (replace_eigen ~repl v) evset
+  end evset IdtSet.empty
+
 let join ?depth ss v t =
   let vtss = IdtMap.digest [v, t] in
   let ss = IdtMap.map (replace ?depth ~repl:vtss) ss in
@@ -134,6 +162,8 @@ let rec freshen ?depth ~repl t0 =
       join repl v @@ freshen_var v
     end t0.vars repl in
   (repl, replace ?depth ~repl t0)
+
+let compact_print = ref true
 
 let rec format_term ?(cx=[]) ?max_depth () fmt t =
   let open Format in
@@ -163,7 +193,8 @@ let rec format_term ?(cx=[]) ?max_depth () fmt t =
         format_term ~cx ?max_depth () fmt t0 ;
         List.iter begin fun t ->
           pp_print_string fmt "," ;
-          pp_print_space fmt () ;
+          if !compact_print then pp_print_cut fmt ()
+          else pp_print_space fmt () ;
           format_term ~cx ?max_depth () fmt t ;
         end ts ;
         pp_print_string fmt ")" ;

@@ -27,7 +27,7 @@ let rec vnorm ss t =
       vnorm ss (IdtMap.find v ss)
   | _ -> t
 
-let rec unite ?depth ?(sym=false) ss t1 t2 =
+let rec unite ?depth ?(sym=true) ss t1 t2 =
   let t1 = vnorm ss t1 in
   let t2 = vnorm ss t2 in
   if t1 = t2 then (ss, t1) else
