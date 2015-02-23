@@ -79,6 +79,25 @@ let ec_viol eigen concl =
   in
   scan concl.left
 
+let rule_match ~sc prem cand =
+  let strict = ref false in
+  let repl = IdtMap.empty in
+  let (_repl, _right) =
+    match prem.right, cand.right with
+    | None, _ ->
+        strict := Option.is_some cand.right ;
+        (repl, cand.right)
+    | _, None ->
+        (repl, prem.right)
+    | Some (p, pargs), Some (q, qargs) -> begin
+        if p != q then Unify.unif_fail "right hand sides" ;
+        let (repl, args) = Unify.unite_lists repl pargs qargs in
+        strict := true ;
+        (repl, Some (p, args))
+      end
+  in
+  ()
+
 let specialize_one ~sc ~sq ~concl ~eigen current_prem remaining_prems =
   try begin
     let repl = subsume_exn current_prem sq in

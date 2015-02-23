@@ -215,6 +215,18 @@ let generate_initials ~sc atoms =
 
 module Test = struct
 
+  let p x y = Form.atom POS (intern "p") [x ; y]
+  let q x = Form.atom POS (intern "q") [x]
+  let a = Form.atom POS (intern "A") []
+  let b = Form.atom POS (intern "B") []
+  let c = Form.atom POS (intern "C") []
+  let d = Form.atom POS (intern "D") []
+  let z = Term.app (intern "z") []
+  let s x = Term.app (intern "s") [x]
+
+  let f0 = implies [disj [a ; b]] c
+  let f1 = conj ~pol:NEG [implies [a] c ; implies [b] c]
+
   let test f =
     let (lforms, atoms) = Form.Test.test f in
     let atoms = List.map freshen_atom atoms in
