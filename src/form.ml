@@ -190,14 +190,15 @@ let form_to_string ?(cx=[]) ?max_depth f =
   Format.pp_print_flush fmt () ;
   Buffer.contents buf
 
-type place = Global | Left | Right
-let change = function Global | Left -> Right | Right -> Left
+type place = Left of left | Right
+and left = Global | Pseudo | Local
+let change = function Left _ -> Right | Right -> Left Local
 
 let fresh_label =
   let last = ref 0 in
-  fun () ->
+  fun cookie ->
     incr last ;
-    intern @@ "%" ^ string_of_int !last
+    intern @@ cookie ^ string_of_int !last
 
 type lform = {
   place : place ;
@@ -210,8 +211,12 @@ let format_lform fmt lf =
   let open Format in
   pp_open_box fmt 0 ; begin
     pp_print_string fmt begin match lf.place with
-      | Global -> "global "
-      | Left -> "left "
+      | Left lf -> begin
+          match lf with
+          | Global -> "global "
+          | Local -> "local "
+          | Pseudo -> "pseudo "
+        end
       | Right -> "right "
     end ;
     format_form () fmt @@ atom (polarity lf.skel) lf.label lf.args ;
@@ -229,14 +234,20 @@ let unvar t = match t.term with
 let is_frontier place pol =
   match place, pol with
   | Right, POS
-  | Left, NEG -> true
+  | Left _, NEG -> true
   | _ -> false
 
 let place_term place args =
   match place with
-  | Left -> Term.(app (intern "left") args)
+  | Left _ -> Term.(app (intern "left") args)
   | Right -> Term.(app (intern "right") args)
-  | Global -> Term.(app (intern "global") args)
+
+let pseudo_cookie = "@"
+let is_pseudo l = l.rep.[0] = pseudo_cookie.[0]
+
+let place_cookie = function
+  | Left Pseudo -> pseudo_cookie
+  | _ -> "%"
 
 let relabel ?(place=Right) f =
   let lforms : lform list ref = ref [] in
@@ -255,7 +266,7 @@ let relabel ?(place=Right) f =
     match f0.form with
     | Shift f when is_frontier place (polarity f) ->
         (* Format.(fprintf std_formatter "  is a frontier@.") ; *)
-        let lab = fresh_label () in
+        let lab = fresh_label (place_cookie place) in
         (* Format.(fprintf std_formatter "  labelled %s@." lab.rep) ; *)
         let f = spin place args f in
         emit_lform { place ; label = lab ; args ; skel = f } ;
@@ -274,7 +285,7 @@ let relabel ?(place=Right) f =
         disj [spin place args pf1 ; spin place args pf2]
     | (True _ | False) -> f0
     | Exists (x, pf) -> begin
-        let v = fresh_var (match place with Right -> `evar | Global | Left -> `param) in
+        let v = fresh_var (match place with Right -> `evar | Left _ -> `param) in
         let pf = app_form (Cons (Shift 0, v)) pf in
         let pf = spin place (v :: args) pf in
         let pf = app_form (Shift 1) pf in
@@ -284,7 +295,7 @@ let relabel ?(place=Right) f =
     | Implies (pf, nf) ->
          implies [spin (change place) args pf] @@ spin place args nf
     | Forall (x, nf) -> begin
-        let v = fresh_var (match place with Global | Left -> `evar | Right -> `param) in
+        let v = fresh_var (match place with Left _ -> `evar | Right -> `param) in
         let nf = app_form (Cons (Shift 0, v)) nf in
         let nf = spin place (v :: args) nf in
         let nf = app_form (Shift 1) nf in
@@ -292,9 +303,9 @@ let relabel ?(place=Right) f =
         forall x nf
       end
   in
-  let l0 = fresh_label () in
+  let l0 = fresh_label (place_cookie place) in
   let f0 = match place, polarity f with
-    | Left, POS
+    | Left _, POS
     | Right, NEG -> shift f
     | _ -> f
   in

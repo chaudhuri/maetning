@@ -35,12 +35,14 @@ let format_rule ?max_depth () fmt rr =
         end ; pp_close_box fmt ()
   in
   pp_open_vbox fmt 0 ; begin
-    List.iteri begin
-      fun k prem ->
-        format_sequent ?max_depth () fmt prem ;
-        pp_print_cut fmt () ;
-    end rr.prems ;
-    fprintf fmt "--------------------%t@," format_eigens ;
+    if rr.prems <> [] then begin
+      List.iteri begin
+        fun k prem ->
+          format_sequent ?max_depth () fmt prem ;
+          pp_print_cut fmt () ;
+      end rr.prems ;
+      fprintf fmt "--------------------%t@," format_eigens ;
+    end ;
     format_sequent ?max_depth () fmt rr.concl
   end ; pp_close_box fmt ()
 
@@ -79,7 +81,7 @@ let ec_viol eigen concl =
   in
   scan concl.left
 
-let rule_match ~sc prem cand =
+let rule_match_exn ~sc prem cand =
   let repl = IdtMap.empty in
   let (repl, right, strict) =
     match prem.right, cand.right with
@@ -132,6 +134,10 @@ let rule_match ~sc prem cand =
     | None -> ()
   in
   gen ~repl ~strict cand.left prem.left
+
+let rule_match ~sc prem cand =
+  try rule_match_exn ~sc prem cand
+  with Unify.Unif _ -> ()
 
 let distribute right sq =
   match right, sq.right with

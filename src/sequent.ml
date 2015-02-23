@@ -99,7 +99,8 @@ let subsume_one ~repl (p, pargs) cx =
       end
     | None -> repls
   in
-  spin [] cx
+  if Form.is_pseudo p then [repl]
+  else spin [] cx
 
 let subsume_all_exn ~repl scx tcx =
   let rec gen repl scx =
@@ -146,7 +147,8 @@ let subsume_test_left sl0 tl0 =
     match Ft.front l with
     | None -> true
     | Some (l, (p, _)) ->
-        test p tl0 && gen l
+        (Form.is_pseudo p || test p tl0)
+        && gen l
   in
   gen sl0
 
@@ -277,4 +279,12 @@ module Test = struct
     factor sq ~sc:doit ;
     Format.(fprintf std_formatter "Here's what remains after factoring:@.") ;
     List.iter print (List.rev !seen)
+
+  let test_pseudo () =
+    let sq0 = mk_sequent ()
+        ~left:(Ft.singleton (intern "@a", [])) ~right:(p, []) in
+    print sq0 ;
+    let sq1 = mk_sequent () ~left:(Ft.of_list [(q, []) ; (p, [])]) ~right:(p, []) in
+    print sq1 ;
+    subsume sq0 sq1
 end
