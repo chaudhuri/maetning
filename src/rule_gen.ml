@@ -13,162 +13,179 @@ open Form
 open Sequent
 open Rule
 
+let rec focus_right left right =
+  match right.form with
+  | Atom (POS, p, pargs) ->
+      right_init p pargs
+  | And (POS, f1, f2) ->
+      let left_rules = focus_right left f1 in
+      let right_rules = focus_right left f2 in
+      binary_join left_rules right_rules
+  | True POS ->
+      [{ prems = [] ;
+         concl = mk_sequent () ;
+         eigen = IdtSet.empty }]
+  | Or (f1, f2) ->
+      focus_right left f1 @ focus_right left f2
+  | False -> []
+  | Exists (_, f) ->
+      let v = fresh_var `evar in
+      let f = app_form (Cons (Shift 0, v)) f in
+      focus_right left f
+  | Shift f ->
+      active_right left [] f
+  | Atom (NEG, _, _)
+  | And (NEG, _, _)
+  | True NEG
+  | Forall _
+  | Implies _ ->
+      assert false
+
+and focus_left left lfoc ratm =
+  match lfoc.form with
+  | Atom (NEG, p, pargs) ->
+      left_init p pargs
+  | And (NEG, f1, f2) ->
+      focus_left left f1 ratm @ focus_left left f2 ratm
+  | True NEG -> []
+  | Implies (f1, f2) ->
+      let left_rules = focus_left left f2 ratm in
+      let right_rules = focus_right left f1 in
+      binary_join ~right_selector:`left left_rules right_rules
+  | Forall (_, f) ->
+      let v = fresh_var `evar in
+      let f = app_form (Cons (Shift 0, v)) f in
+      focus_left left f ratm
+  | Shift f ->
+      active_left left [f] ratm
+  | Atom (POS, _, _)
+  | And (POS, _, _)
+  | True POS
+  | Or _ | False | Exists _ ->
+      Format.(fprintf err_formatter
+                "Cannot left-focus on %a@."
+                (format_form ()) lfoc) ;
+      assert false
+
+and active_right left_passive left_active right =
+  match right.form with
+  | Atom (NEG, p, pargs) ->
+      active_left left_passive left_active (Some (p, pargs))
+  | And (NEG, f1, f2) ->
+      let left_rules = active_right left_passive left_active f1 in
+      let right_rules = active_right left_passive left_active f2 in
+      binary_join left_rules right_rules
+  | True NEG ->
+      [{ prems = [] ;
+         concl = mk_sequent () ;
+         eigen = IdtSet.empty }]
+  | Implies (f, g) ->
+      active_right left_passive (f :: left_active) g
+  | Forall (_, f) ->
+      let v = fresh_var `param in
+      let f = app_form (Cons (Shift 0, v)) f in
+      let rules = active_right left_passive left_active f in
+      let ev = IdtSet.singleton (unvar v) in
+      List.map (fun r -> { r with eigen = IdtSet.union r.eigen ev }) rules
+  | Shift {form = Atom (POS, p, pargs) ; _} ->
+      active_left left_passive left_active (Some (p, pargs))
+  | Atom (POS, _, _)
+  | And (POS, _, _)
+  | True POS
+  | Or _ | False | Exists _
+  | Shift _ ->
+      assert false
+
+and active_left left_passive left_active ratm =
+  match left_active with
+  | [] ->
+      [{ prems = [mk_sequent ()
+                    ~left:(Ft.of_list left_passive)
+                    ?right:ratm] ;
+         concl = mk_sequent () ;
+         eigen = IdtSet.empty }]
+  | la :: left_active ->
+      active_left_one left_passive left_active la ratm
+
+and active_left_one left_passive left_active la ratm =
+  match la.form with
+  | Atom (POS, p, pargs) ->
+      active_left ((p, pargs) :: left_passive) left_active ratm
+  | Shift {form = Atom (NEG, p, pargs) ; _} ->
+      active_left ((p, pargs) :: left_passive) left_active ratm
+  | And (POS, f1, f2) ->
+      active_left left_passive (f1 :: f2 :: left_active) ratm
+  | True POS ->
+      active_left left_passive left_active ratm
+  | Or (f1, f2) ->
+      let left_rules = active_left left_passive (f1 :: left_active) ratm in
+      let right_rules = active_left left_passive (f2 :: left_active) ratm in
+      binary_join left_rules right_rules
+  | False ->
+      [{prems = [] ; concl = mk_sequent () ; eigen = IdtSet.empty}]
+  | Exists (_, f) ->
+      let v = fresh_var `param in
+      let f = app_form (Cons (Shift 0, v)) f in
+      let rules = active_left left_passive (f :: left_active) ratm in
+      let ev = IdtSet.singleton (unvar v) in
+      List.map (fun r -> { r with eigen = IdtSet.union r.eigen ev }) rules
+  | Atom (NEG, _, _)
+  | And (NEG, _, _)
+  | True NEG
+  | Implies _
+  | Forall _
+  | Shift _ ->
+      assert false
+
+and right_init p pargs =
+  [{prems = [] (* [mk_sequent () *)
+            (*    ~left:(Ft.singleton (p, pargs)) *)
+            (*    ~right:(p, pargs)] *) ;
+    concl = mk_sequent ()
+        ~left:(Ft.singleton (p, pargs)) ;
+    eigen = IdtSet.empty }]
+
+and left_init p pargs =
+  [{prems = [] (* [mk_sequent () *)
+    (*    ~left:(Ft.singleton (p, pargs)) *)
+    (*    ~right:(p, pargs)] *) ;
+    concl = mk_sequent ()
+        ~right:(p, pargs) ;
+    eigen = IdtSet.empty }]
+
+and binary_join ?(right_selector=`none) left_rules right_rules =
+  let rules = List.map begin
+      fun left_rule ->
+        List.map begin
+          fun right_rule ->
+            let right = match right_selector with
+              | `left -> left_rule.concl.right
+              | `right -> right_rule.concl.right
+              | `none -> None
+            in
+            { prems = left_rule.prems @ right_rule.prems ;
+              concl = mk_sequent ()
+                  ~left:(Ft.append left_rule.concl.left right_rule.concl.left)
+                  ?right ;
+              eigen = IdtSet.union left_rule.eigen right_rule.eigen }
+        end right_rules
+    end left_rules in
+  List.concat rules
+
 let generate_rules ~sc lforms =
-  let rec focus_right left right =
-    match right.form with
-    | Atom (POS, p, pargs) ->
-        init p pargs
-    | And (POS, f1, f2) ->
-        let left_rules = focus_right left f1 in
-        let right_rules = focus_right left f2 in
-        binary_join left_rules right_rules
-    | True POS ->
-        [{ prems = [] ;
-           concl = mk_sequent () ;
-           eigen = IdtSet.empty }]
-    | Or (f1, f2) ->
-        focus_right left f1 @ focus_right left f2
-    | False -> []
-    | Exists (_, f) ->
-        let v = fresh_var `evar in
-        let f = app_form (Cons (Shift 0, v)) f in
-        focus_right left f
-    | Shift f ->
-        active_right left [] f
-    | Atom (NEG, _, _)
-    | And (NEG, _, _)
-    | True NEG
-    | Forall _
-    | Implies _ ->
-        assert false
-
-  and focus_left left lfoc ratm =
-    match lfoc.form with
-    | Atom (NEG, p, pargs) ->
-        init p pargs
-    | And (NEG, f1, f2) ->
-        focus_left left f1 ratm @ focus_left left f2 ratm
-    | True NEG -> []
-    | Implies (f1, f2) ->
-        let left_rules = focus_left left f2 ratm in
-        let right_rules = focus_right left f1 in
-        binary_join left_rules right_rules
-    | Forall (_, f) ->
-        let v = fresh_var `evar in
-        let f = app_form (Cons (Shift 0, v)) f in
-        focus_left left f ratm
-    | Shift f ->
-        active_left left [f] ratm
-    | Atom (POS, _, _)
-    | And (POS, _, _)
-    | True POS
-    | Or _ | False | Exists _ ->
-        Format.(fprintf err_formatter
-                  "Cannot left-focus on %a@."
-                  (format_form ()) lfoc) ;
-        assert false
-
-  and active_right left_passive left_active right =
-    match right.form with
-    | Atom (NEG, p, pargs) ->
-        active_left left_passive left_active (Some (p, pargs))
-    | And (NEG, f1, f2) ->
-        let left_rules = active_right left_passive left_active f1 in
-        let right_rules = active_right left_passive left_active f2 in
-        binary_join left_rules right_rules
-    | True NEG ->
-        [{ prems = [] ;
-           concl = mk_sequent () ;
-           eigen = IdtSet.empty }]
-    | Implies (f, g) ->
-        active_right left_passive (f :: left_active) g
-    | Forall (_, f) ->
-        let v = fresh_var `param in
-        let f = app_form (Cons (Shift 0, v)) f in
-        let rules = active_right left_passive left_active f in
-        let ev = IdtSet.singleton (unvar v) in
-        List.map (fun r -> { r with eigen = IdtSet.union r.eigen ev }) rules
-    | Shift {form = Atom (POS, p, pargs) ; _} ->
-        active_left left_passive left_active (Some (p, pargs))
-    | Atom (POS, _, _)
-    | And (POS, _, _)
-    | True POS
-    | Or _ | False | Exists _
-    | Shift _ ->
-        assert false
-
-  and active_left left_passive left_active ratm =
-    match left_active with
-    | [] ->
-        [{ prems = [mk_sequent ()
-                      ~left:(Ft.of_list left_passive)
-                      ?right:ratm] ;
-           concl = mk_sequent () ;
-           eigen = IdtSet.empty }]
-    | la :: left_active ->
-        active_left_one left_passive left_active la ratm
-
-  and active_left_one left_passive left_active la ratm =
-    match la.form with
-    | Atom (POS, p, pargs) ->
-        active_left ((p, pargs) :: left_passive) left_active ratm
-    | Shift {form = Atom (NEG, p, pargs) ; _} ->
-        active_left ((p, pargs) :: left_passive) left_active ratm
-    | And (POS, f1, f2) ->
-        active_left left_passive (f1 :: f2 :: left_active) ratm
-    | True POS ->
-        active_left left_passive left_active ratm
-    | Or (f1, f2) ->
-        let left_rules = active_left left_passive (f1 :: left_active) ratm in
-        let right_rules = active_left left_passive (f2 :: left_active) ratm in
-        binary_join left_rules right_rules
-    | False ->
-        [{prems = [] ; concl = mk_sequent () ; eigen = IdtSet.empty}]
-    | Exists (_, f) ->
-        let v = fresh_var `param in
-        let f = app_form (Cons (Shift 0, v)) f in
-        let rules = active_left left_passive (f :: left_active) ratm in
-        let ev = IdtSet.singleton (unvar v) in
-        List.map (fun r -> { r with eigen = IdtSet.union r.eigen ev }) rules
-    | Atom (NEG, _, _)
-    | And (NEG, _, _)
-    | True NEG
-    | Implies _
-    | Forall _
-    | Shift _ ->
-        assert false
-
-  and init p pargs =
-    [{prems = [mk_sequent ()
-                 ~left:(Ft.singleton (p, pargs))
-                 ~right:(p, pargs)] ;
-      concl = mk_sequent ()
-                 ~left:(Ft.singleton (p, pargs))
-                 ~right:(p, pargs) ;
-      eigen = IdtSet.empty }]
-
-  and binary_join left_rules right_rules =
-    let rules = List.map begin
-        fun left_rule ->
-          List.map begin
-            fun right_rule ->
-              { prems = left_rule.prems @ right_rule.prems ;
-                concl = mk_sequent ()
-                    ~left:(Ft.append left_rule.concl.left right_rule.concl.left)
-                    ?right:None ;
-                eigen = IdtSet.union left_rule.eigen right_rule.eigen }
-          end right_rules
-      end left_rules in
-    List.concat rules
-  in
   let process_lform lf =
     match lf.place with
-    | Left ->
+    | Global | Left ->
         focus_left [] lf.skel None |>
         List.map begin fun rule ->
+          let left =
+            if lf.place = Left then
+              Ft.snoc rule.concl.left (lf.label, lf.args)
+            else
+              rule.concl.left
+          in
           {rule with
-           concl = mk_sequent ()
-               ~left:(Ft.snoc rule.concl.left (lf.label, lf.args))
+           concl = mk_sequent () ~left
                ?right:rule.concl.right
                ~inits:rule.concl.inits}
         end
@@ -198,7 +215,7 @@ let generate_initials ~sc atoms =
         if lf.place = place then Some (lf.label, lf.args)
         else None
     end atoms in
-  let left_atoms = filter_atoms Left in
+  let left_atoms = filter_atoms Left @ filter_atoms Global in
   let right_atoms = filter_atoms Right in
   List.iter begin fun (p, pargs) ->
     List.iter begin fun (q, qargs) ->
@@ -212,6 +229,29 @@ let generate_initials ~sc atoms =
       Unify.Unif _ -> ()
     end right_atoms
   end left_atoms
+
+let generate0 ~sc_rules ~sc_inits left right =
+  assert (List.for_all (fun l -> polarity l = NEG) left) ;
+  assert (polarity right = POS) ;
+  let atoms = ref [] in
+  let lforms = ref [] in
+  let process place hyps =
+    List.iter begin
+      fun f ->
+        let (lfs, ats) = relabel ~place f in
+        atoms := ats @ !atoms ;
+        lforms := lfs @ !lforms
+    end hyps in
+  process Global left ;
+  process Right [right] ;
+  Format.(
+    eprintf "Lforms:@." ;
+    List.iter (eprintf "%a@." format_lform) !lforms ;
+    fprintf std_formatter "Atoms:@." ;
+    List.iter (eprintf "%a@." format_lform) !atoms ;
+  ) ;
+  generate_rules !lforms ~sc:sc_rules ;
+  generate_initials (List.map freshen_atom !atoms) ~sc:sc_inits
 
 module Test = struct
 
@@ -232,5 +272,16 @@ module Test = struct
     let atoms = List.map freshen_atom atoms in
     generate_rules lforms ~sc:Rule.Test.print ;
     generate_initials atoms ~sc:Sequent.Test.print
+
+  let even x = Form.atom NEG (intern "even") [x]
+  let even_theory = [ even z ;
+                      forall (intern "x") (implies [even (idx 0)] (even (s (s (idx 0))))) ]
+  let _a = fresh_var `param
+  let even_right = even (s (s (s z))) |> shift
+
+  let gtest ?(left=[]) right =
+    generate0 left right
+      ~sc_rules:Rule.Test.print
+      ~sc_inits:Sequent.Test.print
 
 end

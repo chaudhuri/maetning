@@ -190,8 +190,8 @@ let form_to_string ?(cx=[]) ?max_depth f =
   Format.pp_print_flush fmt () ;
   Buffer.contents buf
 
-type place = Left | Right
-let change = function Left -> Right | Right -> Left
+type place = Global | Left | Right
+let change = function Global | Left -> Right | Right -> Left
 
 let fresh_label =
   let last = ref 0 in
@@ -210,6 +210,7 @@ let format_lform fmt lf =
   let open Format in
   pp_open_box fmt 0 ; begin
     pp_print_string fmt begin match lf.place with
+      | Global -> "global "
       | Left -> "left "
       | Right -> "right "
     end ;
@@ -235,6 +236,7 @@ let place_term place args =
   match place with
   | Left -> Term.(app (intern "left") args)
   | Right -> Term.(app (intern "right") args)
+  | Global -> Term.(app (intern "global") args)
 
 let relabel ?(place=Right) f =
   let lforms : lform list ref = ref [] in
@@ -272,7 +274,7 @@ let relabel ?(place=Right) f =
         disj [spin place args pf1 ; spin place args pf2]
     | (True _ | False) -> f0
     | Exists (x, pf) -> begin
-        let v = fresh_var (match place with Right -> `evar | Left -> `param) in
+        let v = fresh_var (match place with Right -> `evar | Global | Left -> `param) in
         let pf = app_form (Cons (Shift 0, v)) pf in
         let pf = spin place (v :: args) pf in
         let pf = app_form (Shift 1) pf in
@@ -282,7 +284,7 @@ let relabel ?(place=Right) f =
     | Implies (pf, nf) ->
          implies [spin (change place) args pf] @@ spin place args nf
     | Forall (x, nf) -> begin
-        let v = fresh_var (match place with Left -> `evar | Right -> `param) in
+        let v = fresh_var (match place with Global | Left -> `evar | Right -> `param) in
         let nf = app_form (Cons (Shift 0, v)) nf in
         let nf = spin place (v :: args) nf in
         let nf = app_form (Shift 1) nf in

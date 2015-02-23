@@ -40,7 +40,7 @@ let format_rule ?max_depth () fmt rr =
         format_sequent ?max_depth () fmt prem ;
         pp_print_cut fmt () ;
     end rr.prems ;
-    fprintf fmt "--------------------%t@, " format_eigens ;
+    fprintf fmt "--------------------%t@," format_eigens ;
     format_sequent ?max_depth () fmt rr.concl
   end ; pp_close_box fmt ()
 
@@ -80,50 +80,92 @@ let ec_viol eigen concl =
   scan concl.left
 
 let rule_match ~sc prem cand =
-  let strict = ref false in
   let repl = IdtMap.empty in
-  let (_repl, _right) =
+  let (repl, right, strict) =
     match prem.right, cand.right with
     | None, _ ->
-        strict := Option.is_some cand.right ;
-        (repl, cand.right)
+        (repl, cand.right, false)
     | _, None ->
-        (repl, prem.right)
+        (repl, prem.right, false)
     | Some (p, pargs), Some (q, qargs) -> begin
         if p != q then Unify.unif_fail "right hand sides" ;
         let (repl, args) = Unify.unite_lists repl pargs qargs in
-        strict := true ;
-        (repl, Some (p, args))
+        (repl, Some (p, args), true)
       end
   in
-  ()
+  let rec gen ~repl ~strict left hyps =
+    (* Format.( *)
+    (*   eprintf "gen: %s@." (if strict then "strict" else "") ; *)
+    (*   eprintf "left:@." ; *)
+    (*   Ft.iter begin *)
+    (*     fun (p, pargs) -> *)
+    (*       eprintf "  %a@." (format_term ()) (app p pargs) *)
+    (*   end left ; *)
+    (*   eprintf "hyps:@." ; *)
+    (*   Ft.iter begin *)
+    (*     fun (p, pargs) -> *)
+    (*       eprintf "  %a@." (format_term ()) (app p pargs) *)
+    (*   end hyps ; *)
+    (* ) ; *)
+    match Ft.front hyps with
+    | Some (hyps, (p, pargs)) ->
+        (* weaken *)
+        gen ~repl ~strict left hyps ;
+        (* non-weaken *)
+        test left p pargs ~repl ~strict
+          ~cont:(fun ~repl ~strict left -> gen ~repl ~strict left hyps) ;
+    | None ->
+        let sq = mk_sequent () ~left:left ?right:right ~inits:cand.inits
+                 |> replace_sequent ~repl in
+        if strict then sc repl sq
+        else ((* Format.(eprintf "non-strict discard: %a@." (format_sequent ()) sq) *))
+  and test ~repl ~strict ~cont ?(discard=Ft.empty) left p pargs =
+    match Ft.front left with
+    | Some (left, ((q, qargs) as l)) ->
+        if p == q then begin
+          try
+            let (repl, _) = Unify.unite_lists repl pargs qargs in
+            cont ~repl ~strict:true (Ft.append discard left)
+          with Unify.Unif _ -> ()
+        end ;
+        test ~repl ~strict ~cont ~discard:(Ft.snoc discard l) left p pargs
+    | None -> ()
+  in
+  gen ~repl ~strict cand.left prem.left
+
+let distribute right sq =
+  match right, sq.right with
+  | Some right, None ->
+      mk_sequent ~left:sq.left ~right ~inits:sq.inits ()
+  | _ -> sq
 
 let specialize_one ~sc ~sq ~concl ~eigen current_prem remaining_prems =
-  try begin
-    let repl = subsume_exn current_prem sq in
-    let prems = List.map (replace_sequent ~repl) remaining_prems in
-    let new_hyps =
-      let removed = Ft.to_list current_prem.left in
-      let removed = List.map (replace_latm ~repl) removed in
-      Ft.to_list sq.left |>
-      List.filter (fun hyp -> not @@ List.mem hyp removed) |>
-      Ft.of_list
-    in
-    let concl = replace_sequent ~repl concl in
-    let concl = mk_sequent ()
-        ~left:(Ft.append concl.left new_hyps)
-        ?right:concl.right
-        ~inits:concl.inits
-    in
-    let eigen = replace_eigen_set ~repl eigen in
-    if not @@ ec_viol eigen concl then
-      let prem_vars = List.fold_left begin
-          fun vars sq -> IdtSet.union vars sq.vars
-        end IdtSet.empty prems in
-      let eigen = IdtSet.inter eigen prem_vars in
-      sc { prems ; concl ; eigen }
-  end with
-  Unify.Unif _ -> ()
+  rule_match current_prem sq ~sc:begin
+    fun repl sq ->
+      let prems = List.map (replace_sequent ~repl) remaining_prems in
+      let new_hyps =
+        let removed = Ft.to_list current_prem.left in
+        let removed = List.map (replace_latm ~repl) removed in
+        Ft.to_list sq.left |>
+        List.filter (fun hyp -> not @@ List.mem hyp removed) |>
+        Ft.of_list
+      in
+      let concl = replace_sequent ~repl concl in
+      let concl = mk_sequent ()
+          ~left:(Ft.append concl.left new_hyps)
+          ?right:concl.right
+          ~inits:concl.inits
+      in
+      let prems = List.map (distribute sq.right) prems in
+      let concl = distribute sq.right concl in
+      let eigen = replace_eigen_set ~repl eigen in
+      if not @@ ec_viol eigen concl then
+        let prem_vars = List.fold_left begin
+            fun vars sq -> IdtSet.union vars sq.vars
+          end IdtSet.empty prems in
+        let eigen = IdtSet.inter eigen prem_vars in
+        sc { prems ; concl ; eigen }
+  end
 
 let specialize ~sc rr sq =
   let rec spin left right =
@@ -139,8 +181,10 @@ let specialize ~sc rr sq =
 let factor_loop ~sc sq =
   let seen = ref [] in
   let doit sq =
-    if List.for_all (fun seensq -> not @@ Sequent.subsume seensq sq) !seen
-    then begin
+    if List.exists (fun seensq -> Sequent.subsume seensq sq) !seen then begin
+      (* Format.(eprintf "factor_loop: killed %a@." *)
+      (*           (format_sequent ()) sq) *)
+    end else begin
       sc sq ;
       seen := sq :: !seen
     end
@@ -174,19 +218,31 @@ module Test = struct
     eigen = IdtSet.singleton (unvar _a)
   }
 
+  let sq1 = mk_sequent ()
+      ~left:(Ft.of_list [(q, [_Y])])
+      ~right:(p, [s z ; _b])
+
+  let rule2 = {
+    prems = [ mk_sequent ()
+                ~left:(Ft.of_list [(q, [z])]) ;
+              mk_sequent ()
+                ~left:(Ft.of_list [(q, [s z])]) ] ;
+    concl = mk_sequent ()
+        ~left:(Ft.singleton (q, [app (Idt.intern "nat") []])) ;
+    eigen = IdtSet.empty
+  }
+
+  let sq2 = mk_sequent () ~left:(Ft.singleton (q, [_X])) ~right:(q, [s _X])
+
   let print rr =
     let open Format in
     fprintf std_formatter "rule @[<h>%a@]@." (format_rule ()) rr
 
-  let test () =
-    print rule1 ;
+  let test rule sq =
     let sc_fact = Sequent.Test.print in
     let sc_rule = print in
-    let sq = mk_sequent ()
-        ~left:(Ft.of_list [(q, [_Y])])
-        ~right:(p, [s z ; _b])
-    in
     Sequent.Test.print sq ;
-    specialize_default ~sc_rule ~sc_fact rule1 sq
+    print rule ;
+    specialize_default ~sc_rule ~sc_fact rule sq
 
 end
