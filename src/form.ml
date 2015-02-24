@@ -188,18 +188,18 @@ let rec pretty_form ?(cx=[]) ?max_depth f0 =
       let f2e = pretty_form ~cx ?max_depth f2 in
       Pretty.(Opapp (__implies_prec, Infix (RIGHT, f1e, FMT " ⊃@ ", f2e)))
   | True POS ->
-      Pretty.(Atom (STR "one"))
+      Pretty.(Atom (STR "1"))
   | True NEG ->
-      Pretty.(Atom (STR "top"))
+      Pretty.(Atom (STR "⊤"))
   | False ->
-      Pretty.(Atom (STR "zero"))
+      Pretty.(Atom (STR "⊥"))
   | Forall (x, f) ->
       let fe = pretty_form ~cx:(x :: cx) ?max_depth f in
-      let op fmt = Format.fprintf fmt "\\A %s.@ " x.rep in
+      let op fmt = Format.fprintf fmt "∀%s.@ " x.rep in
       Pretty.(Opapp (__quant_prec, Prefix (FUN op, fe)))
   | Exists (x, f) ->
       let fe = pretty_form ~cx:(x :: cx) ?max_depth f in
-      let op fmt = Format.fprintf fmt "\\E %s.@ " x.rep in
+      let op fmt = Format.fprintf fmt "∃%s.@ " x.rep in
       Pretty.(Opapp (__quant_prec, Prefix (FUN op, fe)))
 
 let format_form ?cx ?max_depth () fmt f =
