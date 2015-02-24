@@ -83,7 +83,7 @@ module Inv (D : Data) = struct
         match rr.prems with
         | [] ->  add_seq rr.concl
         | _ ->
-            (* Rule.Test.print rr ; *)
+            Rule.Test.print rr ;
             rules := rr :: !rules
       in
       gen ~sc_inits:add_seq ~sc_rules:add_rule ;
@@ -114,18 +114,8 @@ module Test = struct
   open Idt
   open Rule_gen.Test
 
-  let even x = Form.atom NEG (intern "even") [x]
-  let even_theory = [ even z ;
-                      forall (intern "x") (implies [even (idx 0)] (even (s (s (idx 0))))) ]
-  let even_prune n =
-    let rec prune_t t = function
-      | 0 -> forall (intern "x") (even t)
-      | n -> prune_t (s t) (n - 1)
-    in [ prune_t (idx 0) n ]
-  let even_right = even (s (s (s z))) |> shift
-
-  let even_test n =
-    match inverse_method ~left:even_theory ~pseudo:(even_prune n) even_right with
+  let inverse_test ~theory ~pseudo ~goal n =
+    match inverse_method ~left:theory ~pseudo:(pseudo n) goal with
     | None ->
         Format.printf "Not provable@."
     | Some pf -> begin
@@ -137,15 +127,37 @@ module Test = struct
         | Some (p, _) -> Format.printf "UNSOUND: Used pseudo %s.@." p.rep
       end
 
+
+  let even x = Form.atom NEG (intern "even") [x]
+  let even_theory = [ even z ;
+                      forall_ "x" (fun x -> implies [even x] (even (s (s x)))) ]
+  let even_prune n =
+    let rec prune_t t = function
+      | 0 -> forall (intern "x") (even t)
+      | n -> prune_t (s t) (n - 1)
+    in [ prune_t (idx 0) n ]
+  let even_right = even (s (s (s z))) |> shift
+  let even_test n = inverse_test ~theory:even_theory ~pseudo:even_prune ~goal:even_right n
+
+  let rec s_n n x = match n with 0 -> x | n -> s (s_n (n - 1) x)
+
+  let odd x = Form.atom NEG (intern "odd") [x]
+  let odd_theory = [ odd (s z) ;
+                     forall_ "x" (fun x -> implies [odd (s_n 2 x)] (odd x)) ]
+  let odd_prune n = [
+    implies [exists_ "x" (fun x -> odd (s_n n x))]
+      (forall_ "x" (fun x -> odd (s_n n x)))
+  ]
+  let odd_goal = odd (s (s z)) |> shift
+  let odd_test n = inverse_test ~theory:odd_theory ~pseudo:odd_prune ~goal:odd_goal n
+
   let lf = app (intern "lf") []
   let nd tl tr = app (intern "nd") [tl ; tr]
   let bal t x = atom NEG (intern "bal") [t ; x]
   let bal_th = [ bal lf z ;
-                 forall (intern "x")
-                   (forall (intern "t")
-                      (let t = idx 0 in
-                       let x = idx 1 in
-                       implies [bal t x] (bal (nd t t) (s x)))) ]
+                 forall_ "x"
+                   (fun x -> forall_ "t"
+                       (fun t -> implies [bal t x] (bal (nd t t) (s x)))) ]
   let bal_prune n =
     let rec spin t = function
       | 0 -> wrap (forall (intern "x") (bal t (idx 0))) (n + 1)
@@ -154,19 +166,8 @@ module Test = struct
       | 0 -> t
       | k -> wrap (forall (intern ("tt" ^ string_of_int k)) t) (k - 1)
     in
-    spin (idx 1) n
+    [ spin (idx 1) n ]
   let bal_right = exists (intern "x") (bal (nd lf (nd lf lf)) (idx 0))
+  let bal_test n = inverse_test ~theory:bal_th ~pseudo:bal_prune ~goal:bal_right n
 
-  let baltest n =
-    match inverse_method ~left:bal_th ~pseudo:[ bal_prune n ] bal_right with
-    | None ->
-        Format.printf "Not provable@."
-    | Some pf -> begin
-        match
-          Ft.to_list pf.left |>
-          List.Exceptionless.find (fun (p, _) -> Form.is_pseudo p)
-        with
-        | None -> Format.printf "Proved!@."
-        | Some (p, _) -> Format.printf "UNSOUND: Used pseudo %s.@." p.rep
-      end
 end

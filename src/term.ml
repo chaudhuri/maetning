@@ -166,9 +166,10 @@ let rec format_term ?(cx=[]) ?max_depth () fmt t =
   match t.term with
   | Var v ->
       pp_print_string fmt v.rep
-  | Idx n ->
-      assert (n < List.length cx) ;
+  | Idx n when n < List.length cx ->
       pp_print_string fmt (List.nth cx n).rep
+  | Idx n ->
+      pp_print_char fmt '`' ; pp_print_int fmt n
   | App (f, []) ->
       pp_print_string fmt f.rep
   | App (f, _) when max_depth = Some 1 ->

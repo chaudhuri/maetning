@@ -107,6 +107,28 @@ let rec app_form ss f0 =
   | Implies (pf, nf)     -> implies [app_form ss pf] (app_form ss nf)
   | Forall (x, nf)       -> forall x @@ app_form (bump ss 1) nf
 
+let abstract v f =
+  let rec spin depth f =
+    match f.form with
+    | Shift f -> shift @@ spin depth f
+    | Atom (pol, pred, ts) ->
+        atom pol pred @@ List.map (spin_term depth) ts
+    | And (pol, f1, f2) -> conj ~pol [spin depth f1 ; spin depth f2]
+    | Or (f1, f2) -> disj [spin depth f1 ; spin depth f2]
+    | (True _ | False) -> f
+    | Exists (x, f) -> exists x @@ spin (depth + 1) f
+    | Forall (x, f) -> forall x @@ spin (depth + 1) f
+    | Implies (f, g) -> implies [spin depth f] (spin depth g)
+  and spin_term depth t =
+    match t.term with
+    | Var u when u = v -> idx depth
+    | Var _ -> t
+    | Idx n when n < depth -> t
+    | Idx n -> idx @@ n + 1
+    | App (f, ts) -> app f @@ List.map (spin_term depth) ts
+  in
+  spin 0 f
+
 let rec replace ?(depth=0) ~repl f0 =
   if IdtSet.for_all (fun v -> not @@ IdtMap.mem v repl) f0.vars then f0
   else match f0.form with
@@ -189,6 +211,18 @@ let form_to_string ?(cx=[]) ?max_depth f =
   format_form ~cx ?max_depth () fmt f ;
   Format.pp_print_flush fmt () ;
   Buffer.contents buf
+
+let new_dummy =
+  let last = ref 0 in
+  fun () -> decr last ; intern ("'" ^ string_of_int !last)
+let binder mk x f =
+  let dummy = new_dummy () in
+  let f = f (var dummy) |>
+          force NEG |>
+          abstract dummy in
+  mk (intern x) f
+let forall_ = binder forall
+let exists_ = binder exists
 
 type place = Left of left | Right
 and left = Global | Pseudo | Local
