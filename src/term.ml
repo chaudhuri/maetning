@@ -181,8 +181,8 @@ let rec format_term ?(cx=[]) ?max_depth () fmt t =
         | Some d -> Some (d - 1) in
       pp_open_hvbox fmt 2 ; begin
         pp_print_string fmt f.rep ;
+        (* pp_print_cut fmt () ; *)
         pp_print_string fmt "(" ;
-        pp_print_cut fmt () ;
         format_term ~cx ?max_depth () fmt t0 ;
         List.iter begin fun t ->
           pp_print_string fmt "," ;

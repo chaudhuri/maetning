@@ -37,9 +37,8 @@ let parse_options () =
 let process_file file =
   let ch = open_in_bin file in
   let lb = Lexing.from_channel ch in
-  let f = Front_parse.one_form Front_lex.token lb in
-  close_in ch ;
-  ignore f
+  Front_parse.file Front_lex.token lb ;
+  close_in ch
 
 let main () =
   parse_options () ;

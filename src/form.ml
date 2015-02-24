@@ -121,10 +121,10 @@ let abstract v f =
     | Implies (f, g) -> implies [spin depth f] (spin depth g)
   and spin_term depth t =
     match t.term with
-    | Var u when u = v -> idx depth
     | Var _ -> t
     | Idx n when n < depth -> t
     | Idx n -> idx @@ n + 1
+    | App (u, []) when u == v -> idx depth
     | App (f, ts) -> app f @@ List.map (spin_term depth) ts
   in
   spin 0 f
@@ -217,7 +217,7 @@ let new_dummy =
   fun () -> decr last ; intern ("'" ^ string_of_int !last)
 let binder mk x f =
   let dummy = new_dummy () in
-  let f = f (var dummy) |>
+  let f = f (app dummy []) |>
           force NEG |>
           abstract dummy in
   mk (intern x) f

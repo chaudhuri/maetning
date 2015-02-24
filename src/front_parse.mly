@@ -40,7 +40,10 @@
 
 file:
 | EOS                        { () }
-| command file               { () }
+| command banner file        { () }
+
+banner:
+|                            { Format.printf "-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-@." }
 
 command:
 | POSITIVE h=IDENT DOT       { Command.register_polarity h Form.POS }
@@ -70,9 +73,9 @@ form:
 | TOP                        { Form.(conj ~pol:NEG []) }
 | f=form IMP g=form
 | g=form IF f=form           { Form.(implies [f] g) }
-| FORALL vs=vars COMMA f=form
+| FORALL vs=vars DOT f=form
   %prec PREC_MIN             { Form.(make_quant forall vs f) }
-| EXISTS vs=vars COMMA f=form
+| EXISTS vs=vars DOT f=form
   %prec PREC_MIN             { Form.(make_quant exists vs f) }
 | LPAREN f=form RPAREN       { f }
 

@@ -35,12 +35,13 @@ module Trivial : Data = struct
     List.exists (fun oldsq -> Sequent.subsume oldsq sq) !db
 
   let index sq =
-    Format.printf "[%d] %a@." sq.sqid (Sequent.format_sequent ()) sq ;
+    Sequent.Test.print sq ;
     db := sq :: !db ;
     Queue.add sq sos
 
   let register sq =
-    if not @@ subsumed sq then index sq
+    if not (subsumed sq) then index sq
+    (* else Format.printf "Subsumed: %a@." (Sequent.format_sequent ()) sq *)
 
   let select () =
     try
@@ -75,8 +76,13 @@ module Inv (D : Data) = struct
       let rules = ref [] in
       let (goal_lf, gen) = Rule_gen.generate0 left pseudo right in
       let goal_seq = mk_sequent ~right:(goal_lf.label, goal_lf.args) () in
+      (* Format.printf "Goal sequent: %a@." (Sequent.format_sequent ()) goal_seq ; *)
       let add_seq sq =
-        if Sequent.subsume sq goal_seq then raise (Escape sq) ;
+        if Sequent.subsume sq goal_seq then begin
+          Sequent.Test.print sq ;
+          (* Format.printf "[%d] %a@." sq.sqid (Sequent.format_sequent ()) sq ; *)
+          raise (Escape sq)
+        end ;
         D.register sq
       in
       let add_rule rr =
@@ -88,6 +94,7 @@ module Inv (D : Data) = struct
       in
       gen ~sc:add_rule ;
       spin_until_none D.select begin fun sel ->
+        (* Format.printf "Selected: %a@." (Sequent.format_sequent ()) sel ; *)
         List.iter begin fun rr ->
           Rule.specialize_default rr (Sequent.freshen sel ())
             ~sc_rule:add_rule
@@ -137,7 +144,8 @@ module Test = struct
   let even_theory = [ even z ;
                       forall_ "x" (fun x -> implies [even x] (even (s (s x)))) ]
   let even_prune n = [ forall_ "x" (fun x -> even (s_n n x)) ]
-  let even_right = even (s_n 7 z) |> shift
+  let even_prune n = [ ]
+  let even_right = even (s_n 2 z) |> shift
   let even_test n = inverse_test ~theory:even_theory ~pseudo:even_prune ~goal:even_right n
 
   let odd x = Form.atom NEG (intern "odd") [x]
