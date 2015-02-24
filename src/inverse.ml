@@ -86,12 +86,12 @@ module Inv (D : Data) = struct
             Rule.Test.print rr ;
             rules := rr :: !rules
       in
-      gen ~sc_inits:add_seq ~sc_rules:add_rule ;
+      gen ~sc:add_rule ;
       spin_until_none D.select begin fun sel ->
         List.iter begin fun rr ->
           Rule.specialize_default rr (Sequent.freshen sel ())
             ~sc_rule:add_rule
-            ~sc_fact:add_seq
+            ~sc_fact:add_seq ;
         end !rules ;
         spin_until_quiescence (fun () -> List.length !rules) begin fun () ->
           List.iter begin fun rr ->
@@ -100,7 +100,7 @@ module Inv (D : Data) = struct
                 ~sc_rule:add_rule
                 ~sc_fact:add_seq
             end
-          end !rules
+          end !rules ;
         end ;
         per_loop () ;
       end ;
@@ -114,8 +114,12 @@ module Test = struct
   open Idt
   open Rule_gen.Test
 
-  let inverse_test ~theory ~pseudo ~goal n =
-    match inverse_method ~left:theory ~pseudo:(pseudo n) goal with
+  let sleep n () =
+    Format.printf "One loop done@." ;
+    Unix.sleep n
+
+  let inverse_test ~theory ~pseudo ~goal ?(per_loop=noop) n =
+    match inverse_method ~left:theory ~pseudo:(pseudo n) ~per_loop goal with
     | None ->
         Format.printf "Not provable@."
     | Some pf -> begin
@@ -127,29 +131,34 @@ module Test = struct
         | Some (p, _) -> Format.printf "UNSOUND: Used pseudo %s.@." p.rep
       end
 
+  let rec s_n n x = match n with 0 -> x | n -> s (s_n (n - 1) x)
 
   let even x = Form.atom NEG (intern "even") [x]
   let even_theory = [ even z ;
                       forall_ "x" (fun x -> implies [even x] (even (s (s x)))) ]
-  let even_prune n =
-    let rec prune_t t = function
-      | 0 -> forall (intern "x") (even t)
-      | n -> prune_t (s t) (n - 1)
-    in [ prune_t (idx 0) n ]
-  let even_right = even (s (s (s z))) |> shift
+  let even_prune n = [ forall_ "x" (fun x -> even (s_n n x)) ]
+  let even_right = even (s_n 7 z) |> shift
   let even_test n = inverse_test ~theory:even_theory ~pseudo:even_prune ~goal:even_right n
-
-  let rec s_n n x = match n with 0 -> x | n -> s (s_n (n - 1) x)
 
   let odd x = Form.atom NEG (intern "odd") [x]
   let odd_theory = [ odd (s z) ;
                      forall_ "x" (fun x -> implies [odd (s_n 2 x)] (odd x)) ]
-  let odd_prune n = [
+  let odd_prune_unguarded n = [
+      (forall_ "x" (fun x -> odd (s_n n x)))
+  ]
+  let odd_prune_guarded n = [
     implies [exists_ "x" (fun x -> odd (s_n n x))]
       (forall_ "x" (fun x -> odd (s_n n x)))
   ]
   let odd_goal = odd (s (s z)) |> shift
-  let odd_test n = inverse_test ~theory:odd_theory ~pseudo:odd_prune ~goal:odd_goal n
+  let odd_test_guarded n = inverse_test n
+      ~theory:odd_theory
+      ~pseudo:odd_prune_guarded
+      ~goal:odd_goal
+  let odd_test_unguarded n = inverse_test n
+      ~theory:odd_theory
+      ~pseudo:odd_prune_unguarded
+      ~goal:odd_goal
 
   let lf = app (intern "lf") []
   let nd tl tr = app (intern "nd") [tl ; tr]

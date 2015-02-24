@@ -196,39 +196,15 @@ let freshen_atom lf =
       {lf with args = args}
   | _ -> assert false
 
-let generate_initials ~sc atoms =
-  let filter_atoms test = List.filter_map begin
-      fun lf ->
-        if test lf.place then Some (lf.label, lf.args)
-        else None
-    end atoms in
-  let left_atoms = filter_atoms (function Left _ -> true | _ -> false) in
-  let right_atoms = filter_atoms (function Right -> true | _ -> false) in
-  List.iter begin fun (p, pargs) ->
-    List.iter begin fun (q, qargs) ->
-      if p != q then () else
-      try
-        let (repl, args) = Unify.unite_lists IdtMap.empty pargs qargs in
-        mk_sequent ()
-          ~left:(Ft.singleton (p, args))
-          ~right:(p, args) |> sc
-      with
-      Unify.Unif _ -> ()
-    end right_atoms
-  end left_atoms
-
 let generate0 left pseudo right =
   assert (List.for_all (fun l -> polarity l = NEG) left) ;
   assert (List.for_all (fun l -> polarity l = NEG) pseudo) ;
   assert (polarity right = POS) ;
-  let atoms = ref [] in
   let lforms = ref [] in
   let process place hyps =
     List.iter begin
       fun f ->
-        let (lfs, ats) = relabel ~place f in
-        if place <> Left Pseudo then
-          atoms := ats @ !atoms ;
+        let lfs = relabel ~place f in
         lforms := lfs @ !lforms
     end hyps in
   process (Left Global) left ;
@@ -238,15 +214,9 @@ let generate0 left pseudo right =
   Format.(
     printf "Labeled formulas:@." ;
     List.iter (printf "  %a@." format_lform) !lforms ;
-    (* fprintf std_formatter "Atoms:@." ; *)
-    (* List.iter (eprintf "%a@." format_lform) !atoms ; *)
     printf "Goal is %s@." goal_lform.label.rep ;
   ) ;
-  let generator ~sc_rules ~sc_inits =
-     generate_rules !lforms ~sc:sc_rules ;
-     generate_initials (List.map freshen_atom !atoms) ~sc:sc_inits
-  in
-  (goal_lform, generator)
+  (goal_lform, generate_rules !lforms)
 
 module Test = struct
 
@@ -263,9 +233,7 @@ module Test = struct
   let f1 = conj ~pol:NEG [implies [a] c ; implies [b] c]
 
   let test f =
-    let (lforms, atoms) = Form.Test.test f in
-    let atoms = List.map freshen_atom atoms in
-    generate_rules lforms ~sc:Rule.Test.print ;
-    generate_initials atoms ~sc:Sequent.Test.print
+    let lforms = Form.Test.test f in
+    generate_rules lforms ~sc:Rule.Test.print
 
 end

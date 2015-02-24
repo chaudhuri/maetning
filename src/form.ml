@@ -285,13 +285,9 @@ let place_cookie = function
 
 let relabel ?(place=Right) f =
   let lforms : lform list ref = ref [] in
-  let atoms  : lform list ref = ref [] in
   let emit_lform lf =
     (* Format.(fprintf std_formatter "  emitted %a@." format_lform lf) ; *)
     lforms := lf :: !lforms in
-  let emit_atom atm =
-    (* Format.(fprintf std_formatter "  emitted %a@." format_lform atm) ; *)
-    atoms := atm :: !atoms in
   let rec spin place args f0 =
     (* Format.(fprintf std_formatter *)
     (*           "spin %a %a@." *)
@@ -310,9 +306,7 @@ let relabel ?(place=Right) f =
         let res = shift @@ spin place args f in
         (* Format.(fprintf std_formatter "  is therefore %a@." (format_form ()) res) ; *)
         res
-    | Atom (_, pred, args) ->
-        emit_atom { place ; label = pred ; args ; skel = f0 } ;
-        f0
+    | Atom (_, pred, args) -> f0
     | And (pol, pf1, pf2)  ->
         conj ~pol [spin place args pf1 ; spin place args pf2]
     | Or (pf1, pf2)    ->
@@ -348,7 +342,7 @@ let relabel ?(place=Right) f =
     | Right -> Right
   in
   emit_lform { place ; label = l0 ; args = [] ; skel = spin (weaker_place place) [] f0 } ;
-  (!lforms, !atoms)
+  !lforms
 
 module Test = struct
   let (x, y, z) = (intern "x", intern "y", intern "z")
@@ -364,10 +358,8 @@ module Test = struct
   let test f =
     let open Format in
     fprintf std_formatter "Formatting: @[%a@]@." (format_form ()) f ;
-    let (lfs, ats) = relabel ~place:Right f in
+    let lfs = relabel ~place:Right f in
     List.iter (fprintf std_formatter "%a@." format_lform) lfs ;
-    fprintf std_formatter "Atoms:@." ;
-    List.iter (fprintf std_formatter "%a@." format_lform) ats ;
-    (lfs, ats)
+    lfs
 
 end
