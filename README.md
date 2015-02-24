@@ -9,6 +9,7 @@ disproving non-theorems.
 
 * Recent OCaml toolchain (programmed using 4.02.1)
 * [OCaml Batteries Included][batt] (`opam install batteries`)
+* Menhir (`opam install menhir`)
 
 [batt]: http://batteries.forge.ocamlcore.org
 

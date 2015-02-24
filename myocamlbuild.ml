@@ -46,9 +46,11 @@ let () =
   maybe_make_version_file () ;
   Ocamlbuild_plugin.(
     Options.use_ocamlfind := true ;
+    Options.use_menhir := true ;
     dispatch begin function
     | After_rules ->
         (* flag ["ocaml" ; "compile"] (A "-g") ; *)
+        flag ["ocaml" ; "menhir"] (S [A "--explain" (* ; A "--strict" *)]) ;
         flag ["ocaml" ; "compile"] (A "-bin-annot") ;
         flag ["ocaml" ; "compile"] (A "-safe-string") ;
         flag ["ocaml" ; "link"] (A "-safe-string") ;
