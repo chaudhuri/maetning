@@ -11,6 +11,7 @@ open Form
 open Sequent
 open Rule
 open Rule_gen
+open Inverse
 
 let () =
   if not !Sys.interactive then

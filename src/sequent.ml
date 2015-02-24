@@ -34,18 +34,17 @@ module Sq : sig
     right : latm option ;
     vars : IdtSet.t ;
     (** invariant: fvs(sq.left) \cup fvs(sq.right) \subseteq sq.vars *)
-    inits : ISet.t
   }
-  val mk_sequent : ?inits:ISet.t -> ?right:latm -> ?left:ctx -> unit -> sequent
+  val mk_sequent : ?right:latm -> ?left:ctx -> unit -> sequent
 end = struct
   type sequent = {sqid : int ; left : ctx ; right : latm option ;
-                  vars : IdtSet.t ; inits : ISet.t}
+                  vars : IdtSet.t}
 
   let next_sqid =
     let __last = ref 0 in
     fun () -> incr __last ; !__last
 
-  let mk_sequent ?(inits=ISet.empty) ?right ?(left=Ft.empty) () =
+  let mk_sequent ?right ?(left=Ft.empty) () =
     let sqid = next_sqid () in
     let terms = match right with
       | None -> left
@@ -57,7 +56,7 @@ end = struct
             fun vars t -> IdtSet.union vars t.Term.vars
           end vars ts
       end IdtSet.empty terms in
-    { sqid ; left ; right ; vars ; inits}
+    { sqid ; left ; right ; vars}
 end
 
 include Sq
@@ -85,7 +84,7 @@ let freshen ?(repl=IdtMap.empty) s0 =
         let (repl, elem) = freshen_latm ~repl elem in
         (repl, Ft.snoc left elem)
     end (repl, Ft.empty) s0.left in
-  mk_sequent ~left ?right ~inits:s0.inits
+  mk_sequent ~left ?right
 
 let subsume_one ~repl (p, pargs) cx =
   let rec spin repls cx =
@@ -168,7 +167,7 @@ let replace_latm ~repl (p, args) =
 let replace_sequent ~repl sq =
   let left = Ft.map (replace_latm ~repl) sq.left in
   let right = Option.map (replace_latm ~repl) sq.right in
-  mk_sequent ~left ?right ~inits:sq.inits ()
+  mk_sequent ~left ?right ()
 
 let factor_one ~sc sq =
   let rec gen left right =
@@ -190,7 +189,7 @@ let factor_one ~sc sq =
             let left = Ft.append left @@ Ft.append middle right in
             let left = Ft.snoc left (p, pargs) in
             let right = Option.map (replace_latm ~repl) sq.right in
-            sc @@ mk_sequent ~left ?right ~inits:sq.inits ()
+            sc @@ mk_sequent ~left ?right ()
           with
           Unify.Unif _ -> ()
         end ;
@@ -257,7 +256,7 @@ module Test = struct
   let init0 =
     let left = Ft.of_list [(p, [_X]) ; (p, [_a]); (p, [_b])] in
     let right = Some (q, [_X; _a; _b]) in
-    mk_sequent ~left ?right ~inits:ISet.empty
+    mk_sequent ~left ?right
 
   let print sq =
       Format.(fprintf std_formatter "[%d] %a@." sq.sqid (format_sequent ()) sq)

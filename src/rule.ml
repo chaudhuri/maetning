@@ -117,7 +117,7 @@ let rule_match_exn ~sc prem cand =
         test left p pargs ~repl ~strict
           ~cont:(fun ~repl ~strict left -> gen ~repl ~strict left hyps) ;
     | None ->
-        let sq = mk_sequent () ~left:left ?right:right ~inits:cand.inits
+        let sq = mk_sequent () ~left:left ?right:right
                  |> replace_sequent ~repl in
         if strict then sc repl sq
         else ((* Format.(eprintf "non-strict discard: %a@." (format_sequent ()) sq) *))
@@ -142,7 +142,7 @@ let rule_match ~sc prem cand =
 let distribute right sq =
   match right, sq.right with
   | Some right, None ->
-      mk_sequent ~left:sq.left ~right ~inits:sq.inits ()
+      mk_sequent ~left:sq.left ~right ()
   | _ -> sq
 
 let specialize_one ~sc ~sq ~concl ~eigen current_prem remaining_prems =
@@ -160,7 +160,6 @@ let specialize_one ~sc ~sq ~concl ~eigen current_prem remaining_prems =
       let concl = mk_sequent ()
           ~left:(Ft.append concl.left new_hyps)
           ?right:concl.right
-          ~inits:concl.inits
       in
       let prems = List.map (distribute sq.right) prems in
       let concl = distribute sq.right concl in

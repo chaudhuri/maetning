@@ -62,9 +62,6 @@ and focus_left left lfoc ratm =
   | And (POS, _, _)
   | True POS
   | Or _ | False | Exists _ ->
-      Format.(fprintf err_formatter
-                "Cannot left-focus on %a@."
-                (format_form ()) lfoc) ;
       assert false
 
 and active_right left_passive left_active right =
@@ -138,19 +135,13 @@ and active_left_one left_passive left_active la ratm =
       assert false
 
 and right_init p pargs =
-  [{prems = [] (* [mk_sequent () *)
-            (*    ~left:(Ft.singleton (p, pargs)) *)
-            (*    ~right:(p, pargs)] *) ;
-    concl = mk_sequent ()
-        ~left:(Ft.singleton (p, pargs)) ;
+  [{prems = [] ;
+    concl = mk_sequent () ~left:(Ft.singleton (p, pargs)) ;
     eigen = IdtSet.empty }]
 
 and left_init p pargs =
-  [{prems = [] (* [mk_sequent () *)
-    (*    ~left:(Ft.singleton (p, pargs)) *)
-    (*    ~right:(p, pargs)] *) ;
-    concl = mk_sequent ()
-        ~right:(p, pargs) ;
+  [{prems = [] ;
+    concl = mk_sequent () ~right:(p, pargs) ;
     eigen = IdtSet.empty }]
 
 and binary_join ?(right_selector=`none) left_rules right_rules =
@@ -184,9 +175,7 @@ let generate_rules ~sc lforms =
             else Ft.snoc rule.concl.left (lf.label, lf.args)
           in
           {rule with
-           concl = mk_sequent () ~left
-               ?right:rule.concl.right
-               ~inits:rule.concl.inits}
+           concl = mk_sequent () ~left ?right:rule.concl.right}
         end
     | Right ->
         focus_right [] lf.skel |>
@@ -194,8 +183,7 @@ let generate_rules ~sc lforms =
           {rule with
            concl = mk_sequent ()
              ~left:rule.concl.left
-             ~right:(lf.label, lf.args)
-             ~inits:rule.concl.inits}
+             ~right:(lf.label, lf.args)}
         end
   in
   let rules_list = List.map process_lform lforms in
@@ -229,7 +217,7 @@ let generate_initials ~sc atoms =
     end right_atoms
   end left_atoms
 
-let generate0 ~sc_rules ~sc_inits left pseudo right =
+let generate0 left pseudo right =
   assert (List.for_all (fun l -> polarity l = NEG) left) ;
   assert (List.for_all (fun l -> polarity l = NEG) pseudo) ;
   assert (polarity right = POS) ;
@@ -254,9 +242,11 @@ let generate0 ~sc_rules ~sc_inits left pseudo right =
     (* List.iter (eprintf "%a@." format_lform) !atoms ; *)
     printf "Goal is %s@." goal_lform.label.rep ;
   ) ;
-  generate_rules !lforms ~sc:sc_rules ;
-  generate_initials (List.map freshen_atom !atoms) ~sc:sc_inits ;
-  goal_lform
+  let generator ~sc_rules ~sc_inits =
+     generate_rules !lforms ~sc:sc_rules ;
+     generate_initials (List.map freshen_atom !atoms) ~sc:sc_inits
+  in
+  (goal_lform, generator)
 
 module Test = struct
 
@@ -277,132 +267,5 @@ module Test = struct
     let atoms = List.map freshen_atom atoms in
     generate_rules lforms ~sc:Rule.Test.print ;
     generate_initials atoms ~sc:Sequent.Test.print
-
-  let even x = Form.atom NEG (intern "even") [x]
-  let even_theory = [ even z ;
-                      forall (intern "x") (implies [even (idx 0)] (even (s (s (idx 0))))) ]
-  let even_prune n =
-    let rec prune_t t = function
-      | 0 -> forall (intern "x") (even t)
-      | n -> prune_t (s t) (n - 1)
-    in [ prune_t (idx 0) n ]
-  let even_right = even (s (s (s z))) |> shift
-
-  let rec quiescently measure op =
-    let before = measure () in
-    op () ;
-    let after = measure () in
-    if before <> after then quiescently measure op
-
-  exception Escape of Sequent.t
-
-  let inverse_method ?(left=[]) ?(pseudo=[]) right =
-    try begin
-      let sos = ref [] in
-      let rules = ref [] in
-      let add_seq_initial sq =
-        if List.exists (fun oldseq -> subsume oldseq sq) !sos then ()
-        else sos := sq :: List.filter (fun oldseq -> not @@ subsume sq oldseq) !sos
-      in
-      let add_rule add_seq rr =
-        if rr.prems = [] then add_seq rr.concl
-        else begin
-          Rule.Test.print rr ;
-          rules := rr :: !rules
-        end
-      in
-      let goal_lf = generate0 left pseudo right
-          ~sc_rules:(add_rule add_seq_initial)
-          ~sc_inits:add_seq_initial in
-      let goal_seq = mk_sequent ~right:(goal_lf.label, goal_lf.args) () in
-      List.iter Sequent.Test.print !sos ;
-      let active = ref [] in
-      while !sos <> [] do
-        (* Format.printf "%d left in SOS@." (List.length !sos) ; *)
-        let sel = List.hd !sos in
-        (* Format.printf "Selected: %a@." (format_sequent ()) sel ; *)
-        sos := List.tl !sos ;
-        active := sel :: !active ;
-        let add_seq sq =
-          if List.exists (fun oldseq -> subsume oldseq sq) (!sos @ !active) then ()
-          else begin
-            Sequent.Test.print sq ;
-            if subsume sq goal_seq then raise (Escape sq) ;
-            sos := !sos @ [sq]
-          end
-        in
-        List.iter begin fun rr ->
-          Rule.specialize_default rr (Sequent.freshen sel ())
-            ~sc_rule:(add_rule add_seq)
-            ~sc_fact:add_seq
-        end !rules ;
-        quiescently (fun () -> List.length !rules)
-          (fun () ->
-             List.iter begin fun rr ->
-               List.iter begin fun act ->
-                 Rule.specialize_default rr (Sequent.freshen act ())
-                   ~sc_rule:(add_rule add_seq)
-                   ~sc_fact:add_seq
-               end !active
-             end !rules
-          ) ;
-        (* Unix.sleep 1 *)
-      done ;
-      None
-    end with
-    Escape sq ->
-        (* Format.printf "Found derivation of:@.%a@." (format_sequent ()) sq ; *)
-        Some sq
-
-  let gtest n =
-    match inverse_method ~left:even_theory ~pseudo:(even_prune n) even_right with
-    | None ->
-        Format.printf "Not provable@."
-    | Some pf -> begin
-        match
-          Ft.to_list pf.left |>
-          List.Exceptionless.find (fun (p, _) -> Form.is_pseudo p)
-        with
-        | None -> Format.printf "Proved!@."
-        | Some (p, _) -> Format.printf "UNSOUND: Used pseudo %s.@." p.rep
-      end
-
-  let lf = app (intern "lf") []
-  let nd tl tr = app (intern "nd") [tl ; tr]
-  let bal t x = atom NEG (intern "bal") [t ; x]
-  let bal_th = [ bal lf z ;
-                 forall (intern "x")
-                   (forall (intern "t")
-                      (let t = idx 0 in
-                       let x = idx 1 in
-                       implies [bal t x] (bal (nd t t) (s x)))) ]
-  let bal_prune n =
-    let rec spin t = function
-      | 0 -> wrap (forall (intern "x")
-                     (bal t (idx 0)))
-               (n + 1)
-      | k ->
-          spin (nd t (idx (n - k + 2))) (k - 1)
-    and wrap t = function
-      | 0 -> t
-      | k ->
-          wrap (forall (intern ("tt" ^ string_of_int k)) t) (k - 1)
-    in
-    spin (idx 1) n
-
-  let bal_right = exists (intern "x") (bal (nd lf (nd lf lf)) (idx 0))
-
-  let baltest n =
-    match inverse_method ~left:bal_th ~pseudo:[ bal_prune n ] bal_right with
-    | None ->
-        Format.printf "Not provable@."
-    | Some pf -> begin
-        match
-          Ft.to_list pf.left |>
-          List.Exceptionless.find (fun (p, _) -> Form.is_pseudo p)
-        with
-        | None -> Format.printf "Proved!@."
-        | Some (p, _) -> Format.printf "UNSOUND: Used pseudo %s.@." p.rep
-      end
 
 end
