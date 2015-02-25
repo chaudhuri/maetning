@@ -47,11 +47,11 @@ module Trivial : Data = struct
     try
       let sel = Queue.take sos in
       active := sel :: !active ;
-      Some sel
+      Some (Sequent.freshen sel ())
     with Queue.Empty -> None
 
   let iter_active doit =
-    List.iter (fun sq -> ignore (doit sq)) !active
+    List.iter (fun sq -> ignore (doit (Sequent.freshen sq ()))) !active
 end
 
 let rec spin_until_none get op =
@@ -104,14 +104,14 @@ module Inv (D : Data) = struct
               new_rules := rr :: !new_rules
         in
         List.iter begin fun rr ->
-          Rule.specialize_default rr (Sequent.freshen sel ())
+          Rule.specialize_default rr sel
             ~sc_rule:add_new_rule
             ~sc_fact:add_seq ;
         end !rules ;
         spin_until_quiescence (fun () -> List.length !new_rules) begin fun () ->
           List.iter begin fun rr ->
             D.iter_active begin fun act ->
-              Rule.specialize_default rr (Sequent.freshen act ())
+              Rule.specialize_default rr act
                 ~sc_rule:add_new_rule
                 ~sc_fact:add_seq
             end

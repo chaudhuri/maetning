@@ -81,6 +81,21 @@ let ec_viol eigen concl =
   in
   scan concl.left
 
+let format_repl fmt repl =
+  let open Format in
+  pp_open_hvbox fmt 1 ; begin
+    pp_print_string fmt "{" ;
+    IdtMap.iter begin fun v t ->
+      pp_print_string fmt v.rep ;
+      pp_print_string fmt ":=" ;
+      pp_print_space fmt () ;
+      Term.format_term () fmt t ;
+      pp_print_string fmt ";" ;
+      pp_print_space fmt () ;
+    end repl ;
+    pp_print_string fmt "}" ;
+  end ; pp_close_box fmt ()
+
 let rule_match_exn ~sc prem cand =
   let repl = IdtMap.empty in
   let (repl, right, strict) =
@@ -91,10 +106,13 @@ let rule_match_exn ~sc prem cand =
         (repl, prem.right, false)
     | Some (p, pargs), Some (q, qargs) -> begin
         if p != q then Unify.unif_fail "right hand sides" ;
-        let (repl, args) = Unify.unite_lists repl pargs qargs in
+        let (repl, args) = Unify.unite_match_lists repl pargs qargs in
         (repl, Some (p, args), true)
       end
   in
+  (* Format.( *)
+  (*   eprintf "rule_match: right matched with %a@." format_repl repl *)
+  (* ) ; *)
   let rec gen ~repl ~strict left hyps =
     (* Format.( *)
     (*   eprintf "gen: %s@." (if strict then "strict" else "") ; *)
@@ -126,7 +144,16 @@ let rule_match_exn ~sc prem cand =
     | Some (left, ((q, qargs) as l)) ->
         if p == q then begin
           try
-            let (repl, _) = Unify.unite_lists repl pargs qargs in
+            (* Format.( *)
+            (*   eprintf "  >>> rule_match: %a =?= %a@.  >>> Under: %a@." *)
+            (*     (format_term ()) (app p pargs) *)
+            (*     (format_term ()) (app q qargs) *)
+            (*     format_repl repl ; *)
+            (* ) ; *)
+            let (repl, _) = Unify.unite_match_lists repl pargs qargs in
+            (* Format.( *)
+            (*   eprintf "rule_match: hyp matched with %a@." format_repl repl *)
+            (* ) ; *)
             cont ~repl ~strict:true (Ft.append discard left)
           with Unify.Unif _ -> ()
         end ;

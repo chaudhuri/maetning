@@ -93,7 +93,7 @@ let subsume_one ~repl (p, pargs) cx =
     match Ft.front cx with
     | Some (cx, (q, qargs)) -> begin
         let repls =
-          try fst (Unify.unite_lists ~sym:false repl pargs qargs) :: repls
+          try fst (Unify.unite_match_lists repl pargs qargs) :: repls
           with Unify.Unif _ -> repls
         in
         spin repls cx
@@ -126,7 +126,7 @@ let subsume_full_exn ss0 tt0 =
     match ss0.right, tt0.right with
     | None, rt -> repl
     | Some (p, pargs), Some (q, qargs) when p == q ->
-        let (repl, _) = Unify.unite_lists ~sym:false repl pargs qargs in
+        let (repl, _) = Unify.unite_match_lists repl pargs qargs in
         repl
     | _ -> Unify.unif_fail "right"
   in

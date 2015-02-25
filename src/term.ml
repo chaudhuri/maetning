@@ -105,6 +105,19 @@ let rec seq ss1 ss2 =
   | _, Seq (ss21, ss22) -> Seq (seq ss1 ss21, ss22)
   | _ -> Seq (ss1, ss2)
 
+let rec freeze_term ?(frz=IdtSet.empty) t =
+  match t.term with
+  | Var v -> IdtSet.add v frz
+  | Idx _ -> frz
+  | App (f, ts) -> freeze_terms ~frz ts
+
+and freeze_terms ?(frz=IdtSet.empty) ts =
+  match ts with
+  | [] -> frz
+  | t :: ts ->
+      let frz = freeze_term ~frz t in
+      freeze_terms ~frz ts
+
 let rec replace ?(depth=0) ~repl t0 =
   if IdtSet.for_all (fun v -> not @@ IdtMap.mem v repl) t0.vars
   then t0
