@@ -163,6 +163,15 @@ and binary_join ?(right_selector=`none) left_rules right_rules =
     end left_rules in
   List.concat rules
 
+let vars_rule rr =
+  (* let repls_prems = List.map Sequent.freshen_ rr.prems |> List.map fst in *)
+  let repl_concl = Sequent.freshen_ rr.concl |> fst in
+  let vs = IdtMap.fold (fun v _ vs -> IdtSet.add v vs) repl_concl IdtSet.empty in
+  (* let vs = List.fold_left begin fun vs repl_prem -> *)
+  (*     IdtMap.fold (fun v _ vs -> IdtSet.add v vs) repl_prem vs *)
+  (*   end vs repls_prems in *)
+  List.map var (IdtSet.elements vs)
+
 let generate_rules ~sc lforms =
   let process_lform lf =
     match lf.place with
@@ -172,7 +181,7 @@ let generate_rules ~sc lforms =
           let left =
             if lfp = Global
             then rule.concl.left
-            else Ft.snoc rule.concl.left (lf.label, lf.args)
+            else Ft.snoc rule.concl.left (lf.label, lf.args @ vars_rule rule)
           in
           {rule with
            concl = mk_sequent () ~left ?right:rule.concl.right}

@@ -77,14 +77,16 @@ let freshen_latm_option ~repl lopt =
       let (repl, l) = freshen_latm ~repl l in
       (repl, Some l)
 
-let freshen ?(repl=IdtMap.empty) s0 =
+let freshen_ ?(repl=IdtMap.empty) s0 =
   let (repl, right) = freshen_latm_option ~repl s0.right in
   let (repl, left) = Ft.fold_left begin
       fun (repl, left) elem ->
         let (repl, elem) = freshen_latm ~repl elem in
         (repl, Ft.snoc left elem)
     end (repl, Ft.empty) s0.left in
-  mk_sequent ~left ?right
+  (repl, mk_sequent ~left ?right)
+
+let freshen ?repl s0 = snd (freshen_ ?repl s0)
 
 let subsume_one ~repl (p, pargs) cx =
   let rec spin repls cx =
