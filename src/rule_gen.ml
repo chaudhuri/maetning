@@ -179,9 +179,10 @@ let generate_rules ~sc lforms =
         focus_left [] lf.skel None |>
         List.map begin fun rule ->
           let left =
-            if lfp = Global
-            then rule.concl.left
-            else Ft.snoc rule.concl.left (lf.label, lf.args @ vars_rule rule)
+            match lfp with
+            | Global -> rule.concl.left
+            | Local  -> Ft.snoc rule.concl.left (lf.label, lf.args)
+            | Pseudo -> Ft.snoc rule.concl.left (lf.label, lf.args @ vars_rule rule)
           in
           {rule with
            concl = mk_sequent () ~left ?right:rule.concl.right}

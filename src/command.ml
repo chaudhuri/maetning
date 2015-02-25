@@ -44,19 +44,22 @@ let add_global x f =
   ensure_new x ;
   let f = force NEG f in
   global_map := IdtMap.add x f !global_map ;
-  Format.printf "Added global: %a.@." (Form.format_form ()) f
+  Format.printf "Added global %s : %a.@." x.rep (Form.format_form ()) f
 
 let add_pseudo x f =
   ensure_new x ;
   let f = force NEG f in
   pseudo_map := IdtMap.add x f !pseudo_map ;
-  Format.printf "Added pseudo: %a.@." (Form.format_form ()) f
+  Format.printf "Added pseudo %s : %a.@." x.rep (Form.format_form ()) f
 
 let retract x =
-  if IdtMap.mem x !global_map then
-    global_map := IdtMap.remove x !global_map
-  else
-    pseudo_map := IdtMap.remove x !pseudo_map
+  let (map, map_name) =
+    if IdtMap.mem x !global_map then (global_map, "global")
+    else if IdtMap.mem x !pseudo_map then (pseudo_map, "pseudo")
+    else failwith ("Unknown assumption or pseudo " ^ x.rep)
+  in
+  map := IdtMap.remove x !map ;
+  Format.printf "Removed %s %s.@." map_name x.rep
 
 let values map =
   IdtMap.fold (fun _ v l -> v :: l) map []
