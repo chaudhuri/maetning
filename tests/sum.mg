@@ -18,7 +18,7 @@
 %refute sum(s(s(z)),s(s(z)),s(s(s(s(s(z)))))).
 
 
-%refute \A x,y,w. sum(x,y,w) => sum(y,x,w).
+%prove \A x,y,w. sum(x,y,w) => sum(y,x,w).
 %refute \A x,y. \E w. sum(x,y,w).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
