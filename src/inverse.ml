@@ -95,20 +95,29 @@ module Inv (D : Data) = struct
       gen ~sc:add_rule ;
       spin_until_none D.select begin fun sel ->
         (* Format.printf "Selected: %a@." (Sequent.format_sequent ()) sel ; *)
+        let new_rules = ref [] in
+        let add_new_rule rr =
+          match rr.prems with
+          | [] ->  add_seq rr.concl
+          | _ ->
+              (* Rule.Test.print rr ; *)
+              new_rules := rr :: !new_rules
+        in
         List.iter begin fun rr ->
           Rule.specialize_default rr (Sequent.freshen sel ())
-            ~sc_rule:add_rule
+            ~sc_rule:add_new_rule
             ~sc_fact:add_seq ;
         end !rules ;
-        spin_until_quiescence (fun () -> List.length !rules) begin fun () ->
+        spin_until_quiescence (fun () -> List.length !new_rules) begin fun () ->
           List.iter begin fun rr ->
             D.iter_active begin fun act ->
               Rule.specialize_default rr (Sequent.freshen act ())
-                ~sc_rule:add_rule
+                ~sc_rule:add_new_rule
                 ~sc_fact:add_seq
             end
-          end !rules ;
+          end !new_rules ;
         end ;
+        List.iter add_rule !new_rules ;
         per_loop () ;
       end ;
       None
