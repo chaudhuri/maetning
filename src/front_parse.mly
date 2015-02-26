@@ -20,11 +20,12 @@
 %token  <Idt.t> IDENT
 %token  LPAREN COMMA RPAREN
 %token  TENSOR PLUS WITH
-%token  IF IMP
+%token  IF IMP IFF
 %token  ONE ZERO TOP
 %token  FORALL EXISTS
 
 %nonassoc PREC_MIN
+%left     IFF
 %left     IF
 %right    IMP
 %left     PLUS
@@ -73,6 +74,7 @@ form:
 | TOP                        { Form.(conj ~pol:NEG []) }
 | f=form IMP g=form
 | g=form IF f=form           { Form.(implies [f] g) }
+| f=form IFF g=form          { Form.(conj ~pol:NEG [implies [f] g ; implies [g] f]) }
 | FORALL vs=vars DOT f=form
   %prec PREC_MIN             { Form.(make_quant forall vs f) }
 | EXISTS vs=vars DOT f=form

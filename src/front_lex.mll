@@ -52,6 +52,7 @@ rule token = parse
 | "\\top"          { P.TOP }
 
 | "=>"             { P.IMP }
+| "<=>"            { P.IFF }
 | "<="             { P.IF }
 
 | "\\A"            { P.FORALL }
