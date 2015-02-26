@@ -65,6 +65,28 @@ let rec spin_until_quiescence measure op =
   let after = measure () in
   if before != after then spin_until_quiescence measure op
 
+let rec percolate ~sc_fact ~sc_rule rules iter =
+  let new_rules = percolate_once ~sc_fact rules iter in
+  List.iter sc_rule new_rules ;
+  if new_rules <> [] then percolate ~sc_fact ~sc_rule new_rules iter
+
+and percolate_once ~sc_fact rules iter =
+  let new_rules = ref [] in
+  let add_rule rr =
+    match rr.prems with
+    | [] -> sc_fact rr.concl
+    | _ -> new_rules := rr :: !new_rules
+  in
+  List.iter begin fun rr ->
+    iter begin fun sq ->
+      Rule.specialize_default rr sq
+        ~sc_fact
+        ~sc_rule:add_rule
+    end
+  end rules ;
+  !new_rules
+
+
 let noop () = ()
 
 module Inv (D : Data) = struct
@@ -95,29 +117,33 @@ module Inv (D : Data) = struct
       gen ~sc:add_rule ;
       spin_until_none D.select begin fun sel ->
         (* Format.printf "Selected: %a@." (Sequent.format_sequent ()) sel ; *)
-        let new_rules = ref [] in
-        let add_new_rule rr =
-          match rr.prems with
-          | [] ->  add_seq rr.concl
-          | _ ->
-              (* Rule.Test.print rr ; *)
-              new_rules := rr :: !new_rules
-        in
-        List.iter begin fun rr ->
-          Rule.specialize_default rr sel
-            ~sc_rule:add_new_rule
-            ~sc_fact:add_seq ;
-        end !rules ;
-        spin_until_quiescence (fun () -> List.length !new_rules) begin fun () ->
-          List.iter begin fun rr ->
-            D.iter_active begin fun act ->
-              Rule.specialize_default rr act
-                ~sc_rule:add_new_rule
-                ~sc_fact:add_seq
-            end
-          end !new_rules ;
-        end ;
-        List.iter add_rule !new_rules ;
+        (* let new_rules = ref [] in *)
+        (* let add_new_rule rr = *)
+        (*   match rr.prems with *)
+        (*   | [] ->  add_seq rr.concl *)
+        (*   | _ -> *)
+        (*       Rule.Test.print rr ; *)
+        (*       new_rules := rr :: !new_rules *)
+        (* in *)
+        percolate !rules (fun doit -> doit sel)
+          ~sc_rule:add_rule ~sc_fact:add_seq ;
+        (* List.iter begin fun rr -> *)
+        (*   Rule.specialize_default rr sel *)
+        (*     ~sc_rule:add_new_rule *)
+        (*     ~sc_fact:add_seq ; *)
+        (* end !rules ; *)
+        percolate !rules D.iter_active
+          ~sc_rule:add_rule ~sc_fact:add_seq ;
+        (* spin_until_quiescence (fun () -> List.length !new_rules) begin fun () -> *)
+        (*   List.iter begin fun rr -> *)
+        (*     D.iter_active begin fun act -> *)
+        (*       Rule.specialize_default rr act *)
+        (*         ~sc_rule:add_new_rule *)
+        (*         ~sc_fact:add_seq *)
+        (*     end ; *)
+        (*   end !new_rules ; *)
+        (* end ; *)
+        (* List.iter add_rule !new_rules ; *)
         per_loop () ;
       end ;
       None

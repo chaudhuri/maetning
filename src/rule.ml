@@ -106,7 +106,8 @@ let rule_match_exn ~sc prem cand =
         (repl, prem.right, false)
     | Some (p, pargs), Some (q, qargs) -> begin
         if p != q then Unify.unif_fail "right hand sides" ;
-        let (repl, args) = Unify.unite_match_lists repl pargs qargs in
+        (* let (repl, args) = Unify.unite_match_lists repl pargs qargs in *)
+        let (repl, args) = Unify.unite_lists repl pargs qargs in
         (repl, Some (p, args), true)
       end
   in
@@ -150,7 +151,8 @@ let rule_match_exn ~sc prem cand =
             (*     (format_term ()) (app q qargs) *)
             (*     format_repl repl ; *)
             (* ) ; *)
-            let (repl, _) = Unify.unite_match_lists repl pargs qargs in
+            (* let (repl, _) = Unify.unite_match_lists repl pargs qargs in *)
+            let (repl, _) = Unify.unite_lists repl pargs qargs in
             (* Format.( *)
             (*   eprintf "rule_match: hyp matched with %a@." format_repl repl *)
             (* ) ; *)
@@ -190,8 +192,20 @@ let specialize_one ~sc ~sq ~concl ~eigen current_prem remaining_prems =
       in
       let prems = List.map (distribute sq.right) prems in
       let concl = distribute sq.right concl in
+      let old_eigen = eigen in
       let eigen = replace_eigen_set ~repl eigen in
-      if not @@ ec_viol eigen concl then
+      (* if IdtSet.cardinal old_eigen <> IdtSet.cardinal eigen then *)
+      (*   Format.( *)
+      (*     eprintf "old_eigen: %s@." (IdtSet.elements old_eigen |> *)
+      (*                                List.map (fun x -> x.rep) |> *)
+      (*                                String.concat ",") ; *)
+      (*     eprintf "eigen: %s@." (IdtSet.elements eigen |> *)
+      (*                            List.map (fun x -> x.rep) |> *)
+      (*                            String.concat ",") ; *)
+      (*   ) ; *)
+      if IdtSet.cardinal old_eigen == IdtSet.cardinal eigen &&
+         not @@ ec_viol eigen concl
+      then
         let prem_vars = List.fold_left begin
             fun vars sq -> IdtSet.union vars sq.vars
           end IdtSet.empty prems in
