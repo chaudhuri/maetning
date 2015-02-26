@@ -55,7 +55,7 @@
 %assume eq_fi : \A x,y. eq(x,y) <= eq(f(x),f(y)).
 %assume eq_gi : \A x,y. eq(x,y) <= eq(g(x),g(y)).
 
-%pseudo e0 : (\E x,y. eq(x,y)) => (\A x,y. eq(x,y)).
+%pseudo e : \A x,y. eq(x,y).
 
 %refute 
     ( \E x. 
