@@ -3,11 +3,11 @@
 % Domain   : Syntactic
 % Problem  : Harrison's cute problem
 % Version  : Especial.
-% English  : 
+% English  :
 
 % Refs     : [Har95] Harrison (1995), Email to G. Sutcliffe
 % Source   : [Har95]
-% Names    : 
+% Names    :
 
 % Status   : Theorem
 % Rating   : 0.27 v3.1.0, 0.33 v2.6.0, 0.57 v2.5.0, 0.38 v2.4.0, 0.25 v2.3.0, 0.33 v2.2.1, 0.00 v2.1.0
@@ -26,20 +26,20 @@
 %            Number of variables   :    4 (   0 singleton;   2 !;   2 ?)
 %            Maximal term depth    :    3 (   2 average)
 
-% Comments : This problem was posted to the info-hol mailing list by Wishnu 
+% Comments : This problem was posted to the info-hol mailing list by Wishnu
 %            Prasetya.
 % --------------------------------------------------------------------------
 
 
 % fof(cute,conjecture,
-%    ( ? [X] : 
+%    ( ? [X] :
 %        ( X = f(g(X))
-%        & ! [Y] : 
+%        & ! [Y] :
 %            ( Y = f(g(Y))
 %           => X = Y ) )
-%  <=> ? [X] : 
+%  <=> ? [X] :
 %        ( X = g(f(X))
-%        & ! [Y] : 
+%        & ! [Y] :
 %            ( Y = g(f(Y))
 %           => X = Y ) ) )).
 
@@ -55,31 +55,20 @@
 %assume eq_fi : \A x,y. eq(x,y) <= eq(f(x),f(y)).
 %assume eq_gi : \A x,y. eq(x,y) <= eq(g(x),g(y)).
 
-%pseudo e : \A x,y. eq(x,y).
+%pseudo e0 :  (\E x,y. eq(x,y)) => \A x,y. eq(x,y).
+% pseudo e1 :  \A x,y. eq(x,y).
 
-%refute 
-    ( \E x. 
+%refute
+    ( \E x.
         ( eq(x,f(g(x)))
-        & \A y. 
+        & \A y.
             ( eq(y, f(g(y)))
            => eq(x,y ) ))
-  => \E x. 
+  <=> \E x.
         ( eq(x,g(f(x)))
-        & \A y. 
-            ( eq(y,g(f(y)))
-           => eq(x,y) ) ) )
-	   &
-    ( \E x. 
-        ( eq(x,f(g(x)))
-        & \A y. 
-            ( eq(y, f(g(y)))
-           => eq(x,y ) ))
-  <= \E x. 
-        ( eq(x,g(f(x)))
-        & \A y. 
+        & \A y.
             ( eq(y,g(f(y)))
            => eq(x,y) ) ) ).
-
 
 
 %--------------------------------------------------------------------------

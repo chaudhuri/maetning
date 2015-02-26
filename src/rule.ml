@@ -69,9 +69,9 @@ let ec_viol eigen concl =
 
   and scan left =
     match Ft.front left with
-    | Some (left, (_, args)) ->
-        scan_terms args ||
-        scan left
+    | Some (left, (p, args)) ->
+        (not (Form.is_pseudo p) && scan_terms args)
+        || scan left
     | None -> begin
         match concl.right with
         | None -> false
