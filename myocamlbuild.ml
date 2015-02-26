@@ -2,9 +2,9 @@
 
 (* BEGIN VERSION *)
 let major_version  : int           = 0
-let minor_version  : int           = 0
-let patch_version  : int           = 1
-let flavor_version : string option = Some "dev"
+let minor_version  : int           = 1
+let patch_version  : int           = 0
+let flavor_version : string option = Some "cade"
 (* END VERSION *)
 
 let version_string =
