@@ -16,7 +16,7 @@ and skeleton =
   | Prem
 
   | InitL
-  | InitR  of idt
+  | InitR
 
   | TensL  of t
   | TensR  of t * t
@@ -59,7 +59,7 @@ let format_skeleton ff sk =
     match sk with
     | Prem -> fprintf ff "Prem"
     | InitL -> fprintf ff "InitL"
-    | InitR x -> fprintf ff "InitR(%s)" x.rep
+    | InitR -> fprintf ff "InitR"
     | TensL sk -> unary ff "TensL" sk
     | TensR (sk1, sk2) -> binary ff "TensR" sk1 sk2
     | OneR -> fprintf ff "OneR"
@@ -105,7 +105,7 @@ let graft ~premise sk =
   let rec trav sk =
     (* Format.printf "Grafting: %a to %a@." format_skeleton premise format_skeleton sk ; *)
     match sk with
-    | InitL | InitR _ | OneR | ZeroL | TopR -> None
+    | InitL | InitR | OneR | ZeroL | TopR -> None
 
     | Prem             -> Some premise
 

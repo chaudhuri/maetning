@@ -20,7 +20,7 @@
 %token  <Idt.t> IDENT
 %token  LPAREN COMMA RPAREN
 %token  TENSOR PLUS WITH
-%token  IF IMP IFF
+%token  IF IMP IFF NEGATE
 %token  ONE ZERO TOP
 %token  FORALL EXISTS
 
@@ -31,6 +31,7 @@
 %left     PLUS
 %left     WITH
 %left     TENSOR
+%nonassoc NEGATE
 
 %start  <Term.term> one_term
 %start  <Form.form> one_form
@@ -72,6 +73,7 @@ form:
 | ZERO                       { Form.(disj []) }
 | f=form WITH g=form         { Form.(conj ~pol:NEG [f ; g]) }
 | TOP                        { Form.(conj ~pol:NEG []) }
+| NEGATE f=form              { Form.(implies [f] (disj [])) }
 | f=form IMP g=form
 | g=form IF f=form           { Form.(implies [f] g) }
 | f=form IFF g=form          { Form.(conj ~pol:NEG [implies [f] g ; implies [g] f]) }

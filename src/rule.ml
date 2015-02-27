@@ -43,7 +43,8 @@ let format_rule ?max_depth () fmt rr =
       end rr.prems ;
       fprintf fmt "--------------------%t@," format_eigens ;
     end ;
-    format_sequent ?max_depth () fmt rr.concl
+    format_sequent ?max_depth () fmt rr.concl ;
+    (* Skeleton.format_skeleton fmt rr.concl.skel ; *)
   end ; pp_close_box fmt ()
 
 let foo ff =
@@ -101,6 +102,11 @@ let format_repl fmt repl =
   end ; pp_close_box fmt ()
 
 let rule_match_exn ~sc prem cand =
+  (* let sc repl sq = *)
+  (*   Format.(eprintf "Succeeded with %a@." *)
+  (*             (Sequent.format_sequent ()) sq) ; *)
+  (*   sc repl sq *)
+  (* in *)
   let repl = IdtMap.empty in
   let (repl, right, strict) =
     match prem.right, cand.right with
@@ -109,10 +115,11 @@ let rule_match_exn ~sc prem cand =
     | _, None ->
         (repl, prem.right, false)
     | Some (p, pargs), Some (q, qargs) -> begin
+        (* Format.(eprintf "p = %s, q = %s@." p.rep q.rep) ; *)
         if p != q then Unify.unif_fail "right hand sides" ;
         (* let (repl, args) = Unify.unite_match_lists repl pargs qargs in *)
         let (repl, args) = Unify.unite_lists repl pargs qargs in
-        (repl, Some (p, args), true)
+        (repl, None, true)
       end
   in
   (* Format.( *)
@@ -140,7 +147,7 @@ let rule_match_exn ~sc prem cand =
         test left p pargs ~repl ~strict
           ~cont:(fun ~repl ~strict left -> gen ~repl ~strict left hyps) ;
     | None ->
-        let sq = override cand ~left:left ?right:right
+        let sq = override cand ~left:left ~right:right
                  |> replace_sequent ~repl in
         if strict then sc repl sq
         else ((* Format.(eprintf "non-strict discard: %a@." (format_sequent ()) sq) *))
@@ -175,7 +182,7 @@ let rule_match ~sc prem cand =
 let distribute right sq =
   match right, sq.right with
   | Some right, None ->
-      override sq ~right
+      override sq ~right:(Some right)
   | _ -> sq
 
 let specialize_one ~sc ~sq ~concl ~eigen current_prem remaining_prems =

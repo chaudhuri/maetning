@@ -37,7 +37,7 @@ module Sq : sig
     skel : Skeleton.t ;
   }
   val mk_sequent : ?skel:Skeleton.t -> ?right:latm -> ?left:ctx -> unit -> sequent
-  val override : ?skel:Skeleton.t -> ?right:latm -> ?left:ctx -> sequent -> sequent
+  val override : ?skel:Skeleton.t -> ?right:latm option -> ?left:ctx -> sequent -> sequent
 end = struct
   type sequent = {
     sqid : int ;
@@ -65,12 +65,9 @@ end = struct
     {sqid ; left ; right ; vars ; skel}
 
   let override ?skel ?right ?left sq =
-    let right = match right with
-      | None -> sq.right
-      | _ -> right
-    in
     mk_sequent ()
-      ~left:(Option.default sq.left left) ?right
+      ~left:(Option.default sq.left left)
+      ?right:(Option.default sq.right right)
       ~skel:(Option.default sq.skel skel)
 end
 
@@ -99,7 +96,7 @@ let freshen_ ?(repl=IdtMap.empty) s0 =
         let (repl, elem) = freshen_latm ~repl elem in
         (repl, Ft.snoc left elem)
     end (repl, Ft.empty) s0.left in
-  (repl, fun () -> override ~left ?right s0)
+  (repl, fun () -> override ~left ~right s0)
 
 let freshen ?repl s0 = snd (freshen_ ?repl s0)
 
@@ -184,7 +181,7 @@ let replace_latm ~repl (p, args) =
 let replace_sequent ~repl sq =
   let left = Ft.map (replace_latm ~repl) sq.left in
   let right = Option.map (replace_latm ~repl) sq.right in
-  override sq ~left ?right
+  override sq ~left ~right
 
 let factor_one ~sc sq =
   let skel = sq.skel in

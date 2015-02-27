@@ -55,6 +55,8 @@ rule token = parse
 | "<=>"            { P.IFF }
 | "<="             { P.IF }
 
+| "~" | "\\lnot"   { P.NEGATE }
+
 | "\\A"            { P.FORALL }
 | "\\E"            { P.EXISTS }
 

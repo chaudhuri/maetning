@@ -160,7 +160,7 @@ and right_init p pargs =
   [{prems = [] ;
     concl = mk_sequent ()
         ~left:(Ft.singleton (p, pargs))
-        ~skel:(InitR p) ;
+        ~skel:InitR ;
     eigen = IdtSet.empty }]
 
 and left_init p pargs =
@@ -220,7 +220,7 @@ let generate_rules ~sc lforms =
           let skel = FocR rule.concl.skel in
           {rule with
            concl = override rule.concl
-               ~right:(lf.label, lf.args)
+               ~right:(Some (lf.label, lf.args))
                ~skel}
         end
   in
