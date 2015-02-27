@@ -16,7 +16,7 @@
 %}
 
 %token  POSITIVE NEGATIVE ASSUME PSEUDO RETRACT PROVE REFUTE COLON DOT
-%token  EOS PREC_MIN
+%token  EOS PREC_QUANTIFIER
 %token  <Idt.t> IDENT
 %token  LPAREN COMMA RPAREN
 %token  TENSOR PLUS WITH
@@ -24,8 +24,8 @@
 %token  ONE ZERO TOP
 %token  FORALL EXISTS
 
-%nonassoc PREC_MIN
 %left     IFF
+%nonassoc PREC_QUANTIFIER
 %left     IF
 %right    IMP
 %left     PLUS
@@ -76,9 +76,9 @@ form:
 | g=form IF f=form           { Form.(implies [f] g) }
 | f=form IFF g=form          { Form.(conj ~pol:NEG [implies [f] g ; implies [g] f]) }
 | FORALL vs=vars DOT f=form
-  %prec PREC_MIN             { Form.(make_quant forall vs f) }
+  %prec PREC_QUANTIFIER      { Form.(make_quant forall vs f) }
 | EXISTS vs=vars DOT f=form
-  %prec PREC_MIN             { Form.(make_quant exists vs f) }
+  %prec PREC_QUANTIFIER      { Form.(make_quant exists vs f) }
 | LPAREN f=form RPAREN       { f }
 
 one_term:
