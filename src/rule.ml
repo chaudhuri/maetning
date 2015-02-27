@@ -67,11 +67,15 @@ let ec_viol eigen concl =
   and scan_terms ts =
     List.exists scan_term ts
 
+  and scan_one p args =
+    if !Config.evc_pseudos || not (Form.is_pseudo p) then
+      scan_terms args
+    else false
+
   and scan left =
     match Ft.front left with
     | Some (left, (p, args)) ->
-        (not (Form.is_pseudo p) && scan_terms args)
-        || scan left
+        scan_one p args || scan left
     | None -> begin
         match concl.right with
         | None -> false
@@ -136,7 +140,7 @@ let rule_match_exn ~sc prem cand =
         test left p pargs ~repl ~strict
           ~cont:(fun ~repl ~strict left -> gen ~repl ~strict left hyps) ;
     | None ->
-        let sq = mk_sequent () ~left:left ?right:right
+        let sq = override cand ~left:left ?right:right
                  |> replace_sequent ~repl in
         if strict then sc repl sq
         else ((* Format.(eprintf "non-strict discard: %a@." (format_sequent ()) sq) *))
@@ -171,7 +175,7 @@ let rule_match ~sc prem cand =
 let distribute right sq =
   match right, sq.right with
   | Some right, None ->
-      mk_sequent ~left:sq.left ~right ()
+      override sq ~right
   | _ -> sq
 
 let specialize_one ~sc ~sq ~concl ~eigen current_prem remaining_prems =
@@ -185,11 +189,8 @@ let specialize_one ~sc ~sq ~concl ~eigen current_prem remaining_prems =
         List.filter (fun hyp -> not @@ List.mem hyp removed) |>
         Ft.of_list
       in
-      let concl = replace_sequent ~repl concl in
-      let concl = mk_sequent ()
-          ~left:(Ft.append concl.left new_hyps)
-          ?right:concl.right
-      in
+      let concl = replace_sequent ~repl concl
+                  |> override ~left:(Ft.append concl.left new_hyps) in
       let prems = List.map (distribute sq.right) prems in
       let concl = distribute sq.right concl in
       let old_eigen = eigen in
@@ -210,6 +211,8 @@ let specialize_one ~sc ~sq ~concl ~eigen current_prem remaining_prems =
             fun vars sq -> IdtSet.union vars sq.vars
           end IdtSet.empty prems in
         let eigen = IdtSet.inter eigen prem_vars in
+        let concl = override concl
+            ~skel:(Skeleton.reduce [concl.skel ; sq.skel]) in
         sc { prems ; concl ; eigen }
   end
 

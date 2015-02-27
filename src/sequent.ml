@@ -34,17 +34,23 @@ module Sq : sig
     right : latm option ;
     vars : IdtSet.t ;
     (** invariant: fvs(sq.left) \cup fvs(sq.right) \subseteq sq.vars *)
+    skel : Skeleton.t ;
   }
-  val mk_sequent : ?right:latm -> ?left:ctx -> unit -> sequent
+  val mk_sequent : ?skel:Skeleton.t -> ?right:latm -> ?left:ctx -> unit -> sequent
+  val override : ?skel:Skeleton.t -> ?right:latm -> ?left:ctx -> sequent -> sequent
 end = struct
-  type sequent = {sqid : int ; left : ctx ; right : latm option ;
-                  vars : IdtSet.t}
+  type sequent = {
+    sqid : int ;
+    left : ctx ; right : latm option ;
+    vars : IdtSet.t ;
+    skel : Skeleton.t ;
+  }
 
   let next_sqid =
     let __last = ref 0 in
     fun () -> incr __last ; !__last
 
-  let mk_sequent ?right ?(left=Ft.empty) () =
+  let mk_sequent ?(skel=Skeleton.Prem) ?right ?(left=Ft.empty) () =
     let sqid = next_sqid () in
     let terms = match right with
       | None -> left
@@ -56,7 +62,16 @@ end = struct
             fun vars t -> IdtSet.union vars t.Term.vars
           end vars ts
       end IdtSet.empty terms in
-    { sqid ; left ; right ; vars}
+    {sqid ; left ; right ; vars ; skel}
+
+  let override ?skel ?right ?left sq =
+    let right = match right with
+      | None -> sq.right
+      | _ -> right
+    in
+    mk_sequent ()
+      ~left:(Option.default sq.left left) ?right
+      ~skel:(Option.default sq.skel skel)
 end
 
 include Sq
@@ -84,7 +99,7 @@ let freshen_ ?(repl=IdtMap.empty) s0 =
         let (repl, elem) = freshen_latm ~repl elem in
         (repl, Ft.snoc left elem)
     end (repl, Ft.empty) s0.left in
-  (repl, mk_sequent ~left ?right)
+  (repl, fun () -> override ~left ?right s0)
 
 let freshen ?repl s0 = snd (freshen_ ?repl s0)
 
@@ -169,9 +184,10 @@ let replace_latm ~repl (p, args) =
 let replace_sequent ~repl sq =
   let left = Ft.map (replace_latm ~repl) sq.left in
   let right = Option.map (replace_latm ~repl) sq.right in
-  mk_sequent ~left ?right ()
+  override sq ~left ?right
 
 let factor_one ~sc sq =
+  let skel = sq.skel in
   let rec gen left right =
     match Ft.front right with
     | None -> ()
@@ -191,7 +207,7 @@ let factor_one ~sc sq =
             let left = Ft.append left @@ Ft.append middle right in
             let left = Ft.snoc left (p, pargs) in
             let right = Option.map (replace_latm ~repl) sq.right in
-            sc @@ mk_sequent ~left ?right ()
+            sc @@ mk_sequent ~left ?right ~skel ()
           with
           Unify.Unif _ -> ()
         end ;
@@ -235,6 +251,7 @@ let format_sequent ?max_depth () fmt sq =
             pp_print_as fmt 1 "·"
       end ;
     end ; pp_close_box fmt () ;
+    (* fprintf fmt "@ @[<b1>[%a]@]" Skeleton.format_skeleton sq.skel ; *)
   end ; pp_close_box fmt ()
 
 let sequent_to_string ?max_depth sq =
@@ -261,7 +278,10 @@ module Test = struct
     mk_sequent ~left ?right
 
   let print sq =
-      Format.(fprintf std_formatter "[%d] %a@." sq.sqid (format_sequent ()) sq)
+      Format.(fprintf std_formatter "[%d] %a [%a]@."
+                sq.sqid
+                (format_sequent ()) sq
+                Skeleton.format_skeleton sq.skel )
 
   let test sq =
     let seen = ref [] in

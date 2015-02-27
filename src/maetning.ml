@@ -20,6 +20,7 @@ module Deps = struct
 end
 
 let options = Arg.(align [
+    "-XX:EVCPseudos", Set Config.evc_pseudos, " Perform EVC on pseudos as well (default: false)" ;
     "-v", Int Config.set_verbosity, "<num> Set verbosity to <num>" ;
     "-version", Unit (fun () ->
         Printf.printf "Maetning version %s\n" Version.version ;

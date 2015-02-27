@@ -35,8 +35,12 @@
 %%
 %% If we now refine s0 into
 
-%pseudo s1 : \A x,y,w. sum(x,y,s(s(s(s(w))))).
-%retract s0.
+% pseudo s1 : \A x,y,w. sum(x,y,s(s(s(s(w))))).
+%pseudo s1 : (\E x,y,w. sum(x,y,s(s(s(s(w)))))) => \A x,y,w. sum(x,y,s(s(s(s(w))))).
+% retract s0.
+
+% pseudo s2 : \A x, y, z. sum(s(s(s(x))),y,z).
+% pseudo s3 : \A x, y, z. sum(x,s(s(s(y))),z).
 
 %% something interesting happens -- mætning successfully refutes the
 %% goal. Note that by just adding this one pseudo, we are not
