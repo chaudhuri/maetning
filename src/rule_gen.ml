@@ -250,11 +250,18 @@ let generate0 left pseudo right =
   process Right [right] ;
   let goal_lform = List.hd !lforms in
   Format.(
-    printf "Labeled formulas:@." ;
-    List.iter (printf "  %a@." format_lform) !lforms ;
-    printf "Goal is %s@." goal_lform.label.rep ;
+    printf "Labelled formulas:." ;
+    List.iter (printf "  %a.@." format_lform) !lforms ;
+    printf "goal is %s.@." goal_lform.label.rep ;
   ) ;
-  (goal_lform, generate_rules !lforms)
+  let expl ff =
+    Format.(
+      fprintf ff "%% setup@." ;
+      List.iter (fprintf ff "%a.@." lp_lform) !lforms ;
+      fprintf ff "%% goal@.%s.@." goal_lform.label.rep ;
+    )
+  in
+  (goal_lform, expl, generate_rules !lforms)
 
 module Test = struct
 

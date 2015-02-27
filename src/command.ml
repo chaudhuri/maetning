@@ -64,7 +64,7 @@ let retract x =
 let values map =
   IdtMap.fold (fun _ v l -> v :: l) map []
 
-type result = Proved
+type result = Proved of (Format.formatter -> unit) * Skeleton.t
             | Refuted
             | Unsound of Idt.t
 
@@ -76,23 +76,28 @@ let setup f =
   let pseudo = values !pseudo_map in
   match Inverse.inverse_method ~left:globals ~pseudo:pseudo f with
   | None -> Refuted
-  | Some pf -> begin
+  | Some (expl, pf) -> begin
       match
         Ft.to_list pf.left |>
         List.Exceptionless.find (fun (p, _) -> Form.is_pseudo p)
       with
-      | None -> Proved
+      | None -> Proved (expl, pf.skel)
       | Some (p, _) -> Unsound p
     end
 
 let prove f =
   match setup f with
-  | Proved -> Format.printf "Proved.@."
+  | Proved (expl, sk) ->
+      Format.printf "Proved.@." ;
+      Config.printf "%t%% proof:@.%a.@.%s@."
+        expl
+        Skeleton.format_skeleton sk
+        "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" ;
   | Refuted -> failwith "Not provable"
   | Unsound p -> Format.printf "UNKNOWN: pseudo %s was used.@." p.rep
 
 let refute f =
   match setup f with
-  | Proved -> failwith "Not refuted"
+  | Proved _ -> failwith "Not refuted"
   | Refuted -> Format.printf "Refuted.@."
   | Unsound p -> Format.printf "UNKNOWN: pseudo %s was used.@." p.rep

@@ -1,8 +1,8 @@
-% prove A => A.
+%prove A => A.
 % refute A.
 
 % refute (\A x. \E y. p(x, y)) => \E y. \A x. p(x, y).
-% prove (\A x. \E y. p(x, y)) <= \E y. \A x. p(x, y).
+%prove (\A x. \E y. p(x, y)) <= \E y. \A x. p(x, y).
 
 % refute A + ~A.
 % refute ((A => C) => A) => A.
@@ -10,9 +10,5 @@
 
 % prove ~(A + B) <=> ~A & ~B.
 
-% prove ~(A & B) <= ~A + ~B.
+%prove ~(A & B) <= ~A + ~B.
 % refute  ~(A & B) => ~A + ~B.
-
-%positive A.
-%positive B.
-%prove A <=> B.

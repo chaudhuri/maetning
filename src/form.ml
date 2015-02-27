@@ -281,7 +281,7 @@ let is_pseudo l = l.rep.[0] = pseudo_cookie.[0]
 
 let place_cookie = function
   | Left Pseudo -> pseudo_cookie
-  | _ -> "%"
+  | _ -> "#"
 
 let relabel ?(place=Right) f =
   let lforms : lform list ref = ref [] in
@@ -343,6 +343,63 @@ let relabel ?(place=Right) f =
   in
   emit_lform { place ; label = l0 ; args = [] ; skel = spin (weaker_place place) [] f0 } ;
   !lforms
+
+let rec lp_format ?(cx=[]) () ff f =
+  let open Format in
+  match f.form with
+  | Atom (_, p, ts) ->
+      Term.format_term ~cx () ff (app p ts)
+  | And (POS, f, g) ->
+      fprintf ff "andplus(%a,%a)"
+        (lp_format ~cx ()) f
+        (lp_format ~cx ()) g
+  | And (NEG, f, g) ->
+      fprintf ff "andminus(%a,%a)"
+        (lp_format ~cx ()) f
+        (lp_format ~cx ()) g
+  | Or (f, g) ->
+      fprintf ff "or(%a,%a)"
+        (lp_format ~cx ()) f
+        (lp_format ~cx ()) g
+  | Implies (f, g) ->
+      fprintf ff "implies(%a,%a)"
+        (lp_format ~cx ()) f
+        (lp_format ~cx ()) g
+  | True POS ->
+      fprintf ff "trueplus"
+  | True NEG ->
+      fprintf ff "trueminus"
+  | False ->
+      fprintf ff "false"
+  | Forall (x, f) ->
+      fprintf ff "forall(%s\\ %a)" x.rep
+        (lp_format ~cx:(x :: cx) ()) f
+  | Exists (x, f) ->
+      fprintf ff "exists(%s\\ %a)" x.rep
+        (lp_format ~cx:(x :: cx) ()) f
+  | Shift f ->
+      fprintf ff "delay(%a)"
+        (lp_format ~cx ()) f
+
+let lp_lform fmt lf =
+  let open Format in
+  pp_open_box fmt 0 ; begin
+    pp_print_string fmt begin match lf.place with
+      | Left lf -> begin
+          match lf with
+          | Global -> "global("
+          | Local -> "local("
+          | Pseudo -> "pseudo("
+        end
+      | Right -> "right("
+    end ;
+    lp_format () fmt @@ atom (polarity lf.skel) lf.label lf.args ;
+    pp_print_string fmt ") :=" ;
+    pp_print_space fmt () ;
+    pp_open_box fmt 2 ; begin
+      lp_format () fmt lf.skel ;
+    end ; pp_close_box fmt () ;
+  end ; pp_close_box fmt ()
 
 module Test = struct
   let (x, y, z) = (intern "x", intern "y", intern "z")
