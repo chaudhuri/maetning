@@ -1,0 +1,34 @@
+Here is a partial list of results based on running Mætning on a
+selection of problems from the ILTP library.
+
+The following problems are classified as "Open" in the ILTP (i.e. it
+is presumably unknown whether they are intuitionistically true or
+not). Barring any fatal bugs in Mætning, some of these have now been
+resolved:
+
+SYN036+2.p:
+  ILTP status: OPEN
+  Status: Still unknown.  
+
+SYN053+1.p:
+  ILTP status: OPEN
+  Status: REFUTED
+  Time: ~33s
+
+SYN417+1:
+  ILTP status: OPEN
+  Status: PROVED
+  Time: ~3.7s
+  Note: The time given is for proving only one direction of the
+        bi-implication. Both directions take roughly 3.7 seconds to
+        prove.
+
+SYN726+1.p:
+  ILTP status: OPEN
+  Status: REFUTED
+  Time: ~0.06s
+
+SYN954+1.p:
+  ILTP status: OPEN
+  Status: REFUTED
+  Time: ~0.05s
