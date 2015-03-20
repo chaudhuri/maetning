@@ -52,23 +52,23 @@
 %assume eq_trans : \A x,y,z. (eq(x,y) & eq(y,z)) => eq(x,z).
 %assume eq_f : \A x,y. eq(x,y) => eq(f(x),f(y)).
 %assume eq_g : \A x,y. eq(x,y) => eq(g(x),g(y)).
-%assume eq_fi : \A x,y. eq(x,y) <= eq(f(x),f(y)).
-%assume eq_gi : \A x,y. eq(x,y) <= eq(g(x),g(y)).
+% assume eq_fi : \A x,y. eq(x,y) <= eq(f(x),f(y)).
+% assume eq_gi : \A x,y. eq(x,y) <= eq(g(x),g(y)).
 
-%pseudo e0 :  (\E x,y. eq(x,y)) => \A x,y. eq(x,y).
+% pseudo e0 :  (\E x,y. eq(x,y)) => \A x,y. eq(x,y).
 % pseudo e1 :  \A x,y. eq(x,y).
 
-%refute
+%prove
     ( \E x.
         ( eq(x,f(g(x)))
         & \A y.
             ( eq(y, f(g(y)))
-           => eq(x,y ) ) )
-  <=> \E x.
+           => eq(x,y ) ) ))
+  <= \E x.
         ( eq(x,g(f(x)))
         & \A y.
             ( eq(y,g(f(y)))
-           => eq(x,y) ) ) ).
+           => eq(x,y) ) ) .
 
 
 %--------------------------------------------------------------------------
