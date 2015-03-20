@@ -113,7 +113,7 @@ let rule_match_exn ~sc prem cand =
     | None, _ ->
         (repl, cand.right, false)
     | _, None ->
-        (repl, prem.right, false)
+        (repl, None, false)
     | Some (p, pargs), Some (q, qargs) -> begin
         (* Format.(eprintf "p = %s, q = %s@." p.rep q.rep) ; *)
         if p != q then Unify.unif_fail "right hand sides" ;
@@ -221,6 +221,14 @@ let specialize_one ~sc ~sq ~concl ~eigen current_prem remaining_prems =
         let concl = override concl
             ~skel:(Skeleton.reduce [concl.skel ; sq.skel]) in
         sc { prems ; concl ; eigen }
+      (* else *)
+      (*   Format.( *)
+      (*     eprintf "Killed: %a@.with eigen: %s@." *)
+      (*       (format_sequent ()) concl *)
+      (*       (IdtSet.elements old_eigen |> *)
+      (*        List.map (fun x -> x.rep) |> *)
+      (*        String.concat ",") *)
+      (*   ) *)
   end
 
 let specialize ~sc rr sq =
