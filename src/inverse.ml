@@ -75,7 +75,9 @@ and percolate_once ~sc_fact rules iter =
   let add_rule rr =
     match rr.prems with
     | [] -> sc_fact rr.concl
-    | _ -> new_rules := rr :: !new_rules
+    | _ ->
+        if not @@ List.exists (fun oldrr -> Rule.rule_subsumes oldrr rr) !new_rules then
+          new_rules := rr :: !new_rules
   in
   List.iter begin fun rr ->
     iter begin fun sq ->

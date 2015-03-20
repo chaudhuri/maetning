@@ -255,6 +255,33 @@ let specialize_default ~sc_rule ~sc_fact rr sq =
   in
   specialize ~sc rr sq
 
+let rule_subsumes_exn r1 r2 =
+  let repl = Sequent.subsume_exn r1.concl r2.concl in
+  let _repl =
+    List.fold_left2 begin
+      fun repl p1 p2 ->
+        let p1 = Sequent.replace_sequent ~repl p1 in
+        let p2 = Sequent.replace_sequent ~repl p2 in
+        Sequent.subsume_exn p1 p2
+    end repl r1.prems r2.prems
+  in
+  true
+
+let rule_subsumes r1 r2 =
+  List.length r1.prems = List.length r2.prems
+  && (try rule_subsumes_exn r1 r2 with Unify.Unif _ -> false)
+
+let rule_subsumes_loudly r1 r2 =
+  let res = rule_subsumes r1 r2 in
+  if res then
+    Format.(
+      fprintf std_formatter
+        "   >>> @[<v0>@[%a@]@,subsumes@,@[%a@]@] <<<@."
+        (format_rule ()) r1
+        (format_rule ()) r2
+    ) ;
+  res
+
 module Test = struct
   let p = Idt.intern "p"
   let q = Idt.intern "q"

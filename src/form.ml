@@ -387,9 +387,8 @@ let lp_lform fmt lf =
     pp_print_string fmt begin match lf.place with
       | Left lf -> begin
           match lf with
-          | Global -> "global("
-          | Local -> "local("
-          | Pseudo -> "pseudo("
+          | Global | Local -> "left("
+          | Pseudo -> "pseudoleft("
         end
       | Right -> "right("
     end ;
