@@ -10,25 +10,27 @@ SYN036+2.p:
   ILTP status: OPEN
   Status: Still unknown.  
 
+SYN051+1.p:
+  ILTP status: OPEN
+  Status: REFUTED
+  Time: ~0.008s
+
 SYN053+1.p:
   ILTP status: OPEN
   Status: REFUTED
-  Time: ~33s
+  Time: ~0.025s
 
 SYN417+1:
   ILTP status: OPEN
   Status: PROVED
-  Time: ~3.7s
-  Note: The time given is for proving only one direction of the
-        bi-implication. Both directions take roughly 3.7 seconds to
-        prove.
+  Time: ~1.8s
 
 SYN726+1.p:
   ILTP status: OPEN
   Status: REFUTED
-  Time: ~0.06s
+  Time: ~0.016s
 
 SYN954+1.p:
   ILTP status: OPEN
   Status: REFUTED
-  Time: ~0.05s
+  Time: ~0.014s
