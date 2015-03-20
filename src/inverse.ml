@@ -65,6 +65,9 @@ let rec spin_until_quiescence measure op =
   let after = measure () in
   if before != after then spin_until_quiescence measure op
 
+let is_new_rule_wrt rules rr =
+  not @@ List.exists (fun oldrr -> Rule.rule_subsumes oldrr rr) rules
+
 let rec percolate ~sc_fact ~sc_rule rules iter =
   let new_rules = percolate_once ~sc_fact rules iter in
   List.iter sc_rule new_rules ;
@@ -76,8 +79,9 @@ and percolate_once ~sc_fact rules iter =
     match rr.prems with
     | [] -> sc_fact rr.concl
     | _ ->
-        if not @@ List.exists (fun oldrr -> Rule.rule_subsumes oldrr rr) !new_rules then
-          new_rules := rr :: !new_rules
+        if is_new_rule_wrt !new_rules rr &&
+           is_new_rule_wrt rules rr
+        then new_rules := rr :: !new_rules
   in
   List.iter begin fun rr ->
     iter begin fun sq ->
