@@ -113,8 +113,10 @@ module Inv (D : Data) = struct
         match rr.prems with
         | [] ->  add_seq rr.concl
         | _ ->
-            Rule.Test.print rr ;
-            rules := rr :: !rules
+            if not @@ List.exists (fun oldrr -> Rule.rule_subsumes oldrr rr) !rules then begin
+              Rule.Test.print rr ;
+              rules := rr :: !rules
+            end
       in
       gen ~sc:add_rule ;
       spin_until_none D.select begin fun sel ->

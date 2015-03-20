@@ -196,8 +196,8 @@ let specialize_one ~sc ~sq ~concl ~eigen current_prem remaining_prems =
         List.filter (fun hyp -> not @@ List.mem hyp removed) |>
         Ft.of_list
       in
-      let concl = replace_sequent ~repl concl
-                  |> override ~left:(Ft.append concl.left new_hyps) in
+      let concl = replace_sequent ~repl concl in
+      let concl = override concl ~left:(Ft.append concl.left new_hyps) in
       let prems = List.map (distribute sq.right) prems in
       let concl = distribute sq.right concl in
       let old_eigen = eigen in
