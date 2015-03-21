@@ -17,6 +17,7 @@ module Deps = struct
   open Inverse
   open Front_parse
   open Front_lex
+  open Agencies
 end
 
 let options = Arg.(align [
