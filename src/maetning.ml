@@ -22,6 +22,7 @@ end
 
 let options = Arg.(align [
     "-XX:EVCPseudos", Set Config.evc_pseudos, " Perform EVC on pseudos as well (default: false)" ;
+    "-check", Set Config.do_check, " Reconstruct a full proof from the skeleton and check it" ;
     "-proofs", String Config.set_proof_channel, "<file> Outout proofs to <file>" ;
     "-v", Int Config.set_verbosity, "<num> Set verbosity to <num>" ;
     "-version", Unit (fun () ->

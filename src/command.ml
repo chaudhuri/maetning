@@ -64,7 +64,7 @@ let retract x =
 let values map =
   IdtMap.fold (fun _ v l -> v :: l) map []
 
-type result = Proved of (Format.formatter -> unit) * Skeleton.t
+type result = Proved of Inverse.result
             | Refuted
             | Unsound of Idt.t
 
@@ -76,22 +76,40 @@ let setup f =
   let pseudo = values !pseudo_map in
   match Inverse.inverse_method ~left:globals ~pseudo:pseudo f with
   | None -> Refuted
-  | Some (expl, pf) -> begin
+  | Some res -> begin
       match
-        Ft.to_list pf.left |>
+        Ft.to_list res.Inverse.found.left |>
         List.Exceptionless.find (fun (p, _) -> Form.is_pseudo p)
       with
-      | None -> Proved (expl, pf.skel)
+      | None -> Proved res
       | Some (p, _) -> Unsound p
     end
 
 let prove f =
   match setup f with
-  | Proved (expl, sk) ->
+  | Proved res ->
+      if !Config.do_check then begin
+        let ctx = List.filter_map begin
+            fun lf -> match lf.place with
+              | Left Global -> Some (Agencies.fresh_hyp (), (lf.Form.label, lf.Form.skel))
+              | _ -> None
+          end res.Inverse.lforms in
+        let goal = Seqproof.{term_vars = IdtSet.empty ;
+                             left_active = [] ;
+                             left_passive = ctx ;
+                             right = res.Inverse.goal.Form.skel}
+        in
+        match Seqproof.reconstruct (module Agencies.Rebuild)
+                ~lforms:res.Inverse.lforms
+                ~goal
+                ~cert:res.Inverse.found.Sequent.skel
+        with Some _ -> ()
+           | None -> failwith "Reconstruction failed"
+      end ;
       Format.printf "Proved.@." ;
       Config.printf "%t%% proof:@.%a.@.%s@."
-        expl
-        Skeleton.format_skeleton sk
+        res.Inverse.explain
+        Skeleton.format_skeleton res.Inverse.found.Sequent.skel
         "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" ;
   | Refuted -> failwith "Not provable"
   | Unsound p -> Format.printf "UNKNOWN: pseudo %s was used.@." p.rep

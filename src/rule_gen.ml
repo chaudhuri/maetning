@@ -63,14 +63,15 @@ and focus_left left lfoc ratm =
       let left_rules = focus_left left f2 ratm in
       let right_rules = focus_right left f1 in
       binary_join ~right_selector:`left left_rules right_rules
-        (fun sk1 sk2 -> ImpL (sk1, sk2))
+        (fun sk1 sk2 -> ImpL (sk2, sk1))
   | Forall (_, f) ->
       let v = fresh_var `evar in
       let f = app_form (Cons (Shift 0, v)) f in
       skel_map (fun sk -> AllL sk)
         (focus_left left f ratm)
   | Shift f ->
-      active_left left [f] ratm
+      skel_map (fun sk -> BlurL sk)
+        (active_left left [f] ratm)
   | Atom (POS, _, _)
   | And (POS, _, _)
   | True POS
@@ -261,7 +262,7 @@ let generate0 left pseudo right =
       fprintf ff "%% goal@.%s.@." goal_lform.label.rep ;
     )
   in
-  (goal_lform, expl, generate_rules !lforms)
+  (!lforms, goal_lform, expl, generate_rules !lforms)
 
 module Test = struct
 

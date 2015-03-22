@@ -64,7 +64,7 @@
         & \A y.
             ( eq(y, f(g(y)))
            => eq(x,y ) ) ))
-  <=> \E x.
+  => \E x.
         ( eq(x,g(f(x)))
         & \A y.
             ( eq(y,g(f(y)))

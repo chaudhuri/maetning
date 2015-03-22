@@ -21,8 +21,8 @@ and skeleton =
   | TensL  of t
   | TensR  of t * t
 
-  | OneR
   | OneL   of t
+  | OneR
 
   | PlusL  of t * t
   | PlusR1 of t
@@ -30,26 +30,26 @@ and skeleton =
 
   | ZeroL
 
-  | WithR  of t * t
   | WithL1 of t
   | WithL2 of t
+  | WithR  of t * t
 
   | TopR
 
-  | ImpR   of t
   | ImpL   of t * t
+  | ImpR   of t
 
-  | AllR   of t
   | AllL   of t
+  | AllR   of t
 
-  | ExR    of t
   | ExL    of t
+  | ExR    of t
 
-  | FocR   of t
   | FocL   of idt * t
+  | FocR   of t
 
-  | BlurR  of t
   | BlurL  of t
+  | BlurR  of t
 
   | Store  of t
 

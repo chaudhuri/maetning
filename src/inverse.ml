@@ -95,21 +95,32 @@ and percolate_once ~sc_fact rules iter =
 
 let noop () = ()
 
+type result = {
+  lforms  : lform list ;
+  goal    : lform ;
+  explain : Format.formatter -> unit ;
+  found   : Sequent.t ;
+}
+
 module Inv (D : Data) = struct
-  exception Escape of (Format.formatter -> unit) * Sequent.t
+
+  exception Escape of result
 
   let inverse_method ?(left=[]) ?(pseudo=[]) ?(per_loop=noop) right =
     try
       D.reset () ;
       let rules = ref [] in
-      let (goal_lf, gen_expl, gen) = Rule_gen.generate0 left pseudo right in
+      let (lfs, goal_lf, gen_expl, gen) = Rule_gen.generate0 left pseudo right in
       let goal_seq = mk_sequent ~right:(goal_lf.label, goal_lf.args) () in
       (* Format.printf "Goal sequent: %a@." (Sequent.format_sequent ()) goal_seq ; *)
       let add_seq sq =
         if Sequent.subsume sq goal_seq then begin
           Sequent.Test.print sq ;
           (* Format.printf "[%d] %a@." sq.sqid (Sequent.format_sequent ()) sq ; *)
-          raise (Escape (gen_expl, sq))
+          raise (Escape {lforms = lfs ;
+                         goal = goal_lf ;
+                         explain = gen_expl ;
+                         found = sq})
         end ;
         D.register sq
       in
@@ -155,7 +166,7 @@ module Inv (D : Data) = struct
         per_loop () ;
       end ;
       None
-    with Escape (expl, sq) -> Some (expl, sq)
+    with Escape res -> Some res
 end
 
 include Inv(Trivial)
@@ -172,9 +183,9 @@ module Test = struct
     match inverse_method ~left:theory ~pseudo:(pseudo n) ~per_loop goal with
     | None ->
         Format.printf "Not provable@."
-    | Some (_, pf) -> begin
+    | Some res -> begin
         match
-          Ft.to_list pf.left |>
+          Ft.to_list res.found.left |>
           List.Exceptionless.find (fun (p, _) -> Form.is_pseudo p)
         with
         | None -> Format.printf "Proved!@."

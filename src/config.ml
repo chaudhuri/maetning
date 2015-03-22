@@ -15,6 +15,8 @@ let add_input_file f = input_files := f :: !input_files
 
 let evc_pseudos = ref false
 
+let do_check = ref false
+
 let proof_formatter : Format.formatter option ref = ref None
 let set_proof_channel filename =
   let oc = open_out_bin filename in

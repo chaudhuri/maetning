@@ -57,19 +57,18 @@ and proof2 = idt * idt * proof
 
 type sequent = {
   term_vars    : IdtSet.t ;
-  left_passive : (idt * form) list ;
+  left_passive : (idt * (idt * form)) list ;
   left_active  : (idt * form) list ;
   right        : form ;
 }
 
-let replace_zone ~repl zone =
-  List.map begin
-    fun (x, f) -> (x, Form.replace ~repl f)
-  end zone
-
 let replace_sequent ~repl sq =
-  let left_passive = replace_zone ~repl sq.left_passive in
-  let left_active = replace_zone ~repl sq.left_active in
+  let left_passive = List.map begin
+      fun (x, (l, f)) -> (x, (l, Form.replace ~repl f))
+    end sq.left_passive in
+  let left_active = List.map begin
+      fun (x, f) -> (x, Form.replace ~repl f)
+    end sq.left_active in
   let right = Form.replace ~repl sq.right in
   {sq with left_passive ; left_active ; right}
 
@@ -134,8 +133,9 @@ type ('cert, 'a) op = sequent -> 'cert -> 'a result
 
 module type AGENCY = sig
   type cert
+  val format_cert : Format.formatter -> cert -> unit
 
-  val ex_InitR  : (cert, int) op
+  val ex_InitR  : (cert, idt) op
   val ex_InitL  : (cert, 'a) op
 
   val cl_TensL  : (cert, idt * idt * cert) op
@@ -194,29 +194,106 @@ let evc u repl =
 
 let rec backtrack ~cc ~fail fn =
   match cc with
-  | Invalid msg -> fail msg
+  | Invalid msg -> fail ("Invalid: " ^ msg)
   | Choices [] -> failwith "Invalid call to backtrack"
   | Choices [c] -> fn c ~fail
   | Choices (c :: cs) ->
       fn c ~fail:(fun _ -> backtrack ~cc:(Choices cs) ~fail fn)
 
+let format_sequent fmt sq =
+  let open Format in
+  pp_open_box fmt 0 ; begin
+    pp_open_hovbox fmt 2 ; begin
+      begin match List.rev sq.left_passive with
+      | [] ->
+          pp_print_as fmt 1 "·"
+      | (x, (l, f)) :: left ->
+          pp_print_string fmt (x.Idt.rep ^ "<" ^ l.Idt.rep ^ ">") ;
+          pp_print_string fmt ":" ;
+          format_form () fmt f ;
+          List.iter begin
+            fun (x, (l, f)) ->
+              pp_print_string fmt "," ;
+              pp_print_space fmt () ;
+              pp_print_string fmt (x.Idt.rep ^ "<" ^ l.Idt.rep ^ ">") ;
+              pp_print_string fmt ":" ;
+              format_form () fmt f ;
+          end left
+      end ;
+      pp_print_string fmt " ;" ;
+      pp_print_space fmt () ;
+      begin match List.rev sq.left_active with
+      | [] ->
+          pp_print_as fmt 1 "·"
+      | (x, f) :: left ->
+          pp_print_string fmt x.Idt.rep ;
+          pp_print_string fmt ":" ;
+          format_form () fmt f ;
+          List.iter begin
+            fun (x, f) ->
+              pp_print_string fmt "," ;
+              pp_print_space fmt () ;
+              pp_print_string fmt x.Idt.rep ;
+              pp_print_string fmt ":" ;
+              format_form () fmt f ;
+          end left
+      end ;
+      pp_print_string fmt " -->" ;
+      pp_print_space fmt () ;
+      format_form () fmt sq.right ;
+    end ; pp_close_box fmt () ;
+  end ; pp_close_box fmt ()
+
 let reconstruct (type cert)
     (module Ag : AGENCY with type cert = cert)
-    ~goal ~(cert:cert) =
+    ~lforms ~goal ~(cert:cert) =
+
+  assert (goal.left_active = [] && polarity goal.right = POS) ;
+
+  let lf_dict = List.fold_left begin
+      fun dict lf ->
+        IdtMap.add lf.label lf dict
+    end IdtMap.empty lforms in
+
+  let expand_lf f = match f.form with
+    | Atom (pol, p, ts) -> begin
+        match IdtMap.find p lf_dict with
+        | lf ->
+            let repl = List.fold_left2 begin
+                fun repl lfarg arg ->
+                  IdtMap.add (unvar lfarg) arg repl
+              end IdtMap.empty lf.args ts
+            in
+            Form.replace ~repl lf.skel
+        | exception Not_found -> f
+      end
+    | _ -> f
+  in
+
+  let expand_lf2 (x, (l, f)) = (x, (l, expand_lf f)) in
+
+  let goal = {goal with left_passive = List.map expand_lf2 goal.left_passive ;
+                        right = expand_lf goal.right}
+  in
 
   let rec right_focus ~succ ~fail sq c =
     assert (List.length sq.left_active = 0) ;
+    Format.(
+      fprintf std_formatter "right_focus: %a@.  %a@."
+        format_sequent sq Ag.format_cert c
+    ) ;
     match sq.right.form with
     | Atom (POS, p, pts) ->
         backtrack ~cc:(Ag.ex_InitR sq c) ~fail begin
-          fun n ~fail ->
-            match List.nth sq.left_passive n with
-            | (x, {form = Atom (POS, q, qts) ; _}) when p == q -> begin
+          fun x ~fail ->
+            match (snd @@ List.assoc x sq.left_passive).form with
+            | Atom (POS, q, qts) when p == q -> begin
                 match Unify.unite_lists IdtMap.empty pts qts with
                 | (repl, _) -> succ (InitR x, repl)
                 | exception Unify.Unif _ -> fail "InitR/unify"
               end
             | _ -> fail "InitR/incompat"
+            | exception Not_found -> failwith "InitR expert is bad"
         end
     | And (POS, a, b) ->
         backtrack ~cc:(Ag.ex_TensR sq c) ~fail begin
@@ -264,6 +341,7 @@ let reconstruct (type cert)
     | Shift a ->
         backtrack ~cc:(Ag.ex_BlurR sq c) ~fail begin
           fun c ~fail ->
+            let sq = {sq with right = a} in
             right_active sq c ~fail
               ~succ:(fun (der, repl) -> succ (BlurR der, repl))
         end
@@ -272,6 +350,10 @@ let reconstruct (type cert)
         failwith "right focus on active formula"
 
   and left_focus ~succ ~fail sq c =
+    Format.(
+      fprintf std_formatter "left_focus: %a@.  %a@."
+        format_sequent sq Ag.format_cert c
+    ) ;
     match sq.left_active with
     | [_, {form = Atom (NEG, p, pts) ; _}] -> begin
         match Ag.ex_InitL sq c with
@@ -327,9 +409,10 @@ let reconstruct (type cert)
                 succ (AllL (tt, (y, der)), repl)
               end
         end
-    | [_, {form = Shift a ; _}] ->
+    | [x, {form = Shift a ; _}] ->
         backtrack ~cc:(Ag.ex_BlurL sq c) ~fail begin
           fun c ~fail ->
+            let sq = {sq with left_active = [x, a]} in
             left_active sq c ~fail
               ~succ:(fun (der, repl) -> succ (BlurL der, repl))
         end
@@ -340,13 +423,18 @@ let reconstruct (type cert)
         failwith "left focus requires singleton focus"
 
   and right_active ~succ ~fail sq c =
+    Format.(
+      fprintf std_formatter "right_active: %a@.  %a@."
+        format_sequent sq Ag.format_cert c
+    ) ;
     match sq.right.form with
     | Atom (NEG, _, _) ->
-        (* silent handoff *)
+        let sq = {sq with right = expand_lf sq.right} in
+        (* silent Store *)
         left_active ~succ ~fail sq c
     | Shift a ->
-        let sq = {sq with right = a} in
-        (* silent handoff *)
+        let sq = {sq with right = expand_lf a} in
+        (* silent Store *)
         left_active ~succ ~fail sq c
     | And (NEG, a, b) ->
         backtrack ~cc:(Ag.cl_WithR sq c) ~fail begin
@@ -395,23 +483,33 @@ let reconstruct (type cert)
         failwith "right active on positive formula"
 
   and left_active ~succ ~fail sq c =
+    Format.(
+      fprintf std_formatter "left_active: %a@.  %a@."
+        format_sequent sq Ag.format_cert c
+    ) ;
     match sq.left_active with
     | [] -> frontier ~succ ~fail sq c
     | (_, f0) :: rest -> begin
         match f0.form with
-        | Atom (POS, _, _) ->
+        | Atom (POS, p, _) ->
             backtrack ~cc:(Ag.cl_Store sq c) ~fail begin
               fun (x, c) ~fail ->
                 let sq = {sq with left_active = rest ;
-                                  left_passive = (x, f0) :: sq.left_passive} in
+                                  left_passive = (x, (p, expand_lf f0))
+                                                 :: sq.left_passive} in
                 left_active sq c ~fail
                   ~succ:(fun (der, repl) -> succ (Store (x, der), repl))
             end
         | Shift a ->
+            let lab = match a.form with
+              | Atom (NEG, lab, _) -> lab
+              | _ -> failwith "labelling bug: label of stored formula unknown"
+            in
+            let a = expand_lf a in
             backtrack ~cc:(Ag.cl_Store sq c) ~fail begin
               fun (x, c) ~fail ->
                 let sq = {sq with left_active = rest ;
-                                  left_passive = (x, a) :: sq.left_passive} in
+                                  left_passive = (x, (lab, a)) :: sq.left_passive} in
                 left_active sq c ~fail
                   ~succ:(fun (der, repl) -> succ (Store (x, der), repl))
             end
@@ -447,7 +545,7 @@ let reconstruct (type cert)
         | False -> begin
             match Ag.cl_ZeroL sq c with
             | Choices [] -> succ (ZeroL, IdtMap.empty)
-            | Choices _ -> failwith "ZeroL expert is broken"
+            | Choices _ -> failwith "ZeroL expert is bad"
             | Invalid msg -> fail msg
           end
         | Exists (x, a) ->
@@ -464,10 +562,13 @@ let reconstruct (type cert)
             end
         | Atom (NEG, _, _) | And (NEG, _, _) | True NEG
         | Implies _ | Forall _ ->
-            failwith "right active on negative formula"
+            failwith "left active on negative formula"
       end
 
   and frontier ~succ ~fail sq c =
+    Format.(
+      fprintf std_formatter "frontier: %a@." format_sequent sq
+    ) ;
     backtrack ~cc:(Ag.ex_Foc sq c) ~fail begin
       fun instr ~fail -> match instr with
         | `right c ->
@@ -475,12 +576,12 @@ let reconstruct (type cert)
               ~succ:(fun (der, repl) -> succ (FocR der, repl))
         | `left (x, (xx, c)) -> begin
             match List.assoc x sq.left_passive with
-            | a when polarity a = NEG ->
+            | (_, a) when polarity a = NEG ->
                 let sq = {sq with left_active = [(xx, a)]} in
                 left_focus sq c ~fail
                   ~succ:(fun (der, repl) -> succ (FocL (x, (xx, der)), repl))
             | _ -> fail "FocL/nonpos"
-            | exception Not_found -> failwith "Foc expert is broken"
+            | exception Not_found -> failwith "Foc expert is bad"
           end
     end
   in
