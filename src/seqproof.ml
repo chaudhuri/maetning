@@ -13,9 +13,12 @@ open Idt
 open Term
 open Form
 
+type hyp = idt                  (* index of a hypothesis *)
+type eig = idt                  (* name of an eigen variable *)
+
 type proof =
   | InitL
-  | InitR  of idt
+  | InitR  of hyp
 
   | TensL  of proof2
   | TensR  of proof * proof
@@ -36,24 +39,24 @@ type proof =
   | TopR
 
   | ImpL   of proof * proof1
-  | ImpR   of idt * proof
+  | ImpR   of hyp * proof
 
   | AllL   of term * proof1
-  | AllR   of idt * proof
+  | AllR   of eig * proof
 
-  | ExL    of idt * proof1
+  | ExL    of eig * proof1
   | ExR    of term * proof
 
   | FocR   of proof
-  | FocL   of idt * proof1
+  | FocL   of hyp * proof1
 
   | BlurR  of proof
   | BlurL  of proof
 
   | Store  of proof1
 
-and proof1 = idt * proof
-and proof2 = idt * idt * proof
+and proof1 = hyp * proof
+and proof2 = hyp * hyp * proof
 
 type sequent = {
   term_vars    : IdtSet.t ;
@@ -135,39 +138,42 @@ module type AGENCY = sig
   type cert
   val format_cert : Format.formatter -> cert -> unit
 
-  val ex_InitR  : (cert, idt) op
+  (* Experts are named ex_ *)
+  (* Clerks  are named cl_ *)
+
+  val ex_InitR  : (cert, hyp) op
   val ex_InitL  : (cert, 'a) op
 
-  val cl_TensL  : (cert, idt * idt * cert) op
+  val cl_TensL  : (cert, hyp * hyp * cert) op
   val ex_TensR  : (cert, cert * cert) op
 
   val cl_OneL   : (cert, cert) op
   val ex_OneR   : (cert, 'a) op
 
-  val cl_PlusL  : (cert, (idt * cert) * (idt * cert)) op
+  val cl_PlusL  : (cert, (hyp * cert) * (hyp * cert)) op
   val ex_PlusR  : (cert, [`left | `right] * cert) op
 
   val cl_ZeroL  : (cert, 'a) op
 
-  val ex_WithL  : (cert, [`left | `right] * (idt * cert)) op
+  val ex_WithL  : (cert, [`left | `right] * (hyp * cert)) op
   val cl_WithR  : (cert, cert * cert) op
 
   val cl_TopR   : (cert, 'a) op
 
-  val ex_ImpL   : (cert, cert * (idt * cert)) op
-  val cl_ImpR   : (cert, idt * cert) op
+  val ex_ImpL   : (cert, cert * (hyp * cert)) op
+  val cl_ImpR   : (cert, hyp * cert) op
 
-  val ex_AllL   : (cert, term * (idt * cert)) op
+  val ex_AllL   : (cert, term * (hyp * cert)) op
   val cl_AllR   : (cert, term * cert) op
 
-  val cl_ExL    : (cert, term * (idt * cert)) op
+  val cl_ExL    : (cert, term * (hyp * cert)) op
   val ex_ExR    : (cert, term * cert) op
 
   val ex_BlurR  : (cert, cert) op
   val ex_BlurL  : (cert, cert) op
 
-  val cl_Store  : (cert, idt * cert) op
-  val ex_Foc    : (cert, [`right of cert | `left of idt * (idt * cert)]) op
+  val cl_Store  : (cert, hyp * cert) op
+  val ex_Foc    : (cert, [`right of cert | `left of hyp * (hyp * cert)]) op
 end
 
 let unconst t =

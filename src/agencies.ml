@@ -23,7 +23,12 @@ let (fresh_hyp, fresh_const) =
   in
   (fresh_hyp, fresh_const)
 
-module Trivial (C : sig type cert val format_cert : Format.formatter -> cert -> unit end)
+(* For any certificate format, create an agency that ignores the cert and generates
+ * the full list of choices for each branching rule. *)
+module Trivial (C : sig
+                  type cert
+                  val format_cert : Format.formatter -> cert -> unit
+                end)
   : AGENCY with type cert = C.cert =
 struct
   include C
@@ -171,6 +176,7 @@ struct
 
 end
 
+(* Agency whose choices are guided by a given Skeleton *)
 module Rebuild : AGENCY with type cert = Skeleton.t = struct
 
   open Skeleton
