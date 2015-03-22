@@ -162,7 +162,6 @@ let rule_match_exn ~sc prem cand =
             (*     (format_term ()) (app q qargs) *)
             (*     format_repl repl ; *)
             (* ) ; *)
-            (* let (repl, _) = Unify.unite_match_lists repl pargs qargs in *)
             let (repl, _) = Unify.unite_lists repl pargs qargs in
             (* Format.( *)
             (*   eprintf "rule_match: hyp matched with %a@." format_repl repl *)
