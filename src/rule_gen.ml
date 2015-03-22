@@ -251,7 +251,7 @@ let generate0 left pseudo right =
   process Right [right] ;
   let goal_lform = List.hd !lforms in
   Format.(
-    printf "Labelled formulas:." ;
+    printf "Labelled formulas:@." ;
     List.iter (printf "  %a.@." format_lform) !lforms ;
     printf "goal is %s.@." goal_lform.label.rep ;
   ) ;
