@@ -22,10 +22,8 @@ module Deps = struct
 end
 
 let options = Arg.(align [
-    "-XX:EVCPseudos", Set Config.evc_pseudos, " Perform EVC on pseudos as well (default: false)" ;
     "-check", Set Config.do_check, " Reconstruct a full proof from the skeleton and check it" ;
-    "-proofs", String Config.set_proof_channel, "<file> Outout proofs to <file>" ;
-    "-v", Int Config.set_verbosity, "<num> Set verbosity to <num>" ;
+    "-proofs", String Config.set_proof_channel, "<file> Output proofs to <file> (in HTML format)" ;
     "-version", Unit (fun () ->
         Printf.printf "Maetning version %s\n" Version.version ;
         Pervasives.exit 0
@@ -34,6 +32,7 @@ let options = Arg.(align [
         Printf.printf "%s%!" Version.version ;
         Pervasives.exit 0
       ), " Display a version number (no newline at end)" ;
+    "-XX:EVCPseudos", Set Config.evc_pseudos, " Perform EVC on pseudos as well (default: false)" ;
   ])
 let parse_options () =
   let umsg = "Usage: maetning [options] file ..." in

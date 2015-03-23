@@ -4,6 +4,8 @@
 %prove A => A.
 % refute A.
 
+% positive p.
+
 % refute (\A x. \E y. p(x, y)) => \E y. \A x. p(x, y).
 %prove (\A x. \E y. p(x, y)) <= \E y. \A x. p(x, y).
 
@@ -13,5 +15,6 @@
 
 %prove ~(A + B) <=> ~A & ~B.
 
+%prove ~(A * B) <= ~A + ~B.
 %prove ~(A & B) <= ~A + ~B.
 % refute  ~(A & B) => ~A + ~B.

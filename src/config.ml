@@ -7,9 +7,6 @@
 
 open Batteries
 
-let verbosity = ref 0
-let set_verbosity n = verbosity := n
-
 let input_files : string list ref = ref []
 let add_input_file f = input_files := f :: !input_files
 

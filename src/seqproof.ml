@@ -131,12 +131,16 @@ let replace_sequent ~repl sq =
   {sq with left_passive ; left_active ; right}
 
 let fresh_eig_for sq x =
+  let x = match x.rep.[0] with
+    | '$' -> x
+    | _ -> intern @@ "$" ^ x.rep
+  in
   let (term_vars, x) = Nstore.fresh_wrt sq.term_vars x in
   let sq = {sq with term_vars} in
   (sq, Term.app x [])
 
 let hypgen = new Namegen.namegen
-  (fun n -> intern @@ "$" ^ string_of_int n)
+  (fun n -> intern @@ "u" ^ string_of_int n)
 
 let format_sequent fmt sq =
   let open Format in
@@ -178,7 +182,7 @@ let format_sequent fmt sq =
               format_form () fmt f ;
           end left
       end ;
-      pp_print_string fmt " -->" ;
+      pp_print_as fmt 2 " ⊢" ;
       pp_print_space fmt () ;
       format_form () fmt sq.right ;
     end ; pp_close_box fmt () ;

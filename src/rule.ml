@@ -187,7 +187,7 @@ let distribute right sq =
 
 let specialize_one ~sc ~sq ~concl ~eigen current_prem remaining_prems =
   let current_premid = match current_prem.skel with
-    | Prem k -> k
+    | Skeleton.Prem k -> k
     | _ -> failwith "Invalid premise"
   in
   rule_match current_prem sq ~sc:begin
