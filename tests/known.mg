@@ -1,3 +1,6 @@
+% positive A.
+%positive B.
+
 %prove A => A.
 % refute A.
 

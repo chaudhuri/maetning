@@ -39,12 +39,13 @@ let format_rule ?max_depth () fmt rr =
       List.iteri begin
         fun k prem ->
           format_sequent ?max_depth () fmt prem ;
+          (* fprintf fmt " [%a]" Skeleton.format_skeleton prem.skel ; *)
           pp_print_cut fmt () ;
       end rr.prems ;
       fprintf fmt "--------------------%t@," format_eigens ;
     end ;
     format_sequent ?max_depth () fmt rr.concl ;
-    (* Skeleton.format_skeleton fmt rr.concl.skel ; *)
+    (* fprintf fmt " [%a]" Skeleton.format_skeleton rr.concl.skel ; *)
   end ; pp_close_box fmt ()
 
 let foo ff =
@@ -185,6 +186,10 @@ let distribute right sq =
   | _ -> sq
 
 let specialize_one ~sc ~sq ~concl ~eigen current_prem remaining_prems =
+  let current_premid = match current_prem.skel with
+    | Prem k -> k
+    | _ -> failwith "Invalid premise"
+  in
   rule_match current_prem sq ~sc:begin
     fun repl sq ->
       let prems = List.map (replace_sequent ~repl) remaining_prems in
@@ -218,7 +223,7 @@ let specialize_one ~sc ~sq ~concl ~eigen current_prem remaining_prems =
           end IdtSet.empty prems in
         let eigen = IdtSet.inter eigen prem_vars in
         let concl = override concl
-            ~skel:(Skeleton.reduce [concl.skel ; sq.skel]) in
+            ~skel:(Skeleton.reduce [(concl.skel, -1) ; (sq.skel, current_premid)]) in
         sc { prems ; concl ; eigen }
       (* else *)
       (*   Format.( *)

@@ -28,7 +28,9 @@ let set_proof_channel filename =
 <head>
 <meta charset="utf-8">
 <style type="text/css">
-  li { list-style-type: disc !important; }
+  li { list-style-type: none  ;
+       list-style-image: url('https://google.github.io/material-design-icons/navigation/svg/ic_arrow_drop_down_24px.svg'); }
+  ul { background-color: rgba(0,0,0,0.075); }
   pre { margin-left: 2em; color: #000080 !important; }
   code { color: #000080 !important; }
   h3 code { color: inherit !important; }

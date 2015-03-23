@@ -92,6 +92,8 @@ let rec backtrack ~cc ~fail fn =
   | Choices (c :: cs) ->
       fn c ~fail:(fun _ -> backtrack ~cc:(Choices cs) ~fail fn)
 
+let __debug = false
+
 let reconstruct (type cert)
     (module Ag : AGENCY with type cert = cert)
     ~lforms ~goal ~(cert:cert) =
@@ -127,8 +129,9 @@ let reconstruct (type cert)
   let rec right_focus ~succ ~fail sq c =
     assert (List.length sq.left_active = 0) ;
     Format.(
-      fprintf std_formatter "right_focus: %a@.  %a@."
-        format_sequent sq Ag.format_cert c
+      if __debug then
+        fprintf std_formatter "right_focus: %a@.  %a@."
+          format_sequent sq Ag.format_cert c
     ) ;
     match sq.right.form with
     | Atom (POS, p, pts) ->
@@ -199,8 +202,9 @@ let reconstruct (type cert)
 
   and left_focus ~succ ~fail sq c =
     Format.(
-      fprintf std_formatter "left_focus: %a@.  %a@."
-        format_sequent sq Ag.format_cert c
+      if __debug then
+        fprintf std_formatter "left_focus: %a@.  %a@."
+          format_sequent sq Ag.format_cert c
     ) ;
     match sq.left_active with
     | [_, {form = Atom (NEG, p, pts) ; _}] -> begin
@@ -278,8 +282,9 @@ let reconstruct (type cert)
 
   and right_active ~succ ~fail sq c =
     Format.(
-      fprintf std_formatter "right_active: %a@.  %a@."
-        format_sequent sq Ag.format_cert c
+      if __debug then
+        fprintf std_formatter "right_active: %a@.  %a@."
+          format_sequent sq Ag.format_cert c
     ) ;
     match sq.right.form with
     | Atom (NEG, _, _) ->
@@ -341,8 +346,9 @@ let reconstruct (type cert)
 
   and left_active ~succ ~fail sq c =
     Format.(
-      fprintf std_formatter "left_active: %a@.  %a@."
-        format_sequent sq Ag.format_cert c
+      if __debug then
+        fprintf std_formatter "left_active: %a@.  %a@."
+          format_sequent sq Ag.format_cert c
     ) ;
     match sq.left_active with
     | [] -> frontier ~succ ~fail sq c
@@ -362,7 +368,7 @@ let reconstruct (type cert)
         | Shift a ->
             let lab = match a.form with
               | Atom (NEG, lab, _) -> lab
-              | _ -> failwith "labelling bug: label of stored formula unknown"
+              | _ -> failwith "labeling bug: label of stored formula unknown"
             in
             let a = expand_lf a in
             backtrack ~cc:(Ag.cl_Store sq c) ~fail begin
@@ -438,7 +444,9 @@ let reconstruct (type cert)
 
   and frontier ~succ ~fail sq c =
     Format.(
-      fprintf std_formatter "frontier: %a@." format_sequent sq
+      if __debug then
+        fprintf std_formatter "frontier: %a@.  %a@."
+          format_sequent sq Ag.format_cert c ;
     ) ;
     backtrack ~cc:(Ag.ex_Foc sq c) ~fail begin
       fun instr ~fail -> match instr with

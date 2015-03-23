@@ -48,7 +48,7 @@ end = struct
 
   let sqidgen = new Namegen.namegen (fun n -> n)
 
-  let mk_sequent ?(skel=Skeleton.Prem) ?right ?(left=Ft.empty) () =
+  let mk_sequent ?(skel=Skeleton.Prem (Skeleton.premidgen#next)) ?right ?(left=Ft.empty) () =
     let sqid = sqidgen#next in
     let terms = match right with
       | None -> left

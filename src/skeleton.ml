@@ -13,7 +13,7 @@ open Form
 
 type t = skeleton
 and skeleton =
-  | Prem
+  | Prem   of int
 
   | InitL
   | InitR
@@ -53,11 +53,13 @@ and skeleton =
 
   | Store  of t
 
+let premidgen = new Namegen.namegen (fun n -> n)
+
 let format_skeleton ff sk =
   let open Format in
   let rec spin ff sk =
     match sk with
-    | Prem -> fprintf ff "Prem"
+    | Prem k -> fprintf ff "P_%d" k
     | InitL -> fprintf ff "InitL"
     | InitR -> fprintf ff "InitR"
     | TensL sk -> unary ff "TensL" sk
@@ -101,13 +103,13 @@ let format_skeleton ff sk =
   in
   spin ff sk
 
-let graft ~premise sk =
+let graft ~premise ~num sk =
   let rec trav sk =
     (* Format.printf "Grafting: %a to %a@." format_skeleton premise format_skeleton sk ; *)
     match sk with
-    | InitL | InitR | OneR | ZeroL | TopR -> None
+    | InitL | InitR | OneR | ZeroL | TopR -> sk
 
-    | Prem             -> Some premise
+    | Prem k           -> if k = num then premise else sk
 
     | TensL sk         -> unary  ~mk:(fun sk -> TensL sk) sk
     | TensR (sk1, sk2) -> binary ~mk:(fun sk1 sk2 -> TensR (sk1, sk2)) sk1 sk2
@@ -139,19 +141,9 @@ let graft ~premise sk =
 
     | Store sk         -> unary  ~mk:(fun sk -> Store sk) sk
 
-  and unary ~mk sk =
-    match trav sk with
-    | Some sk -> Some (mk sk)
-    | None -> None
+  and unary ~mk sk = mk (trav sk)
 
-  and binary ~mk sk1 sk2 =
-    match trav sk1 with
-    | Some sk1 -> Some (mk sk1 sk2)
-    | None -> begin
-        match trav sk2 with
-        | Some sk2 -> Some (mk sk1 sk2)
-        | None -> None
-      end
+  and binary ~mk sk1 sk2 = mk (trav sk1) (trav sk2)
   in
   trav sk
 
@@ -159,16 +151,12 @@ let graft ~premise sk =
 exception Skelstack
 
 let reduce stack =
-  let reduce_one g premise =
-    match graft ~premise g with
-    | None -> raise Skelstack
-    | Some g -> g
-  in
+  let reduce_one g (premise, num) = graft ~premise ~num g in
   (* Format.printf "Before reduce@." ; *)
   let sk =
     match stack with
     | [] -> raise Skelstack
-    | g :: prems -> List.fold_left reduce_one g prems
+    | (g, _) :: prems -> List.fold_left reduce_one g prems
   in
   (* Format.printf "After reduce@." ; *)
   sk

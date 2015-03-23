@@ -146,16 +146,16 @@ let format_sequent fmt sq =
       | [] ->
           pp_print_as fmt 1 "·"
       | (x, (l, f)) :: left ->
-          pp_print_string fmt (x.Idt.rep ^ "[" ^ l.Idt.rep ^ "]") ;
-          (* pp_print_string fmt x.Idt.rep ; *)
+          (* pp_print_string fmt (x.Idt.rep ^ "[" ^ l.Idt.rep ^ "]") ; *)
+          pp_print_string fmt x.Idt.rep ;
           pp_print_string fmt ":" ;
           format_form () fmt f ;
           List.iter begin
             fun (x, (l, f)) ->
               pp_print_string fmt "," ;
               pp_print_space fmt () ;
-              pp_print_string fmt (x.Idt.rep ^ "[" ^ l.Idt.rep ^ "]") ;
-              (* pp_print_string fmt x.Idt.rep ; *)
+              (* pp_print_string fmt (x.Idt.rep ^ "[" ^ l.Idt.rep ^ "]") ; *)
+              pp_print_string fmt x.Idt.rep ;
               pp_print_string fmt ":" ;
               format_form () fmt f ;
           end left

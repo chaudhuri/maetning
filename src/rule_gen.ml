@@ -113,10 +113,12 @@ and active_right left_passive left_active right =
 and active_left left_passive left_active ratm =
   match left_active with
   | [] ->
+      let skel = Prem premidgen#next in
       [{ prems = [mk_sequent ()
+                    ~skel
                     ~left:(Ft.of_list left_passive)
                     ?right:ratm] ;
-         concl = mk_sequent () ;
+         concl = mk_sequent ~skel () ;
          eigen = IdtSet.empty }]
   | la :: left_active ->
       active_left_one left_passive left_active la ratm
@@ -260,7 +262,7 @@ let generate0 left pseudo right =
       fprintf ff "<pre>%t--------------------@. %a</pre>@."
         (fun ff -> List.iter (fprintf ff "%a@." (format_form ())) left)
         (format_form ()) right ;
-      fprintf ff "<p>Labelling</p>@.<pre>@." ;
+      fprintf ff "<p>Labeling</p>@.<pre>@." ;
       List.iter (fprintf ff "%a.@." format_lform) !lforms ;
       fprintf ff "</pre><p>Goal: <code>%s</code></p>@." goal_lform.label.rep ;
     )

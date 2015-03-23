@@ -41,8 +41,8 @@ let print ~lforms ~goal proof =
     | Atom (POS, p, pts), InitR h -> begin
         match (snd @@ List.assoc h sq.left_passive).form with
         | Atom (POS, q, qts) when p == q && pts = qts ->
-            pprintf "<ul><li><code>%a</code> [right-init]</li></ul>@."
-              format_sequent sq
+            pprintf "<ul><li><code>%a</code> [right-init on <code>%s</code>]</li></ul>@."
+              format_sequent sq h.rep
         | _ -> failwith "InitR/match"
         | exception Not_found -> failwith "InitR/badindex"
       end
