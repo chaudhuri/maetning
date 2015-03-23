@@ -257,9 +257,12 @@ let generate0 left pseudo right =
   ) ;
   let expl ff =
     Format.(
-      fprintf ff "%% setup@." ;
-      List.iter (fprintf ff "%a.@." lp_lform) !lforms ;
-      fprintf ff "%% goal@.%s.@." goal_lform.label.rep ;
+      fprintf ff "<pre>%t--------------------@. %a</pre>@."
+        (fun ff -> List.iter (fprintf ff "%a@." (format_form ())) left)
+        (format_form ()) right ;
+      fprintf ff "<p>Labelling</p>@.<pre>@." ;
+      List.iter (fprintf ff "%a.@." format_lform) !lforms ;
+      fprintf ff "</pre><p>Goal: <code>%s</code></p>@." goal_lform.label.rep ;
     )
   in
   (!lforms, goal_lform, expl, generate_rules !lforms)

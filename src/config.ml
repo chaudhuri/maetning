@@ -21,12 +21,30 @@ let proof_formatter : Format.formatter option ref = ref None
 let set_proof_channel filename =
   let oc = open_out_bin filename in
   let fmt = Format.formatter_of_out_channel oc in
+  Format.pp_set_margin fmt max_int ;
+  Format.pp_set_max_indent fmt max_int ;
+  Format.fprintf fmt "%s@." {html|<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style type="text/css">
+  li { list-style-type: disc !important; }
+  pre { margin-left: 2em; color: #000080 !important; }
+  code { color: #000080 !important; }
+  h3 code { color: inherit !important; }
+</style>
+<title>Proofs!</title>
+</head>
+<body>
+|html} ;
   proof_formatter := Some fmt ;
   at_exit begin fun () ->
-    Format.pp_print_flush fmt () ;
+    Format.fprintf fmt "</body></html>@." ;
     close_out oc ;
+    Printf.printf "Proofs are now available in %S.\n%!" filename ;
   end
-let printf fmt =
+
+let pprintf fmt =
   match !proof_formatter with
   | None -> Format.(ifprintf err_formatter fmt)
   | Some ff -> Format.(fprintf ff fmt)

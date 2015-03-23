@@ -18,6 +18,7 @@ module Deps = struct
   open Front_parse
   open Front_lex
   open Agencies
+  open Seqproof_print
 end
 
 let options = Arg.(align [
@@ -39,6 +40,7 @@ let parse_options () =
   Arg.parse options Config.add_input_file umsg
 
 let process_file file =
+  Config.pprintf "<h3>Proofs from <code>%s</code></h3>@." file ;
   let ch = open_in_bin file in
   let lb = Lexing.from_channel ch in
   Front_parse.file Front_lex.token lb ;

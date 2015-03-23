@@ -141,12 +141,14 @@ let rec replace ?(depth=0) ~repl f0 =
     | Exists (x, pf)       -> exists x @@ replace ~depth:(depth + 1) ~repl pf
     | Forall (x, nf)       -> forall x @@ replace ~depth:(depth + 1) ~repl nf
 
+let __iff_prec     = 050
 let __quant_prec   = 100
 let __implies_prec = 200
 let __or_prec      = 300
 let __neg_and_prec = 400
 let __pos_and_prec = 500
 let __shift_prec   = 600
+let __not_prec     = 700
 let rec pretty_form ?(cx=[]) ?max_depth f0 =
   let ellipse = match max_depth with
     | None -> false
@@ -175,6 +177,13 @@ let rec pretty_form ?(cx=[]) ?max_depth f0 =
       let f1e = pretty_form ~cx ?max_depth f1 in
       let f2e = pretty_form ~cx ?max_depth f2 in
       Pretty.(Opapp (__pos_and_prec, Infix (LEFT, f1e, FMT " ⊗@ ", f2e)))
+  | And (NEG,
+         {form = Implies ({form = Shift a1 ; _}, b1) ; _},
+         {form = Implies ({form = Shift b2 ; _}, a2) ; _})
+      when a1 = a2 && b1 = b2 ->
+      let ae = pretty_form ~cx ?max_depth a1 in
+      let be = pretty_form ~cx ?max_depth b1 in
+      Pretty.(Opapp (__neg_and_prec, Infix (NON, ae, FMT " ≡@ ", be)))
   | And (NEG, f1, f2) ->
       let f1e = pretty_form ~cx ?max_depth f1 in
       let f2e = pretty_form ~cx ?max_depth f2 in
@@ -183,6 +192,9 @@ let rec pretty_form ?(cx=[]) ?max_depth f0 =
       let f1e = pretty_form ~cx ?max_depth f1 in
       let f2e = pretty_form ~cx ?max_depth f2 in
       Pretty.(Opapp (__or_prec, Infix (LEFT, f1e, FMT " ∨@ ", f2e)))
+  | Implies (f1, {form = Shift {form = False ; _} ; _}) ->
+      let f1e = pretty_form ~cx ?max_depth f1 in
+      Pretty.(Opapp (__not_prec, Prefix (FMT "¬", f1e)))
   | Implies (f1, f2) ->
       let f1e = pretty_form ~cx ?max_depth f1 in
       let f2e = pretty_form ~cx ?max_depth f2 in

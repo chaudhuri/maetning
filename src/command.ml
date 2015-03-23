@@ -105,14 +105,15 @@ let prove f =
                 ~lforms:res.Inverse.lforms
                 ~goal
                 ~cert:res.Inverse.found.Sequent.skel
-        with Some _ -> ()
-           | None -> failwith "Reconstruction failed"
+        with
+        | Some prf ->
+            Config.pprintf "%t@." res.Inverse.explain ;
+            Seqproof_print.print prf
+              ~lforms:res.Inverse.lforms ~goal ;
+            Config.pprintf "<hr>@."
+        | None -> failwith "Reconstruction failed"
       end ;
-      Format.printf "Proved.@." ;
-      Config.printf "%t%% proof:@.%a.@.%s@."
-        res.Inverse.explain
-        Skeleton.format_skeleton res.Inverse.found.Sequent.skel
-        "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" ;
+      Format.printf "Proved.@."
   | Refuted -> failwith "Not provable"
   | Unsound p -> Format.printf "UNKNOWN: pseudo %s was used.@." p.rep
 
