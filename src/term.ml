@@ -48,15 +48,14 @@ let app f ts = {
       (fun vs t -> IdtSet.union vs t.vars) IdtSet.empty ts ;
 }
 
-let fresh_var =
-  let last = ref 0 in
-  fun (flav : [`evar | `param]) ->
-    incr last ;
+let vargen = new Namegen.namegen1 begin
+  fun n (flav : [`evar | `param]) ->
     let v = match flav with
-      | `evar -> intern (evar_cookie ^ string_of_int !last)
-      | `param -> intern (param_cookie ^ string_of_int !last)
+      | `evar -> intern (evar_cookie ^ string_of_int n)
+      | `param -> intern (param_cookie ^ string_of_int n)
     in
     { term = Var v ; vars = IdtSet.singleton v ; imax = -1 }
+end
 
 type sub =
   | Shift of int
@@ -153,7 +152,7 @@ let join ?depth ss v t =
   IdtMap.insert ss v t
 
 let freshen_var v =
-  fresh_var (if v.rep.[0] == param_cookie.[0] then `param else `evar)
+  vargen#next (if v.rep.[0] == param_cookie.[0] then `param else `evar)
 
 let rec freshen ?depth ~repl t0 =
   let repl = IdtSet.fold begin fun v repl ->

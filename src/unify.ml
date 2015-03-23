@@ -99,8 +99,8 @@ module Test = struct
   let f x = app (intern "f") [x]
   let g x = app (intern "g") [x]
 
-  let v1 = Term.fresh_var `evar
-  let v2 = Term.fresh_var `evar
+  let v1 = Term.vargen#next `evar
+  let v2 = Term.vargen#next `evar
 
   let t1 = eq v1 v1
   let t2 = eq v2 (f v2)

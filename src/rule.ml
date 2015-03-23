@@ -294,11 +294,11 @@ module Test = struct
   let q = Idt.intern "q"
   let z = app (Idt.intern "z") []
   let s x = app (Idt.intern "s") [x]
-  let _X = fresh_var `evar
-  let _Y = fresh_var `evar
-  let _a = fresh_var `param
-  let _b = fresh_var `param
-  let _c = fresh_var `param
+  let _X = vargen#next `evar
+  let _Y = vargen#next `evar
+  let _a = vargen#next `param
+  let _b = vargen#next `param
+  let _c = vargen#next `param
 
   let rule1 = {
     prems = [ mk_sequent ~left:Ft.empty ~right:(p, [_X ; _a]) () ] ;

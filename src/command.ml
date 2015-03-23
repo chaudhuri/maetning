@@ -89,17 +89,19 @@ let prove f =
   match setup f with
   | Proved res ->
       if !Config.do_check then begin
+        Seqproof.hypgen#reset ;
         let ctx = List.filter_map begin
             fun lf -> match lf.place with
-              | Left Global -> Some (Agencies.fresh_hyp (), (lf.Form.label, lf.Form.skel))
+              | Left Global ->
+                  Some (Seqproof.hypgen#next, (lf.Form.label, lf.Form.skel))
               | _ -> None
           end res.Inverse.lforms in
-        let goal = Seqproof.{term_vars = IdtSet.empty ;
+        let goal = Seqproof.{term_vars = IdtMap.empty ;
                              left_active = [] ;
                              left_passive = ctx ;
                              right = res.Inverse.goal.Form.skel}
         in
-        match Seqproof.reconstruct (module Agencies.Rebuild)
+        match Reconstruct.reconstruct (module Agencies.Rebuild)
                 ~lforms:res.Inverse.lforms
                 ~goal
                 ~cert:res.Inverse.found.Sequent.skel

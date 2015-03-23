@@ -10,18 +10,7 @@ open Batteries
 open Term
 open Form
 open Seqproof
-
-let (fresh_hyp, fresh_const) =
-  let last = ref 0 in
-  let fresh_hyp () =
-    incr last ;
-    Idt.intern ("$" ^ string_of_int !last)
-  in
-  let fresh_const () =
-    incr last ;
-    Term.app (Idt.intern ("$" ^ string_of_int !last)) []
-  in
-  (fresh_hyp, fresh_const)
+open Reconstruct
 
 (* For any certificate format, create an agency that ignores the cert and generates
  * the full list of choices for each branching rule. *)
@@ -42,9 +31,7 @@ struct
   let cl_TensL sq c =
     match sq.left_active with
     | (x, {form = And (POS, _, _) ; _}) :: _ ->
-        let xl = fresh_hyp () in
-        let xr = fresh_hyp () in
-        Choices [(xl, xr, c)]
+        Choices [fun xl xr -> c]
     | _ -> Invalid "TensL"
 
   let ex_TensR sq c =
@@ -68,8 +55,7 @@ struct
   let cl_PlusL sq c =
     match sq.left_active with
     | (x, {form = Or _ ; _}) :: _ ->
-        let xx = fresh_hyp () in
-        Choices [((xx, c), (xx, c))]
+        Choices [(fun xx -> c), (fun xx -> c)]
     | _ -> Invalid "PlusL"
 
   let ex_PlusR sq c =
@@ -87,8 +73,7 @@ struct
   let ex_WithL sq c =
     match sq.left_active with
     | (x, {form = And (NEG, _, _) ; _}) :: _ ->
-        let xx = fresh_hyp () in
-        Choices [(`left, (xx, c)) ; (`right, (xx, c))]
+        Choices [(`left, (fun xx -> c)) ; (`right, (fun xx -> c))]
     | _ -> Invalid "WithL"
 
   let cl_WithR sq c =
@@ -106,44 +91,37 @@ struct
   let ex_ImpL sq c =
     match sq.left_active with
     | (x, {form = Implies _ ; _}) :: _ ->
-        let xx = fresh_hyp () in
-        Choices [(c, (xx, c))]
+        Choices [(c, (fun xx -> c))]
     | _ -> Invalid "ImpL"
 
   let cl_ImpR sq c =
     match sq.right.form with
     | Implies _ ->
-        let xx = fresh_hyp () in
-        Choices [(xx, c)]
+        Choices [(fun xx -> c)]
     | _ -> Invalid "ImpR"
 
   let ex_AllL sq c =
     match sq.left_active with
     | (x, {form = Forall _ ; _}) :: _ ->
-        let t = Term.fresh_var `evar in
-        let xx = fresh_hyp () in
-        Choices [(t, (xx, c))]
+        let t = Term.vargen#next `evar in
+        Choices [(t, (fun xx -> c))]
     | _ -> Invalid "AllL"
 
   let cl_AllR sq c =
     match sq.right.form with
-    | Forall _ ->
-        let xx = fresh_const () in
-        Choices [(xx, c)]
+    | Forall _ -> Choices [fun u -> c]
     | _ -> Invalid "AllR"
 
   let cl_ExL sq c =
     match sq.left_active with
     | (x, {form = Exists _ ; _}) :: _ ->
-        let u = fresh_const () in
-        let xx = fresh_hyp () in
-        Choices [(u, (xx, c))]
+        Choices [fun u xx -> c]
     | _ -> Invalid "ExL"
 
   let ex_ExR sq c =
     match sq.right.form with
     | Exists _ ->
-        let t = Term.fresh_var `evar in
+        let t = Term.vargen#next `evar in
         Choices [(t, c)]
     | _ -> Invalid "ExR"
 
@@ -161,17 +139,15 @@ struct
   let cl_Store sq c =
     match sq.left_active with
     | _ :: _ ->
-        let xx = fresh_hyp () in
-        Choices [(xx, c)]
+        Choices [fun xx -> c]
     | _ -> Invalid "Store"
 
   let ex_Foc sq c =
     match sq.left_active, polarity sq.right, sq.right.form with
     | [], POS, _
     | [], _, Atom (NEG, _, _) ->
-        let xx = fresh_hyp () in
         Choices (`right c ::
-                 List.map (fun (x, _) -> `left (x, (xx, c))) sq.left_passive)
+                 List.map (fun (x, _) -> `left (x, (fun xx -> c))) sq.left_passive)
     | _ -> Invalid "Foc"
 
 end
@@ -207,9 +183,7 @@ module Rebuild : AGENCY with type cert = Skeleton.t = struct
   let cl_TensL sq cc =
     match sq.left_active, cc with
     | ((_, {form = And (POS, _, _) ; _}) :: _), TensL cc ->
-        let xl = fresh_hyp () in
-        let xr = fresh_hyp () in
-        Choices [(xl, xr, cc)]
+        Choices [fun xl xr -> cc]
     | _ -> Invalid "TensL"
 
   let ex_TensR sq cc =
@@ -233,8 +207,7 @@ module Rebuild : AGENCY with type cert = Skeleton.t = struct
   let cl_PlusL sq cc =
     match sq.left_active, cc with
     | ((x, {form = Or _ ; _}) :: _), PlusL (ccl, ccr) ->
-        let xx = fresh_hyp () in
-        Choices [((xx, ccl), (xx, ccr))]
+        Choices [(fun xx -> ccl), (fun xx -> ccr)]
     | _ -> Invalid "PlusL"
 
   let ex_PlusR sq cc =
@@ -252,10 +225,9 @@ module Rebuild : AGENCY with type cert = Skeleton.t = struct
   let ex_WithL sq cc =
     match sq.left_active with
     | (x, {form = And (NEG, _, _) ; _}) :: _ -> begin
-        let xx = fresh_hyp () in
         match cc with
-        | WithL1 cc -> Choices [(`left, (xx, cc))]
-        | WithL2 cc -> Choices [(`right, (xx, cc))]
+        | WithL1 cc -> Choices [(`left, (fun xx -> cc))]
+        | WithL2 cc -> Choices [(`right, (fun xx -> cc))]
         | _ -> Invalid "WithL"
       end
     | _ -> Invalid "WithL"
@@ -275,44 +247,38 @@ module Rebuild : AGENCY with type cert = Skeleton.t = struct
   let ex_ImpL sq cc =
     match sq.left_active, cc with
     | ((x, {form = Implies _ ; _}) :: _), ImpL (cca, ccb) ->
-        let xx = fresh_hyp () in
-        Choices [(cca, (xx, ccb))]
+        Choices [(cca, (fun xx -> ccb))]
     | _ -> Invalid "ImpL"
 
   let cl_ImpR sq cc =
     match sq.right.form, cc with
     | Implies _, ImpR cc ->
-        let xx = fresh_hyp () in
-        Choices [(xx, cc)]
+        Choices [(fun xx -> cc)]
     | _ -> Invalid "ImpR"
 
   let ex_AllL sq cc =
     match sq.left_active, cc with
     | ((x, {form = Forall _ ; _}) :: _), AllL cc ->
-        let t = Term.fresh_var `evar in
-        let xx = fresh_hyp () in
-        Choices [(t, (xx, cc))]
+        let t = Term.vargen#next `evar in
+        Choices [(t, (fun xx -> cc))]
     | _ -> Invalid "AllL"
 
   let cl_AllR sq cc =
     match sq.right.form, cc with
     | Forall _, AllR cc ->
-        let xx = fresh_const () in
-        Choices [(xx, cc)]
+        Choices [fun u -> cc]
     | _ -> Invalid "AllR"
 
   let cl_ExL sq cc =
     match sq.left_active, cc with
     | ((x, {form = Exists _ ; _}) :: _), ExL cc ->
-        let u = fresh_const () in
-        let xx = fresh_hyp () in
-        Choices [(u, (xx, cc))]
+        Choices [fun u xx -> cc]
     | _ -> Invalid "ExL"
 
   let ex_ExR sq cc =
     match sq.right.form, cc with
     | Exists _, ExR cc ->
-        let t = Term.fresh_var `evar in
+        let t = Term.vargen#next `evar in
         Choices [(t, cc)]
     | _ -> Invalid "ExR"
 
@@ -331,8 +297,7 @@ module Rebuild : AGENCY with type cert = Skeleton.t = struct
   let cl_Store sq cc =
     match sq.left_active, cc with
     | (_ :: _), Store cc ->
-        let xx = fresh_hyp () in
-        Choices [(xx, cc)]
+        Choices [(fun xx -> cc)]
     | _ -> Invalid "Store"
 
   let ex_Foc sq cc =
@@ -341,11 +306,10 @@ module Rebuild : AGENCY with type cert = Skeleton.t = struct
     | [], _, Atom (NEG, _, _) -> begin
         match cc with
         | FocL (p, cc) ->
-            let xx = fresh_hyp () in
             let choices = List.filter_map begin
                 fun (x, (l, _)) ->
                   if l == p then
-                    Some (`left (x, (xx, cc)))
+                    Some (`left (x, (fun xx -> cc)))
                   else None
               end sq.left_passive in
             Choices choices

@@ -212,11 +212,11 @@ let form_to_string ?(cx=[]) ?max_depth f =
   Format.pp_print_flush fmt () ;
   Buffer.contents buf
 
-let new_dummy =
-  let last = ref 0 in
-  fun () -> decr last ; intern ("'" ^ string_of_int !last)
+let dummygen = new Namegen.namegen
+  (fun n -> intern @@ "'" ^ string_of_int n)
+
 let binder mk x f =
-  let dummy = new_dummy () in
+  let dummy = dummygen#next in
   let f = f (app dummy []) |>
           force NEG |>
           abstract dummy in
@@ -228,11 +228,8 @@ type place = Left of left | Right
 and left = Global | Pseudo | Local
 let change = function Left _ -> Right | Right -> Left Local
 
-let fresh_label =
-  let last = ref 0 in
-  fun cookie ->
-    incr last ;
-    intern @@ cookie ^ string_of_int !last
+let labelgen = new Namegen.namegen1
+  (fun n cookie -> intern @@ cookie ^ string_of_int n)
 
 type lform = {
   place : place ;
@@ -296,7 +293,7 @@ let relabel ?(place=Right) f =
     match f0.form with
     | Shift f when is_frontier place (polarity f) ->
         (* Format.(fprintf std_formatter "  is a frontier@.") ; *)
-        let lab = fresh_label (place_cookie place) in
+        let lab = labelgen#next (place_cookie place) in
         (* Format.(fprintf std_formatter "  labelled %s@." lab.rep) ; *)
         let f = spin place args f in
         emit_lform { place ; label = lab ; args ; skel = f } ;
@@ -313,7 +310,7 @@ let relabel ?(place=Right) f =
         disj [spin place args pf1 ; spin place args pf2]
     | (True _ | False) -> f0
     | Exists (x, pf) -> begin
-        let v = fresh_var (match place with Right -> `evar | Left _ -> `param) in
+        let v = vargen#next (match place with Right -> `evar | Left _ -> `param) in
         let pf = app_form (Cons (Shift 0, v)) pf in
         let pf = spin place (v :: args) pf in
         let pf = app_form (Shift 1) pf in
@@ -323,7 +320,7 @@ let relabel ?(place=Right) f =
     | Implies (pf, nf) ->
          implies [spin (change place) args pf] @@ spin place args nf
     | Forall (x, nf) -> begin
-        let v = fresh_var (match place with Left _ -> `evar | Right -> `param) in
+        let v = vargen#next (match place with Left _ -> `evar | Right -> `param) in
         let nf = app_form (Cons (Shift 0, v)) nf in
         let nf = spin place (v :: args) nf in
         let nf = app_form (Shift 1) nf in
@@ -331,7 +328,7 @@ let relabel ?(place=Right) f =
         forall x nf
       end
   in
-  let l0 = fresh_label (place_cookie place) in
+  let l0 = labelgen#next (place_cookie place) in
   let f0 = match place, polarity f with
     | Left _, POS
     | Right, NEG -> shift f

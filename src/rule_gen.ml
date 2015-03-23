@@ -38,7 +38,7 @@ let rec focus_right left right =
       skel_map (fun sk -> PlusR2 sk) (focus_right left f2)
   | False -> []
   | Exists (_, f) ->
-      let v = fresh_var `evar in
+      let v = vargen#next `evar in
       let f = app_form (Cons (Shift 0, v)) f in
       skel_map (fun sk -> ExR sk) (focus_right left f)
   | Shift f ->
@@ -65,7 +65,7 @@ and focus_left left lfoc ratm =
       binary_join ~right_selector:`left left_rules right_rules
         (fun sk1 sk2 -> ImpL (sk2, sk1))
   | Forall (_, f) ->
-      let v = fresh_var `evar in
+      let v = vargen#next `evar in
       let f = app_form (Cons (Shift 0, v)) f in
       skel_map (fun sk -> AllL sk)
         (focus_left left f ratm)
@@ -95,7 +95,7 @@ and active_right left_passive left_active right =
       skel_map (fun sk -> ImpR sk)
         (active_right left_passive (f :: left_active) g)
   | Forall (_, f) ->
-      let v = fresh_var `param in
+      let v = vargen#next `param in
       let f = app_form (Cons (Shift 0, v)) f in
       let rules = active_right left_passive left_active f in
       let ev = IdtSet.singleton (unvar v) in
@@ -143,7 +143,7 @@ and active_left_one left_passive left_active la ratm =
   | False ->
       [{prems = [] ; concl = mk_sequent () ~skel:ZeroL ; eigen = IdtSet.empty}]
   | Exists (_, f) ->
-      let v = fresh_var `param in
+      let v = vargen#next `param in
       let f = app_form (Cons (Shift 0, v)) f in
       let rules = active_left left_passive (f :: left_active) ratm in
       let ev = IdtSet.singleton (unvar v) in

@@ -46,12 +46,10 @@ end = struct
     skel : Skeleton.t ;
   }
 
-  let next_sqid =
-    let __last = ref 0 in
-    fun () -> incr __last ; !__last
+  let sqidgen = new Namegen.namegen (fun n -> n)
 
   let mk_sequent ?(skel=Skeleton.Prem) ?right ?(left=Ft.empty) () =
-    let sqid = next_sqid () in
+    let sqid = sqidgen#next in
     let terms = match right with
       | None -> left
       | Some right -> Ft.snoc left right
@@ -265,9 +263,9 @@ module Test = struct
   let q = Idt.intern "q"
   let z = Idt.intern "z"
   let s = Idt.intern "s"
-  let _X = fresh_var `evar
-  let _a = fresh_var `param
-  let _b = fresh_var `param
+  let _X = vargen#next `evar
+  let _a = vargen#next `param
+  let _b = vargen#next `param
 
   let init0 =
     let left = Ft.of_list [(p, [_X]) ; (p, [_a]); (p, [_b])] in
