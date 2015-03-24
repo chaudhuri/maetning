@@ -37,7 +37,7 @@ let set_proof_channel filename =
 <body>
 |html} ;
   proof_formatter := Some fmt ;
-  at_exit begin fun () ->
+  begin fun () ->
     Format.fprintf fmt "</body></html>@." ;
     close_out oc ;
     Printf.printf "Proofs are now available in %S.\n%!" filename ;

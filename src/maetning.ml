@@ -21,9 +21,13 @@ module Deps = struct
   open Seqproof_print
 end
 
+let set_input file =
+  let disch = Config.set_proof_channel file in
+  at_exit disch
+
 let options = Arg.(align [
     "-check", Set Config.do_check, " Reconstruct a full proof from the skeleton and check it" ;
-    "-proofs", String Config.set_proof_channel, "<file> Output proofs to <file> (in HTML format)" ;
+    "-proofs", String set_input, "<file> Output proofs to <file> (in HTML format)" ;
     "-version", Unit (fun () ->
         Printf.printf "Maetning version %s\n" Version.version ;
         Pervasives.exit 0

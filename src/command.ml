@@ -102,16 +102,17 @@ let prove f =
                              right = res.Inverse.goal.Form.skel}
         in
         match Reconstruct.reconstruct (module Agencies.Rebuild)
+                ~max:1
                 ~lforms:res.Inverse.lforms
                 ~goal
                 ~cert:res.Inverse.found.Sequent.skel
         with
-        | Some prf ->
+        | Some (prf :: _) ->
             Config.pprintf "%t@." res.Inverse.explain ;
             Seqproof_print.print prf
               ~lforms:res.Inverse.lforms ~goal ;
             Config.pprintf "<hr>@."
-        | None -> failwith "Reconstruction failed"
+        | Some [] | None -> failwith "Reconstruction failed"
       end ;
       Format.printf "Proved.@."
   | Refuted -> failwith "Not provable"
