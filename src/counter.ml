@@ -160,9 +160,9 @@ struct
     List.fold_left begin fun cs (x, (_, f)) ->
       if polarity f = POS then cs else
       match IdtMap.find x us.uses with
-      (* | 1 -> *)
-      (*     let us = {uses = IdtMap.add x 2 us.uses} in *)
-      (*     `left (x, fun _ -> us) :: cs *)
+      | 1 ->
+          let us = {uses = IdtMap.add x 2 us.uses} in
+          `left (x, fun _ -> us) :: cs
       | _ -> cs
       | exception Not_found ->
           (* us.uses <- IdtMap.add x 1 us.uses ; *)
@@ -176,7 +176,8 @@ struct
     | [], _, Atom (NEG, _, _) ->
         let cs = usable sq.left_passive c in
         let cs = if polarity sq.right = POS then `right c :: cs else cs in
-        Choices cs
+        if cs = [] then Invalid "pruned branch"
+        else Choices cs
     | _ -> Invalid "Foc"
 
 end

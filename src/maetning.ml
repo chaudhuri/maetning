@@ -19,6 +19,7 @@ module Deps = struct
   open Front_lex
   open Agencies
   open Seqproof_print
+  open Counter
 end
 
 let set_input file =
