@@ -29,6 +29,8 @@ let set_input file =
 let options = Arg.(align [
     "-check", Set Config.do_check, " Reconstruct a full proof from the skeleton and check it" ;
     "-proofs", String set_input, "<file> Output proofs to <file> (in HTML format)" ;
+    "-shifts", Set Config.show_shifts, " Show polarity shifts in output" ;
+    "-nobias", Set Config.hide_bias, " Hide predicate biases in output" ;
     "-version", Unit (fun () ->
         Printf.printf "Maetning version %s\n" Version.version ;
         Pervasives.exit 0

@@ -1,4 +1,4 @@
-% positive A.
+%positive A.
 %positive B.
 
 %prove A => A.

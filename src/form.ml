@@ -158,19 +158,23 @@ let rec pretty_form ?(cx=[]) ?max_depth f0 =
     | None -> None
     | Some d -> Some (d - 1) in
   match f0.form with
-  | Shift f ->
+  | Shift f when !Config.show_shifts ->
       let fe = pretty_form ~cx ?max_depth f in
       let op = match polarity f with
         | NEG -> Pretty.FMT "↓"
         | POS -> Pretty.FMT "↑"
       in
       Pretty.(Opapp (__shift_prec, Prefix (op, fe)))
+  | Shift f -> pretty_form ~cx ?max_depth f
   | Atom (pol, pred, args) ->
-      (* let pred = match pol with *)
-      (*   | POS -> pred.rep ^ "+" *)
-      (*   | NEG -> pred.rep ^ "-" *)
-      (* in *)
-      (* let pred = Idt.intern pred in *)
+      let pred =
+        if !Config.hide_bias then pred else
+        intern begin
+          match pol with
+          | POS -> pred.rep ^ "⁺"
+          | NEG -> pred.rep ^ "⁻"
+        end
+      in
       let pe fmt = format_term ~cx ?max_depth () fmt (app pred args) in
       Pretty.(Atom (FUN pe))
   | And (POS, f1, f2) ->

@@ -7,6 +7,8 @@
 
 (** Interned (hash-consed) strings *)
 
+open Batteries
+
 type idt = private {
   rep : string ;
   idx : int ;

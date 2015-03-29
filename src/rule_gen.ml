@@ -257,7 +257,7 @@ let generate0 left pseudo right =
     List.iter (printf "  %a.@." format_lform) !lforms ;
     printf "goal is %s.@." goal_lform.label.rep ;
   ) ;
-  let expl ff =
+  let _expl ff =
     Format.(
       fprintf ff "<pre>%t--------------------@. %a</pre>@."
         (fun ff -> List.iter (fprintf ff "%a@." (format_form ())) left)
@@ -267,7 +267,7 @@ let generate0 left pseudo right =
       fprintf ff "</pre><p>Goal: <code>%s</code></p>@." goal_lform.label.rep ;
     )
   in
-  (!lforms, goal_lform, expl, generate_rules !lforms)
+  (!lforms, goal_lform, generate_rules !lforms)
 
 module Test = struct
 

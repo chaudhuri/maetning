@@ -108,7 +108,6 @@ let prove f =
                 ~cert:res.Inverse.found.Sequent.skel
         with
         | Some (prf :: _) ->
-            Config.pprintf "%t@." res.Inverse.explain ;
             Seqproof_print.print prf
               ~lforms:res.Inverse.lforms ~goal ;
             Config.pprintf "<hr>@."

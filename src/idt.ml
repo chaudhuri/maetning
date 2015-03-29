@@ -5,6 +5,8 @@
  * See LICENSE for licensing details.
  *)
 
+open Batteries
+
 type idt = { rep : string ; idx : int }
 
 module IdtHash = struct

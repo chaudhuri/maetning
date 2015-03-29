@@ -98,7 +98,6 @@ let noop () = ()
 type result = {
   lforms  : lform list ;
   goal    : lform ;
-  explain : Format.formatter -> unit ;
   found   : Sequent.t ;
 }
 
@@ -110,7 +109,7 @@ module Inv (D : Data) = struct
     try
       D.reset () ;
       let rules = ref [] in
-      let (lfs, goal_lf, gen_expl, gen) = Rule_gen.generate0 left pseudo right in
+      let (lfs, goal_lf, gen) = Rule_gen.generate0 left pseudo right in
       let goal_seq = mk_sequent ~right:(goal_lf.label, goal_lf.args) () in
       (* Format.printf "Goal sequent: %a@." (Sequent.format_sequent ()) goal_seq ; *)
       let add_seq sq =
@@ -119,7 +118,6 @@ module Inv (D : Data) = struct
           (* Format.printf "[%d] %a@." sq.sqid (Sequent.format_sequent ()) sq ; *)
           raise (Escape {lforms = lfs ;
                          goal = goal_lf ;
-                         explain = gen_expl ;
                          found = sq})
         end ;
         D.register sq
