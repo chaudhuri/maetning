@@ -4,32 +4,36 @@ selection of problems from the ILTP library.
 The following problems are classified as "Open" in the ILTP (i.e. it
 is presumably unknown whether they are intuitionistically true or
 not). Barring any fatal bugs in Mætning, some of these have now been
-resolved:
+resolved.
+
+Note in particular the problems marked as being theorems of classical
+logic. For these problems, attempting to refute the problem using
+classical means cannot succeed.
 
 SYN036+2.p:
-  ILTP status: OPEN
+  ILTP status: OPEN (Classical Theorem)
   Status: Still unknown.  
-
+  
 SYN051+1.p:
-  ILTP status: OPEN
+  ILTP status: OPEN (Classical Theorem)
   Status: REFUTED
   Time: ~0.008s
 
 SYN053+1.p:
-  ILTP status: OPEN
+  ILTP status: OPEN (Classical Theorem)
   Status: REFUTED
   Time: ~0.025s
 
 SYN417+1:
-  ILTP status: OPEN
+  ILTP status: OPEN (Classical Theorem)
   Status: Still unknown.
 
 SYN726+1.p:
-  ILTP status: OPEN
+  ILTP status: OPEN (Classical Theorem)
   Status: REFUTED
   Time: ~0.016s
 
 SYN954+1.p:
-  ILTP status: OPEN
+  ILTP status: OPEN (Classical Theorem)
   Status: REFUTED
   Time: ~0.014s
