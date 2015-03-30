@@ -71,7 +71,10 @@ let pos_or_atom pol f =
 let format_neutral ~dict ff sq =
   let open Format in
   pp_open_vbox ff 0 ; begin
-    pp_print_as ff 0 "<pre>" ;
+    pp_print_as ff 0
+      {html|<table cellspacing="0" cellpadding="0">|html} ;
+    if sq.left_passive <> [] || sq.left_active <> [] then
+      pp_print_as ff 0 {html|<tr><td><pre>|html} ;
     List.iter begin fun (h, (_, f)) ->
       fprintf ff "%s : @[%a@]@,"
         h.rep (format_form_shift1 neg_or_atom) (expand_fully ~dict f) ;
@@ -80,9 +83,13 @@ let format_neutral ~dict ff sq =
       fprintf ff "[@[%a@]]@,"
         (format_form_shift1 neg_or_atom) (expand_fully ~dict f) ;
     end (List.rev sq.left_active) ;
-    fprintf ff "------------------------------@, @[%a@]"
-      (format_form_shift1 pos_or_atom) (expand_fully ~dict sq.right) ;
-    pp_print_as ff 0 "</pre>" ;
+    if sq.left_passive <> [] || sq.left_active <> [] then
+      pp_print_as ff 0 {html|</pre></td></tr>|html} ;
+    pp_print_as ff 0
+      {html|<tr><td class="concl" valign="top"><code>|html} ;
+    format_form_shift1 pos_or_atom ff  (expand_fully ~dict sq.right) ;
+    pp_print_as ff 0
+      {html|</code></tr></table><br>|html};
   end ; pp_close_box ff ()
 
 let renumber pf0 =

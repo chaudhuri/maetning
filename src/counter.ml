@@ -161,6 +161,7 @@ struct
       if polarity f = POS then cs else
       match IdtMap.find x us.uses with
       | 1 ->
+          (* us.uses <- IdtMap.add x 2 us.uses ; *)
           let us = {uses = IdtMap.add x 2 us.uses} in
           `left (x, fun _ -> us) :: cs
       | _ -> cs
@@ -188,18 +189,30 @@ module Test = struct
   let y = atom NEG (intern "Y") []
   let z = atom NEG (intern "Z") []
 
-  let exmon = implies [disj [x ; z] ; implies [x] (disj [y ; z])] (disj [y ; z])
-  let counter = implies [x ; implies [x] (conj ~pol:POS [])] x
-  let nat = implies [x ; implies [x] x] x
-
+  let a = atom NEG (intern "A") []
+  let b = atom NEG (intern "B") []
+  let c = atom NEG (intern "C") []
 
   let (@->) x y = implies [x] y
   let (&&&) x y = conj ~pol:NEG [x ; y]
+  let ( *** ) x y = conj ~pol:POS [x ; y]
+  let (+++) x y = disj [x ; y]
+
+  let exmon = (x +++ z) @-> (x @-> (y +++ z)) @-> (y +++ z)
+
+  let counter = implies [x ; implies [x] (conj ~pol:POS [])] x
+  let nat = implies [x ; implies [x] x] x
 
   let negprod = (x @-> y @-> z) @-> (x &&& y) @-> z
   let negprod2 = ((x @-> y) &&& x) @-> y
+  let negprod3 = ((x @-> y) *** x) @-> y
 
-  let test = force POS negprod2
+  let notnotxm = (((a *** c) +++ (a @-> b) +++ (c @-> b)) @-> b) @-> b
+
+
+  (* (d @-> c) @-> (c @-> b) @-> (b +++ (c +++ d @-> c) @-> b *)
+
+  let test = force POS notnotxm
 
   let lforms = relabel test
   (* let lforms = [{place = Right ; *)
@@ -226,7 +239,7 @@ module Test = struct
       pprintf "<p>Labeling</p>@.<pre>@." ;
       List.iter (pprintf "%a.@." format_lform) lforms ;
       pprintf "</pre><p>Goal: <code>%s</code></p>@." goal_lf.label.rep ;
-      match Reconstruct.reconstruct ~max:10 (module Counter) ~lforms ~goal ~cert with
+      match Reconstruct.reconstruct ~max:70 (module Counter) ~lforms ~goal ~cert with
       | Some pfs ->
           Config.pprintf "<p>Found %d proof(s)</p>@." (List.length pfs) ;
           List.iter (fun pf -> Seqproof_print.print pf ~lforms:lforms ~goal) pfs
