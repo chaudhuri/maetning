@@ -72,9 +72,11 @@ let setup f =
   let open Sequent in
   let f = force POS f in
   (* Format.printf "Goal: %a.@." (Form.format_form ()) f ; *)
-  let globals = values !global_map in
-  let pseudo = values !pseudo_map in
-  match Inverse.inverse_method ~left:globals ~pseudo:pseudo f with
+  (* let globals = values !global_map in *)
+  (* let pseudo = values !pseudo_map in *)
+  match Inverse.inverse_method f
+          ~left:(IdtMap.bindings !global_map)
+          ~pseudo:(IdtMap.bindings !pseudo_map) with
   | None -> Refuted
   | Some res -> begin
       match

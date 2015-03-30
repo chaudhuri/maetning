@@ -296,7 +296,7 @@ let place_cookie = function
   | Left Pseudo -> pseudo_cookie
   | _ -> "#"
 
-let relabel ?(place=Right) f =
+let relabel ?(place=Right) ?top f =
   let lforms : lform list ref = ref [] in
   let emit_lform lf =
     (* Format.(fprintf std_formatter "  emitted %a@." format_lform lf) ; *)
@@ -344,7 +344,10 @@ let relabel ?(place=Right) f =
         forall x nf
       end
   in
-  let l0 = labelgen#next (place_cookie place) in
+  let l0 = match top with
+    | Some l -> intern (place_cookie place ^ l.rep)
+    | None -> labelgen#next (place_cookie place)
+  in
   let f0 = match place, polarity f with
     | Left _, POS
     | Right, NEG -> shift f

@@ -265,19 +265,23 @@ let freshen_atom lf =
   | _ -> assert false
 
 let generate0 left pseudo right =
-  assert (List.for_all (fun l -> polarity l = NEG) left) ;
-  assert (List.for_all (fun l -> polarity l = NEG) pseudo) ;
+  assert (List.for_all (fun (_, l) -> polarity l = NEG) left) ;
+  assert (List.for_all (fun (_, l) -> polarity l = NEG) pseudo) ;
   assert (polarity right = POS) ;
   let lforms = ref [] in
   let process place hyps =
     List.iter begin
-      fun f ->
-        let lfs = relabel ~place f in
+      fun (top, f) ->
+        let top = match place with
+          | Right -> None
+          | _ -> Some top
+        in
+        let lfs = relabel ~place ?top f in
         lforms := lfs @ !lforms
     end hyps in
   process (Left Global) left ;
   process (Left Pseudo) pseudo ;
-  process Right [right] ;
+  process Right [intern "_", right] ;
   let goal_lform = List.hd !lforms in
   Format.(
     printf "Labelled formulas:@." ;
@@ -287,7 +291,9 @@ let generate0 left pseudo right =
   let _expl ff =
     Format.(
       fprintf ff "<pre>%t--------------------@. %a</pre>@."
-        (fun ff -> List.iter (fprintf ff "%a@." (format_form ())) left)
+        (fun ff -> List.iter (fprintf ff "%a@."
+                                (fun ff (_, f) -> format_form () ff f))
+            left)
         (format_form ()) right ;
       fprintf ff "<p>Labeling</p>@.<pre>@." ;
       List.iter (fprintf ff "%a.@." format_lform) !lforms ;

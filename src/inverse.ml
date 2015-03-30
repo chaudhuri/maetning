@@ -193,20 +193,21 @@ module Test = struct
   let rec s_n n x = match n with 0 -> x | n -> s (s_n (n - 1) x)
 
   let even x = Form.atom NEG (intern "even") [x]
-  let even_theory = [ even z ;
-                      forall_ "x" (fun x -> implies [even x] (even (s (s x)))) ]
-  let even_prune n = [ forall_ "x" (fun x -> even (s_n n x)) ]
+  let even_theory = [ intern "evz", even z ;
+                      intern "evs", forall_ "x" (fun x -> implies [even x] (even (s (s x)))) ]
+  let even_prune n = [ intern "evp", forall_ "x" (fun x -> even (s_n n x)) ]
   let even_prune n = [ ]
   let even_right = even (s_n 2 z) |> shift
   let even_test n = inverse_test ~theory:even_theory ~pseudo:even_prune ~goal:even_right n
 
   let odd x = Form.atom NEG (intern "odd") [x]
-  let odd_theory = [ odd (s z) ;
-                     forall_ "x" (fun x -> implies [odd (s_n 2 x)] (odd x)) ]
+  let odd_theory = [ intern "od1", odd (s z) ;
+                     intern "ods", forall_ "x" (fun x -> implies [odd (s_n 2 x)] (odd x)) ]
   let odd_prune_unguarded n = [
-      (forall_ "x" (fun x -> odd (s_n n x)))
+    intern "odp", (forall_ "x" (fun x -> odd (s_n n x)))
   ]
   let odd_prune_guarded n = [
+    intern "odpg", 
     implies [exists_ "x" (fun x -> odd (s_n n x))]
       (forall_ "x" (fun x -> odd (s_n n x)))
   ]
@@ -223,8 +224,8 @@ module Test = struct
   let lf = app (intern "lf") []
   let nd tl tr = app (intern "nd") [tl ; tr]
   let bal t x = atom NEG (intern "bal") [t ; x]
-  let bal_th = [ bal lf z ;
-                 forall_ "x"
+  let bal_th = [ intern "balz", bal lf z ;
+                 intern "bals", forall_ "x"
                    (fun x -> forall_ "t"
                        (fun t -> implies [bal t x] (bal (nd t t) (s x)))) ]
   let bal_prune n =
@@ -235,7 +236,7 @@ module Test = struct
       | 0 -> t
       | k -> wrap (forall (intern ("tt" ^ string_of_int k)) t) (k - 1)
     in
-    [ spin (idx 1) n ]
+    [ intern "balp", spin (idx 1) n ]
   let bal_right = exists (intern "x") (bal (nd lf (nd lf lf)) (idx 0))
   let bal_test n = inverse_test ~theory:bal_th ~pseudo:bal_prune ~goal:bal_right n
 
