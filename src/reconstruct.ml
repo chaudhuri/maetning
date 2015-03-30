@@ -12,6 +12,8 @@ open Term
 open Form
 open Seqproof
 
+module M = IdtMap
+
 type 'a result =
   | Choices of 'a list
   | Invalid of string
@@ -79,7 +81,7 @@ let rec contains_term small big =
   end
 
 let evc u repl =
-  IdtMap.iter begin
+  M.iter begin
     fun _ t ->
       if contains_term u t then raise Occurs
   end repl
@@ -92,7 +94,31 @@ let rec backtrack ~cc ~fail fn =
   | Choices (c :: cs) ->
       fn c ~fail:(fun _ -> backtrack ~cc:(Choices cs) ~fail fn)
 
-let __debug = true
+let __debug = false
+
+let format_repl ff repl =
+  match M.bindings repl with
+  | [] -> ()
+  | (x, t) :: bs ->
+      Format.(
+        pp_open_box ff 1 ; begin
+          fprintf ff "{%s:%a" x.rep (format_term ()) t ;
+          List.iter begin fun (x, t) ->
+            fprintf ff ",@,%s:%a" x.rep (format_term ()) t
+          end bs ;
+          pp_print_string ff "}" ;
+        end ; pp_close_box ff ()
+      )
+
+let repl_join repl_left repl_right =
+  M.merge begin fun k ts1 ts2 ->
+    match ts1, ts2 with
+    | Some ts1, Some ts2 ->
+        failwith ("repl_join: overlap on " ^ k.rep)
+    | Some ts, None
+    | None, Some ts -> Some ts
+    | None, None -> None
+  end repl_left repl_right
 
 let reconstruct (type cert)
     (module Ag : AGENCY with type cert = cert)
@@ -103,17 +129,17 @@ let reconstruct (type cert)
 
   let lf_dict = List.fold_left begin
       fun dict lf ->
-        IdtMap.add lf.label lf dict
-    end IdtMap.empty lforms in
+        M.add lf.label lf dict
+    end M.empty lforms in
 
   let expand_lf f = match f.form with
     | Atom (pol, p, ts) -> begin
-        match IdtMap.find p lf_dict with
+        match M.find p lf_dict with
         | lf ->
             let repl = List.fold_left2 begin
                 fun repl lfarg arg ->
-                  IdtMap.add (unvar lfarg) arg repl
-              end IdtMap.empty lf.args ts
+                  M.add (unvar lfarg) arg repl
+              end M.empty lf.args ts
             in
             Form.replace ~repl lf.skel
         | exception Not_found -> f
@@ -134,13 +160,22 @@ let reconstruct (type cert)
         fprintf std_formatter "right_focus: %a@.  %a@."
           format_sequent sq Ag.format_cert c
     ) ;
+    let succ (pf, repl) ~fail =
+      Format.(
+        if __debug then
+          fprintf std_formatter "  >>> right_focus: %a -->@.  >>> %a@."
+            format_sequent sq
+            format_repl repl
+      ) ;
+      succ (pf, repl) ~fail
+    in
     match sq.right.form with
     | Atom (POS, p, pts) ->
         backtrack ~cc:(Ag.ex_InitR sq c) ~fail begin
           fun x ~fail ->
             match (snd @@ List.assoc x sq.left_passive).form with
             | Atom (POS, q, qts) when p == q -> begin
-                match Unify.unite_lists IdtMap.empty pts qts with
+                match Unify.unite_lists M.empty pts qts with
                 | (repl, _) -> succ (InitR x, repl) ~fail
                 | exception Unify.Unif _ -> fail "InitR/unify"
               end
@@ -152,17 +187,17 @@ let reconstruct (type cert)
           fun (c1, c2) ~fail ->
             right_focus {sq with right = a} c1
               ~fail
-              ~succ:begin fun (lder, repl) ~fail ->
-                let sq = replace_sequent ~repl {sq with right = b} in
+              ~succ:begin fun (lder, lrepl) ~fail ->
+                let sq = replace_sequent ~repl:lrepl {sq with right = b} in
                 right_focus sq c2 ~fail
-                  ~succ:(fun (rder, repl) ~fail ->
-                      let lder = replace_proof ~repl lder in
-                      succ (TensR (lder, rder), repl) ~fail)
+                  ~succ:(fun (rder, rrepl) ~fail ->
+                      let lder = replace_proof ~repl:rrepl lder in
+                      succ (TensR (lder, rder), repl_join lrepl rrepl) ~fail)
               end
         end
     | True POS -> begin
         match Ag.ex_OneR sq c with
-        | Choices [] -> succ (OneR, IdtMap.empty) ~fail
+        | Choices [] -> succ (OneR, M.empty) ~fail
         | Choices _ -> failwith "OneR expert is bad"
         | Invalid msg -> fail msg
       end
@@ -187,7 +222,7 @@ let reconstruct (type cert)
             right_focus sq c ~fail
               ~succ:(fun (der, repl) ~fail ->
                   let tt = Term.replace ~repl t in
-                  let repl = IdtMap.remove (Term.unvar t) repl in
+                  let repl = M.remove (Term.unvar t) repl in
                   succ (ExR (tt, der), repl) ~fail)
         end
     | Shift a ->
@@ -213,7 +248,7 @@ let reconstruct (type cert)
         | Choices [] -> begin
             match sq.right.form with
             | Atom (NEG, q, qts) when p == q -> begin
-                match Unify.unite_lists IdtMap.empty pts qts with
+                match Unify.unite_lists M.empty pts qts with
                 | (repl, _) -> succ (InitL, repl) ~fail
                 | exception Unify.Unif _ -> fail "InitL/unify"
               end
@@ -244,13 +279,13 @@ let reconstruct (type cert)
             let cb = cbfn y in
             right_focus {sq with left_active = [] ; right = a} ca
               ~fail
-              ~succ:begin fun (dera, repl) ~fail ->
+              ~succ:begin fun (dera, repla) ~fail ->
                 let sq = {sq with left_active = [y, b]} in
-                let sq = replace_sequent ~repl sq in
+                let sq = replace_sequent ~repl:repla sq in
                 left_focus sq cb ~fail
-                  ~succ:begin fun (derb, repl) ~fail ->
-                    let dera = replace_proof ~repl dera in
-                    succ (ImpL (dera, (y, derb)), repl) ~fail
+                  ~succ:begin fun (derb, replb) ~fail ->
+                    let dera = replace_proof ~repl:replb dera in
+                    succ (ImpL (dera, (y, derb)), repl_join repla replb) ~fail
                   end
               end
         end
@@ -264,7 +299,7 @@ let reconstruct (type cert)
             left_focus sq c ~fail
               ~succ:begin fun (der, repl) ~fail ->
                 let tt = Term.replace ~repl t in
-                let repl = IdtMap.remove (Term.unvar t) repl in
+                let repl = M.remove (Term.unvar t) repl in
                 succ (AllL (tt, (y, der)), repl) ~fail
               end
         end
@@ -300,19 +335,19 @@ let reconstruct (type cert)
         backtrack ~cc:(Ag.cl_WithR sq c) ~fail begin
           fun (ca, cb) ~fail ->
             right_active {sq with right = a} ca ~fail
-              ~succ:begin fun (dera, repl) ~fail ->
+              ~succ:begin fun (dera, repla) ~fail ->
                 let sq = {sq with right = b}
-                         |> replace_sequent ~repl in
+                         |> replace_sequent ~repl:repla in
                 right_active sq cb ~fail
-                  ~succ:begin fun (derb, repl) ~fail ->
-                    let dera = replace_proof ~repl dera in
-                    succ (WithR (dera, derb), repl) ~fail
+                  ~succ:begin fun (derb, replb) ~fail ->
+                    let dera = replace_proof ~repl:replb dera in
+                    succ (WithR (dera, derb), repl_join repla replb) ~fail
                   end
               end
         end
     | True NEG -> begin
         match Ag.cl_TopR sq c with
-        | Choices [] -> succ (TopR, IdtMap.empty) ~fail
+        | Choices [] -> succ (TopR, M.empty) ~fail
         | Choices _ -> failwith "TopR expert is bad"
         | Invalid msg -> fail msg
       end
@@ -407,19 +442,19 @@ let reconstruct (type cert)
                 let cb = cbfn xb in
                 let sqa = {sq with left_active = (xa, a) :: rest} in
                 left_active sqa ca ~fail
-                  ~succ:begin fun (dera, repl) ~fail ->
+                  ~succ:begin fun (dera, repla) ~fail ->
                     let sqb = {sq with left_active = (xb, b) :: rest}
-                              |> replace_sequent ~repl in
+                              |> replace_sequent ~repl:repla in
                     left_active sqb cb ~fail
-                      ~succ:begin fun (derb, repl) ~fail ->
-                        let dera = replace_proof ~repl dera in
-                        succ (PlusL ((xa, dera), (xb, derb)), repl) ~fail
+                      ~succ:begin fun (derb, replb) ~fail ->
+                        let dera = replace_proof ~repl:replb dera in
+                        succ (PlusL ((xa, dera), (xb, derb)), repl_join repla replb) ~fail
                       end
                   end
             end
         | False -> begin
             match Ag.cl_ZeroL sq c with
-            | Choices [] -> succ (ZeroL, IdtMap.empty) ~fail
+            | Choices [] -> succ (ZeroL, M.empty) ~fail
             | Choices _ -> failwith "ZeroL expert is bad"
             | Invalid msg -> fail msg
           end

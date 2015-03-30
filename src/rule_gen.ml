@@ -14,10 +14,23 @@ open Skeleton
 open Sequent
 open Rule
 
+module S = IdtSet
+module M = IdtMap
+
+
 let skel_map skf rrs =
   List.map begin fun rr ->
     {rr with concl = override rr.concl ~skel:(skf rr.concl.skel)}
   end rrs
+
+let add_fresh_extras ev rr =
+  let extra = S.fold begin
+      fun pv extra ->
+        match M.find pv extra with
+        | ts -> M.add pv (ev :: ts) extra
+        | exception Not_found -> M.add pv [ev] extra
+    end rr.eigen rr.extra in
+  {rr with extra}
 
 let rec focus_right left right =
   match right.form with
@@ -31,7 +44,8 @@ let rec focus_right left right =
   | True POS ->
       [{ prems = [] ;
          concl = mk_sequent () ~skel:OneR ;
-         eigen = IdtSet.empty }]
+         eigen = S.empty ;
+         extra = M.empty }]
   | Or (f1, f2) ->
       skel_map (fun sk -> PlusR1 sk) (focus_right left f1)
       @
@@ -40,7 +54,9 @@ let rec focus_right left right =
   | Exists (_, f) ->
       let v = vargen#next `evar in
       let f = app_form (Cons (Shift 0, v)) f in
-      skel_map (fun sk -> ExR sk) (focus_right left f)
+      focus_right left f
+      |> skel_map (fun sk -> ExR sk)
+      |> List.map (add_fresh_extras v)
   | Shift f ->
       skel_map (fun sk -> BlurR sk) (active_right left [] f)
   | Atom (NEG, _, _)
@@ -67,8 +83,9 @@ and focus_left left lfoc ratm =
   | Forall (_, f) ->
       let v = vargen#next `evar in
       let f = app_form (Cons (Shift 0, v)) f in
-      skel_map (fun sk -> AllL sk)
-        (focus_left left f ratm)
+      focus_left left f ratm
+      |> skel_map (fun sk -> AllL sk)
+      |> List.map (add_fresh_extras v)
   | Shift f ->
       skel_map (fun sk -> BlurL sk)
         (active_left left [f] ratm)
@@ -90,16 +107,17 @@ and active_right left_passive left_active right =
   | True NEG ->
       [{ prems = [] ;
          concl = mk_sequent () ~skel:TopR ;
-         eigen = IdtSet.empty }]
+         eigen = S.empty ;
+         extra = M.empty }]
   | Implies (f, g) ->
       skel_map (fun sk -> ImpR sk)
         (active_right left_passive (f :: left_active) g)
   | Forall (_, f) ->
-      let v = vargen#next `param in
-      let f = app_form (Cons (Shift 0, v)) f in
-      let rules = active_right left_passive left_active f in
-      let ev = IdtSet.singleton (unvar v) in
-      List.map (fun r -> { r with eigen = IdtSet.union r.eigen ev }) rules
+      let vt = vargen#next `param in
+      let v = unvar vt in
+      let f = app_form (Cons (Shift 0, vt)) f in
+      active_right left_passive left_active f
+      |> List.map (fun rr -> {rr with eigen = S.add v rr.eigen})
       |> skel_map (fun sk -> AllR sk)
   | Shift {form = Atom (POS, p, pargs) ; _} ->
       active_left left_passive left_active (Some (p, pargs))
@@ -119,7 +137,8 @@ and active_left left_passive left_active ratm =
                     ~left:(Ft.of_list left_passive)
                     ?right:ratm] ;
          concl = mk_sequent ~skel () ;
-         eigen = IdtSet.empty }]
+         eigen = S.empty ;
+         extra = M.empty }]
   | la :: left_active ->
       active_left_one left_passive left_active la ratm
 
@@ -143,13 +162,14 @@ and active_left_one left_passive left_active la ratm =
       binary_join left_rules right_rules
         (fun sk1 sk2 -> PlusL (sk1, sk2))
   | False ->
-      [{prems = [] ; concl = mk_sequent () ~skel:ZeroL ; eigen = IdtSet.empty}]
+      [{prems = [] ; concl = mk_sequent () ~skel:ZeroL ;
+        eigen = S.empty ; extra = M.empty}]
   | Exists (_, f) ->
-      let v = vargen#next `param in
-      let f = app_form (Cons (Shift 0, v)) f in
-      let rules = active_left left_passive (f :: left_active) ratm in
-      let ev = IdtSet.singleton (unvar v) in
-      List.map (fun r -> { r with eigen = IdtSet.union r.eigen ev }) rules
+      let vt = vargen#next `param in
+      let v = unvar vt in
+      let f = app_form (Cons (Shift 0, vt)) f in
+      active_left left_passive (f :: left_active) ratm
+      |> List.map (fun rr -> {rr with eigen = S.add v rr.eigen})
       |> skel_map (fun sk -> ExL sk)
   | Atom (NEG, _, _)
   | And (NEG, _, _)
@@ -164,14 +184,16 @@ and right_init p pargs =
     concl = mk_sequent ()
         ~left:(Ft.singleton (p, pargs))
         ~skel:InitR ;
-    eigen = IdtSet.empty }]
+    eigen = S.empty ;
+    extra = M.empty }]
 
 and left_init p pargs =
   [{prems = [] ;
     concl = mk_sequent ()
         ~right:(p, pargs)
         ~skel:InitL ;
-    eigen = IdtSet.empty }]
+    eigen = S.empty ;
+    extra = M.empty }]
 
 and binary_join ?(right_selector=`none) left_rules right_rules mk_skel =
   let rules = List.map begin
@@ -188,7 +210,12 @@ and binary_join ?(right_selector=`none) left_rules right_rules mk_skel =
                   ~left:(Ft.append left_rule.concl.left right_rule.concl.left)
                   ~skel:(mk_skel left_rule.concl.skel right_rule.concl.skel)
                   ?right ;
-              eigen = IdtSet.union left_rule.eigen right_rule.eigen }
+              eigen = S.union left_rule.eigen right_rule.eigen ;
+              extra = M.merge
+                  (fun _ ts1 ts2 -> Some (Option.default [] ts1 @ Option.default [] ts2
+                                          |> List.sort_unique Pervasives.compare))
+                  left_rule.extra
+                  right_rule.extra }
         end right_rules
     end left_rules in
   List.concat rules
@@ -196,11 +223,11 @@ and binary_join ?(right_selector=`none) left_rules right_rules mk_skel =
 let vars_rule rr =
   (* let repls_prems = List.map Sequent.freshen_ rr.prems |> List.map fst in *)
   let repl_concl = Sequent.freshen_ rr.concl |> fst in
-  let vs = IdtMap.fold (fun v _ vs -> IdtSet.add v vs) repl_concl IdtSet.empty in
+  let vs = M.fold (fun v _ vs -> S.add v vs) repl_concl S.empty in
   (* let vs = List.fold_left begin fun vs repl_prem -> *)
-  (*     IdtMap.fold (fun v _ vs -> IdtSet.add v vs) repl_prem vs *)
+  (*     M.fold (fun v _ vs -> S.add v vs) repl_prem vs *)
   (*   end vs repls_prems in *)
-  List.map var (IdtSet.elements vs)
+  List.map var (S.elements vs)
 
 let generate_rules ~sc lforms =
   let process_lform lf =
@@ -231,7 +258,7 @@ let generate_rules ~sc lforms =
   List.iter (fun rules -> List.iter sc rules) rules_list
 
 let freshen_atom lf =
-  let (_, f0) = Term.freshen ~repl:IdtMap.empty (app lf.label lf.args) in
+  let (_, f0) = Term.freshen ~repl:M.empty (app lf.label lf.args) in
   match f0.term with
   | App (_, args) ->
       {lf with args = args}

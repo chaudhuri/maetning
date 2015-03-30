@@ -185,6 +185,11 @@ let print ~lforms ~goal proof =
             | Atom (NEG, q, qts) when p == q && pts = qts ->
                 pprintf "<ul><li>@.%a [left-init]</li></ul>@."
                   (format_neutral ~dict) sq
+            (* | Atom (NEG, q, qts) when p == q -> *)
+            (*     pprintf "<ul><li>@.%a [BAD left-init: <code>%a ≠ %a</code>]</li></ul>@." *)
+            (*       (format_neutral ~dict) sq *)
+            (*       (format_term ()) (app p pts) *)
+            (*       (format_term ()) (app q qts) ; *)
             | _ -> failwith "InitL/match"
           end
         | And (NEG, a, b), WithL1 (x, pf) ->

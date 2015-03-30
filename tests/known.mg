@@ -18,3 +18,9 @@
 %prove ~(A * B) <= ~A + ~B.
 %prove ~(A & B) <= ~A + ~B.
 % refute  ~(A & B) => ~A + ~B.
+
+% drinker's formula and its Goedel-Gentzen translation
+
+% refute \E x. \A y. p(x) => p(y).
+
+%prove ~ (\A x. \E y. p(x) & ~ p(y)).
