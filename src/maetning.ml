@@ -7,21 +7,6 @@
 
 open Batteries
 
-module Deps = struct
-  open Term
-  open Unify
-  open Form
-  open Sequent
-  open Rule
-  open Rule_gen
-  open Inverse
-  open Front_parse
-  open Front_lex
-  open Agencies
-  open Seqproof_print
-  open Counter
-end
-
 let set_input file =
   let disch = Config.set_proof_channel file in
   at_exit disch
