@@ -93,8 +93,8 @@ let format_neutral ~dict ff sq =
   end ; pp_close_box ff ()
 
 let renumber pf0 =
-  let next hmap h =
-    let hr = intern ("u" ^ string_of_int (M.cardinal hmap + 1)) in
+  let next ?(prefix=">") hmap h =
+    let hr = intern (prefix ^ string_of_int (M.cardinal hmap + 1)) in
     let hmap = M.add h hr hmap in
     (hr, hmap)
   in
@@ -106,28 +106,59 @@ let renumber pf0 =
   let rec spin hmap pf =
     match pf with
     | InitL | OneR | ZeroL | TopR -> pf
-    | InitR h -> InitR (find_default h hmap)
-    | TensL (h1, h2, pf) -> TensL (h1, h2, spin hmap pf)
-    | TensR (pf1, pf2) -> TensR (spin hmap pf1, spin hmap pf2)
-    | OneL pf -> OneL (spin hmap pf)
-    | PlusL ((h1, pf1), (h2, pf2)) -> PlusL ((h1, spin hmap pf1), (h2, spin hmap pf2))
-    | PlusR1 pf -> PlusR1 (spin hmap pf)
-    | PlusR2 pf -> PlusR2 (spin hmap pf)
-    | WithL1 (h, pf) -> WithL1 (h, spin hmap pf)
-    | WithL2 (h, pf) -> WithL2 (h, spin hmap pf)
-    | WithR (pf1, pf2) -> WithR (spin hmap pf1, spin hmap pf2)
-    | ImpL (pf1, (h, pf2)) -> ImpL (spin hmap pf1, (h, spin hmap pf2))
-    | ImpR (h, pf) -> ImpR (h, spin hmap pf)
-    | AllL (t, (h, pf)) -> AllL (t, (h, spin hmap pf))
-    | AllR (x, pf) -> AllR (x, spin hmap pf)
-    | ExL (x, (h, pf)) -> ExL (x, (h, spin hmap pf))
-    | ExR (t, pf) -> ExR (t, spin hmap pf)
-    | FocR pf -> FocR (spin hmap pf)
-    | FocL (h, (h1, pf)) -> FocL (find_default h hmap, (h1, spin hmap pf))
-    | BlurR pf -> BlurR (spin hmap pf)
-    | BlurL pf -> BlurL (spin hmap pf)
+    | InitR h ->
+        InitR (find_default h hmap)
+    | TensL (h1, h2, pf) ->
+        let (h1, hmap) = next hmap h1 in
+        let (h2, hmap) = next hmap h2 in
+        TensL (h1, h2, spin hmap pf)
+    | TensR (pf1, pf2) ->
+        TensR (spin hmap pf1, spin hmap pf2)
+    | OneL pf ->
+        OneL (spin hmap pf)
+    | PlusL ((h1, pf1), (h2, pf2)) ->
+        let (h1, hmap) = next hmap h1 in
+        let (h2, hmap) = next hmap h2 in
+        PlusL ((h1, spin hmap pf1), (h2, spin hmap pf2))
+    | PlusR1 pf ->
+        PlusR1 (spin hmap pf)
+    | PlusR2 pf ->
+        PlusR2 (spin hmap pf)
+    | WithL1 (h, pf) ->
+        let (h, hmap) = next hmap h in
+        WithL1 (h, spin hmap pf)
+    | WithL2 (h, pf) ->
+        let (h, hmap) = next hmap h in
+        WithL2 (h, spin hmap pf)
+    | WithR (pf1, pf2) ->
+        WithR (spin hmap pf1, spin hmap pf2)
+    | ImpL (pf1, (h, pf2)) ->
+        let (h, hmap) = next hmap h in
+        ImpL (spin hmap pf1, (h, spin hmap pf2))
+    | ImpR (h, pf) ->
+        let (h, hmap) = next hmap h in
+        ImpR (h, spin hmap pf)
+    | AllL (t, (h, pf)) ->
+        let (h, hmap) = next hmap h in
+        AllL (t, (h, spin hmap pf))
+    | AllR (x, pf) ->
+        AllR (x, spin hmap pf)
+    | ExL (x, (h, pf)) ->
+        let (h, hmap) = next hmap h in
+        ExL (x, (h, spin hmap pf))
+    | ExR (t, pf) ->
+        ExR (t, spin hmap pf)
+    | FocR pf ->
+        FocR (spin hmap pf)
+    | FocL (h, (h1, pf)) ->
+        let (h1, hmap) = next hmap h1 in
+        FocL (find_default h hmap, (h1, spin hmap pf))
+    | BlurR pf ->
+        BlurR (spin hmap pf)
+    | BlurL pf ->
+        BlurL (spin hmap pf)
     | Store (h, pf) ->
-        let (hr, hmap) = next hmap h in
+        let (hr, hmap) = next ~prefix:"%" hmap h in
         Store (hr, spin hmap pf)
   in
   spin M.empty pf0
@@ -193,10 +224,12 @@ let print ~lforms ~goal proof =
                 pprintf "<ul><li>@.%a [left-init]</li></ul>@."
                   (format_neutral ~dict) sq
             (* | Atom (NEG, q, qts) when p == q -> *)
-            (*     pprintf "<ul><li>@.%a [BAD left-init: <code>%a ≠ %a</code>]</li></ul>@." *)
+            (*     pprintf "<ul><li>@.%a [BAD left-init: <code>%a ≠ %a</code>]<br><code>%a</code></li></ul>@." *)
             (*       (format_neutral ~dict) sq *)
             (*       (format_term ()) (app p pts) *)
-            (*       (format_term ()) (app q qts) ; *)
+            (*       (format_term ()) (app q qts) *)
+            (*       format_seqproof pf *)
+            (*     ; *)
             | _ -> failwith "InitL/match"
           end
         | And (NEG, a, b), WithL1 (x, pf) ->
@@ -219,7 +252,11 @@ let print ~lforms ~goal proof =
         | Shift a, BlurL pf ->
             let sq = {sq with left_active = [(x0, a)]} in
             left_active sq pf
-        | _ -> failwith "Invalid: left focus"
+        | _, pf ->
+            Format.eprintf "left_focus: @[<v0>%a@,%a@]@."
+              (format_form ()) f
+              format_seqproof pf ;
+            failwith "Invalid: left focus"
       end
     | _ -> failwith "Invalid: too many left foci"
 
@@ -317,4 +354,6 @@ let print ~lforms ~goal proof =
                         right = expand_lf goal.right}
   in
 
-  frontier goal (renumber proof)
+  proof
+  (* |> renumber *)
+  |> frontier goal

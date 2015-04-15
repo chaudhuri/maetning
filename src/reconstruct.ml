@@ -115,7 +115,7 @@ let repl_join repl_left repl_right =
     match ts1, ts2 with
     | Some ts1, Some ts2 ->
         failwith ("repl_join: overlap on " ^ k.rep)
-    | Some ts, None
+    | Some ts, None -> Some (Term.replace ~repl:repl_right ts)
     | None, Some ts -> Some ts
     | None, None -> None
   end repl_left repl_right
@@ -163,9 +163,10 @@ let reconstruct (type cert)
     let succ (pf, repl) ~fail =
       Format.(
         if __debug then
-          fprintf std_formatter "  >>> right_focus: %a -->@.  >>> %a@."
+          fprintf std_formatter "  >>> branch end: %a@.  >>> subsitution: %a@.  >>> proof: %a@."
             format_sequent sq
             format_repl repl
+            format_seqproof pf
       ) ;
       succ (pf, repl) ~fail
     in

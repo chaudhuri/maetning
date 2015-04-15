@@ -113,6 +113,54 @@ and replace_proof1 ~depth ~repl (x, pf) =
 
 (******************************************************************************)
 
+let format_seqproof ff pf =
+  let open Format in
+  let rec spin ff pf =
+    match pf with
+    | InitL -> fprintf ff "InitL"
+    | InitR h -> fprintf ff "InitR(%s)" h.rep
+    | TensL (h1, h2, pf) -> fprintf ff "TensL(%s,%s,%a)" h1.rep h2.rep spin pf
+    | TensR (pf1, pf2) -> fprintf ff "TensR(%a,%a)" spin pf1 spin pf2
+    | OneR -> fprintf ff "OneR"
+    | OneL pf -> fprintf ff "OneL(%a)" spin pf
+    | PlusL (pf1, pf2) -> fprintf ff "PlusL(%a,%a)" spin1 pf1 spin1 pf2
+    | PlusR1 pf -> fprintf ff "PlusR1(%a)" spin pf
+    | PlusR2 pf -> fprintf ff "PlusR2(%a)" spin pf
+
+    | ZeroL -> fprintf ff "ZeroL"
+
+    | WithR (pf1, pf2) -> fprintf ff "WithR(%a,%a)" spin pf1 spin pf2
+    | WithL1 pf -> fprintf ff "WithL1%a" spin1 pf
+    | WithL2 pf -> fprintf ff "WithL2%a" spin1 pf
+
+    | TopR -> fprintf ff "TopR"
+
+    | ImpR (h, pf) -> fprintf ff "ImpR(%s,%a)" h.rep spin pf
+    | ImpL (pf1, pf2) -> fprintf ff "ImpL(%a,%a)" spin pf1 spin1 pf2
+
+    | AllR (x, pf) -> fprintf ff "ALlR(%s,%a)" x.rep spin pf
+    | AllL (t, pf) -> fprintf ff "AllL(%a,%a)" (format_term ()) t spin1 pf
+
+    | ExR (t, pf) -> fprintf ff "ExR(%a,%a)" (format_term ()) t spin pf
+    | ExL (x, pf) -> fprintf ff "ExL(%s,%a)" x.rep spin1 pf
+
+    | FocR pf -> fprintf ff "FocR(%a)" spin pf
+    | FocL (x, pf) -> fprintf ff "FocL(%s,%a)" x.rep spin1 pf
+
+    | BlurR pf -> fprintf ff "BlurR(%a)" spin pf
+    | BlurL pf -> fprintf ff "BlurL(%a)" spin pf
+
+    | Store (h, pf) -> fprintf ff "Store(%s,%a)" h.rep spin pf
+
+  and spin1 ff (x, pf) =
+    fprintf ff "@[<b1>(%s,@,%a)@]" x.rep spin pf
+
+  in
+  spin ff pf
+
+
+(******************************************************************************)
+
 type sequent = {
   term_vars    : Nstore.t ;
   left_passive : (idt * (idt * form)) list ;
