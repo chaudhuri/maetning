@@ -18,6 +18,8 @@ let show_shifts = ref false
 
 let hide_bias = ref false
 
+let shrink = ref true
+
 let proof_formatter : Format.formatter option ref = ref None
 let set_proof_channel filename =
   let oc = open_out_bin filename in

@@ -95,7 +95,8 @@ let prove f =
         let ctx = List.filter_map begin
             fun lf -> match lf.place with
               | Left Global ->
-                  Some (Seqproof.hypgen#next, (lf.Form.label, lf.Form.skel))
+                  Some (lf.Form.label, (lf.Form.label, lf.Form.skel))
+                  (* Some (Seqproof.hypgen#next, (lf.Form.label, lf.Form.skel)) *)
               | _ -> None
           end res.Inverse.lforms in
         let goal = Seqproof.{term_vars = IdtMap.empty ;

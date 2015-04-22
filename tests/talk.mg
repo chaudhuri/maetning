@@ -20,8 +20,8 @@
 %positive fib.
 %assume fib_z  : fib(zero,zero).
 %assume fib_s  : fib(s(zero),s(zero)).
-%assume fib_ss : \A x,y,z,v. fib(v,x) => 
-                             fib(s(v),y) => 
+%assume fib_ss : \A x,y,z,v. fib(v,x) =>
+                             fib(s(v),y) =>
                              sum(x,y,z) => fib(s(s(v)),z).
 
 %prove \E x. fib(s(s(s(s(zero)))),x).

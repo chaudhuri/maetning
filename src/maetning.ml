@@ -16,6 +16,7 @@ let options = Arg.(align [
     "-proofs", String set_input, "<file> Output proofs to <file> (in HTML format)" ;
     "-shifts", Set Config.show_shifts, " Show polarity shifts in output" ;
     "-nobias", Set Config.hide_bias, " Hide predicate biases in output" ;
+    "-noshrink", Clear Config.shrink, " Do not shrink proofs down to relevant details" ;
     "-version", Unit (fun () ->
         Printf.printf "Maetning version %s\n" Version.version ;
         Pervasives.exit 0
