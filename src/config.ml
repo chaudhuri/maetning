@@ -20,6 +20,8 @@ let hide_bias = ref false
 
 let shrink = ref true
 
+let pseudo_proofs = ref true
+
 let proof_formatter : Format.formatter option ref = ref None
 let set_proof_channel filename =
   let oc = open_out_bin filename in
@@ -40,6 +42,7 @@ let set_proof_channel filename =
   li table { vertical-align: top; display: inline-block; }
   td pre { margin: 0 0 ; padding: 0 0; }
   td.concl { border-top: 2px solid #000080; }
+  p.pseudo { margin-left: 1em; color: red; font-weight: bold; }
 </style>
 <title>Proofs!</title>
 </head>

@@ -17,6 +17,7 @@ let options = Arg.(align [
     "-shifts", Set Config.show_shifts, " Show polarity shifts in output" ;
     "-nobias", Set Config.hide_bias, " Hide predicate biases in output" ;
     "-noshrink", Clear Config.shrink, " Do not shrink proofs down to relevant details" ;
+    "-nopseudos", Clear Config.pseudo_proofs, " Do not reconstruct pseudo proofs" ;
     "-version", Unit (fun () ->
         Printf.printf "Maetning version %s\n" Version.version ;
         Pervasives.exit 0
@@ -32,7 +33,7 @@ let parse_options () =
   Arg.parse options Config.add_input_file umsg
 
 let process_file file =
-  Config.pprintf "<h3>Proofs from <code>%s</code></h3>@." file ;
+  Config.pprintf "<h3>Proofs from <code>%s</code></h3>@.<hr>@." file ;
   let ch = open_in_bin file in
   let lb = Lexing.from_channel ch in
   Front_parse.file Front_lex.token lb ;

@@ -66,7 +66,7 @@ let values map =
 
 type result = Proved of Inverse.result
             | Refuted
-            | Unsound of Idt.t
+            | Unsound of Idt.t * Inverse.result
 
 let setup f =
   let open Sequent in
@@ -84,44 +84,51 @@ let setup f =
         List.Exceptionless.find (fun (p, _) -> Form.is_pseudo p)
       with
       | None -> Proved res
-      | Some (p, _) -> Unsound p
+      | Some (p, _) -> Unsound (p, res)
     end
+
+let dump_proof ?(pseudos=false) f res =
+  Seqproof.hypgen#reset ;
+  let ctx = List.filter_map begin
+      fun lf -> match lf.place with
+        | Left Global ->
+            Some (lf.Form.label, (lf.Form.label, lf.Form.skel))
+        | Left Pseudo when pseudos ->
+            Some (lf.Form.label, (lf.Form.label, lf.Form.skel))
+        | _ -> None
+    end res.Inverse.lforms in
+  let goal = Seqproof.{term_vars = IdtMap.empty ;
+                       left_active = [] ;
+                       left_passive = ctx ;
+                       right = res.Inverse.goal.Form.skel}
+  in
+  match Reconstruct.reconstruct (module Agencies.Rebuild)
+          ~max:1
+          ~lforms:res.Inverse.lforms
+          ~goal
+          ~cert:res.Inverse.found.Sequent.skel
+  with
+  | Some (prf :: _) ->
+      if pseudos then Config.pprintf "<p class='pseudo'>THIS IS A PSEUDO PROOF</p>@." ;
+      Seqproof_print.print prf
+        ~lforms:res.Inverse.lforms ~goal ;
+      Config.pprintf "<hr>@."
+  | Some [] | None -> failwith "Reconstruction failed"
 
 let prove f =
   match setup f with
   | Proved res ->
-      if !Config.do_check then begin
-        Seqproof.hypgen#reset ;
-        let ctx = List.filter_map begin
-            fun lf -> match lf.place with
-              | Left Global ->
-                  Some (lf.Form.label, (lf.Form.label, lf.Form.skel))
-                  (* Some (Seqproof.hypgen#next, (lf.Form.label, lf.Form.skel)) *)
-              | _ -> None
-          end res.Inverse.lforms in
-        let goal = Seqproof.{term_vars = IdtMap.empty ;
-                             left_active = [] ;
-                             left_passive = ctx ;
-                             right = res.Inverse.goal.Form.skel}
-        in
-        match Reconstruct.reconstruct (module Agencies.Rebuild)
-                ~max:1
-                ~lforms:res.Inverse.lforms
-                ~goal
-                ~cert:res.Inverse.found.Sequent.skel
-        with
-        | Some (prf :: _) ->
-            Seqproof_print.print prf
-              ~lforms:res.Inverse.lforms ~goal ;
-            Config.pprintf "<hr>@."
-        | Some [] | None -> failwith "Reconstruction failed"
-      end ;
+      if !Config.do_check then dump_proof f res ;
       Format.printf "Proved.@."
   | Refuted -> failwith "Not provable"
-  | Unsound p -> Format.printf "UNKNOWN: pseudo %s was used.@." p.rep
+  | Unsound (p, res) ->
+      if !Config.pseudo_proofs then dump_proof ~pseudos:true f res ;
+      Format.printf "UNKNOWN: pseudo %s was used.@." p.rep
 
 let refute f =
   match setup f with
   | Proved _ -> failwith "Not refuted"
   | Refuted -> Format.printf "Refuted.@."
-  | Unsound p -> Format.printf "UNKNOWN: pseudo %s was used.@." p.rep
+  | Unsound (p, res) ->
+      if !Config.pseudo_proofs then dump_proof ~pseudos:true f res ;
+      Format.printf "UNKNOWN: pseudo %s was used.@." p.rep
