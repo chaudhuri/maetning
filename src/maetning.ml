@@ -51,7 +51,9 @@ let rec process_file_tptp file =
         | "axiom" -> Command.add_global name f
         | "hypothesis" -> Command.add_global name f
         | "lemma" -> failwith "Lemmas not supported"
-        | "conjecture" -> Command.prove f
+        | "conjecture" | "prove" -> Command.prove f
+        | "refute" -> Command.refute f
+        | "pseudo" -> Command.add_pseudo name f
         | role -> failwith ("Role " ^ role ^ " not understood")
       end ; spin ()
     | `Include (file, _) ->

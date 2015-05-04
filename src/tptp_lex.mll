@@ -64,7 +64,10 @@ rule token = parse
 | "axiom"
 | "hypothesis"
 | "lemma"
-| "conjecture"     { P.FORMULA_ROLE (Idt.intern (Lexing.lexeme lexbuf)) }
+| "conjecture"
+| "prove"
+| "refute"
+| "pseudo"         { P.FORMULA_ROLE (Idt.intern (Lexing.lexeme lexbuf)) }
 
 | ident            { let s = Lexing.lexeme lexbuf in
                      if s.[0] == Char.uppercase s.[0]
