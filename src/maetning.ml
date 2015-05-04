@@ -18,6 +18,7 @@ let options = Arg.(align [
     "-nobias", Set Config.hide_bias, " Hide predicate biases in output" ;
     "-noshrink", Clear Config.shrink, " Do not shrink proofs down to relevant details" ;
     "-nopseudos", Clear Config.pseudo_proofs, " Do not reconstruct pseudo proofs" ;
+    "-tptp", Set Config.tptp, " Assume input file is in TPTP format" ;
     "-version", Unit (fun () ->
         Printf.printf "Maetning version %s\n" Version.version ;
         Pervasives.exit 0
@@ -32,12 +33,38 @@ let parse_options () =
   let umsg = "Usage: maetning [options] file ..." in
   Arg.parse options Config.add_input_file umsg
 
-let process_file file =
+let process_file_native file =
   Config.pprintf "<h3>Proofs from <code>%s</code></h3>@.<hr>@." file ;
   let ch = open_in_bin file in
   let lb = Lexing.from_channel ch in
   Front_parse.file Front_lex.token lb ;
   close_in ch
+
+let rec process_file_tptp file =
+  Config.pprintf "<h3>Proofs from <code>%s</code></h3>@.<hr>@." file ;
+  let ch = open_in_bin file in
+  let lb = Lexing.from_channel ch in
+  let rec spin () =
+    match Tptp_parse.tptp_input Tptp_lex.token lb with
+    | `Form (name, role, f) -> begin
+        match role.Idt.rep with
+        | "axiom" -> Command.add_global name f
+        | "hypothesis" -> Command.add_global name f
+        | "lemma" -> failwith "Lemmas not supported"
+        | "conjecture" -> Command.prove f
+        | role -> failwith ("Role " ^ role ^ " not understood")
+      end ; spin ()
+    | `Include (file, _) ->
+        process_file_tptp file ; spin ()
+    | exception Tptp_parse.Error -> ()
+    | exception Tptp_lex.EOS -> ()
+  in
+  spin () ; close_in ch
+
+let process_file file =
+  if !Config.tptp
+  then process_file_tptp file
+  else process_file_native file
 
 let main () =
   parse_options () ;

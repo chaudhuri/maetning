@@ -22,6 +22,8 @@ let shrink = ref true
 
 let pseudo_proofs = ref true
 
+let tptp = ref false
+
 let proof_formatter : Format.formatter option ref = ref None
 let set_proof_channel filename =
   let oc = open_out_bin filename in
