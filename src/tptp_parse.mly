@@ -12,9 +12,9 @@
   let get_forms fn fs = []
 
   let quantify q vs f =
-    let qf = match q with
-      | `forall -> Form.forall
-      | `exists -> Form.exists
+    let qf v f = match q with
+      | `forall -> Form.(forall v (abstract v f))
+      | `exists -> Form.(exists v (abstract v f))
     in
     List.fold_right (fun v f -> qf v f) vs f
 
