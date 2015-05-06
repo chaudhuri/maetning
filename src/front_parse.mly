@@ -48,8 +48,8 @@ banner:
 |                            { Format.printf "-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-@." }
 
 command:
-| POSITIVE h=IDENT DOT       { Command.register_polarity h Form.POS }
-| NEGATIVE h=IDENT DOT       { Command.register_polarity h Form.NEG }
+| POSITIVE h=IDENT DOT       { Form.register_polarity h Form.POS }
+| NEGATIVE h=IDENT DOT       { Form.register_polarity h Form.NEG }
 | ASSUME x=IDENT COLON f=form DOT
                              { Command.add_global x f }
 | PSEUDO x=IDENT COLON f=form DOT
@@ -63,7 +63,7 @@ term:
 | LPAREN t=term RPAREN       { t }
 
 atom:
-| h=IDENT ts=terms           { Form.(atom (Command.lookup_polarity h) h ts) }
+| h=IDENT ts=terms           { Form.(atom (Form.lookup_polarity h) h ts) }
 
 form:
 | f=atom                     { f }

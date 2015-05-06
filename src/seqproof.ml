@@ -193,45 +193,43 @@ let hypgen = new Namegen.namegen
 let format_sequent fmt sq =
   let open Format in
   pp_open_box fmt 0 ; begin
-    pp_open_hovbox fmt 2 ; begin
-      begin match List.rev sq.left_passive with
-      | [] ->
-          pp_print_as fmt 1 "·"
-      | (x, (l, f)) :: left ->
-          (* pp_print_string fmt (x.Idt.rep ^ "[" ^ l.Idt.rep ^ "]") ; *)
-          pp_print_string fmt x.Idt.rep ;
-          pp_print_string fmt ":" ;
-          format_form () fmt f ;
-          List.iter begin
-            fun (x, (l, f)) ->
-              pp_print_string fmt "," ;
-              pp_print_space fmt () ;
-              (* pp_print_string fmt (x.Idt.rep ^ "[" ^ l.Idt.rep ^ "]") ; *)
-              pp_print_string fmt x.Idt.rep ;
-              pp_print_string fmt ":" ;
-              format_form () fmt f ;
-          end left
-      end ;
-      pp_print_string fmt " ;" ;
-      pp_print_space fmt () ;
-      begin match List.rev sq.left_active with
-      | [] ->
-          pp_print_as fmt 1 "·"
-      | (x, f) :: left ->
-          pp_print_string fmt x.Idt.rep ;
-          pp_print_string fmt ":" ;
-          format_form () fmt f ;
-          List.iter begin
-            fun (x, f) ->
-              pp_print_string fmt "," ;
-              pp_print_space fmt () ;
-              pp_print_string fmt x.Idt.rep ;
-              pp_print_string fmt ":" ;
-              format_form () fmt f ;
-          end left
-      end ;
-      pp_print_as fmt 2 " ⊢" ;
-      pp_print_space fmt () ;
-      format_form () fmt sq.right ;
-    end ; pp_close_box fmt () ;
+    begin match List.rev sq.left_passive with
+    | [] ->
+        pp_print_as fmt 1 "·"
+    | (x, (l, f)) :: left ->
+        (* pp_print_string fmt (x.Idt.rep ^ "[" ^ l.Idt.rep ^ "]") ; *)
+        pp_print_string fmt x.Idt.rep ;
+        pp_print_string fmt ":" ;
+        format_form () fmt f ;
+        List.iter begin
+          fun (x, (l, f)) ->
+            pp_print_string fmt "," ;
+            pp_print_space fmt () ;
+            (* pp_print_string fmt (x.Idt.rep ^ "[" ^ l.Idt.rep ^ "]") ; *)
+            pp_print_string fmt x.Idt.rep ;
+            pp_print_string fmt ":" ;
+            format_form () fmt f ;
+        end left
+    end ;
+    pp_print_string fmt " ;" ;
+    pp_print_space fmt () ;
+    begin match List.rev sq.left_active with
+    | [] ->
+        pp_print_as fmt 1 "·"
+    | (x, f) :: left ->
+        pp_print_string fmt x.Idt.rep ;
+        pp_print_string fmt ":" ;
+        format_form () fmt f ;
+        List.iter begin
+          fun (x, f) ->
+            pp_print_string fmt "," ;
+            pp_print_space fmt () ;
+            pp_print_string fmt x.Idt.rep ;
+            pp_print_string fmt ":" ;
+            format_form () fmt f ;
+        end left
+    end ;
+    pp_print_as fmt 2 " ⊢" ;
+    pp_print_space fmt () ;
+    format_form () fmt sq.right ;
   end ; pp_close_box fmt ()

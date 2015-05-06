@@ -121,9 +121,9 @@ and percolate_once ~sc_fact rules iter =
 
 let get_polarity ~lforms p =
   match List.find (fun lf -> lf.label == p) lforms with
-  | exception Not_found ->
-      Idt.IdtMap.find p !polarity_map
   | lf -> polarity lf.skel
+  | exception Not_found ->
+      lookup_polarity p
 
 let __paranoia = [
   (* `reconstruct ; *)

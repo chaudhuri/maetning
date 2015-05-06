@@ -134,7 +134,7 @@ formula_selection:
 %inline atomic_formula:
 | t=plain_term {
     match t.Term.term with
-    | Term.App (p, ts) -> Form.(atom NEG p ts)
+    | Term.App (p, ts) -> Form.(atom (Form.lookup_polarity p) p ts)
     | _ -> failwith "bad atomic formula"
   }
 

@@ -11,20 +11,6 @@ open Idt
 open Term
 open Form
 
-let register_polarity idt pol =
-  polarity_map := IdtMap.add idt pol !polarity_map ;
-  Format.printf "Predicate %S is now treated as: %s.@." idt.rep
-    (match pol with POS -> "POSITIVE" | _ -> "NEGATIVE")
-
-let default_polarity = NEG
-let lookup_polarity idt =
-  match IdtMap.find_opt idt !polarity_map with
-  | Some pol -> pol
-  | None ->
-      Format.eprintf "No polarity known for %S!@." idt.rep ;
-      register_polarity idt default_polarity ;
-      default_polarity
-
 let global_map : Form.form IdtMap.t ref = ref IdtMap.empty
 let pseudo_map : Form.form IdtMap.t ref = ref IdtMap.empty
 
