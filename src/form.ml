@@ -29,6 +29,8 @@ and form_ =
   | Forall  of idt * form
   | Shift   of form
 
+let polarity_map : polarity IdtMap.t ref = ref IdtMap.empty
+
 let rec polarity f =
   match f.form with
   | Shift f -> dual_polarity @@ polarity f

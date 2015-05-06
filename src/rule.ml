@@ -5,6 +5,8 @@
  * See LICENSE for licensing details.
  *)
 
+let __debug = false
+
 open Batteries
 
 open Idt
@@ -324,7 +326,17 @@ let specialize ~sc rr sq =
 
 let factor_loop ~sc sq =
   let seen = ref [] in
+  if __debug then
+    Format.(
+      eprintf "Trying to factor: @[%a@]@."
+        (format_sequent ()) sq
+    ) ;
   let doit sq =
+    if __debug then
+      Format.(
+        eprintf "Here's a factor: @[%a@]@."
+          (format_sequent ()) sq
+      ) ;
     if List.exists (fun seensq -> Sequent.subsume seensq sq) !seen then begin
       (* Format.(eprintf "factor_loop: killed %a@." *)
       (*           (format_sequent ()) sq) *)

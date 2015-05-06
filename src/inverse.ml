@@ -14,6 +14,8 @@ open Form
 open Rule
 open Sequent
 
+let __debug = false
+
 module type Data = sig
   val reset : unit -> unit
   val register : Sequent.t -> unit
@@ -35,7 +37,13 @@ module Trivial : Data = struct
     List.exists (fun oldsq -> Sequent.subsume oldsq sq) !db
 
   let index sq =
-    Sequent.Test.print sq ;
+    Format.(
+      fprintf std_formatter "[%d] %a %t@."
+        sq.sqid
+        (format_sequent ()) sq
+        (* Skeleton.format_skeleton sq.skel *)
+        (fun ff -> if __debug then fprintf ff "[%a]" Skeleton.format_skeleton sq.skel)
+    ) ;
     db := sq :: !db ;
     Queue.add sq sos
 
@@ -47,7 +55,12 @@ module Trivial : Data = struct
     try
       let sel = Queue.take sos in
       active := sel :: !active ;
-      Some (Sequent.freshen sel ())
+      if __debug then
+        Format.printf "Selected: [%d] %a@." sel.sqid (Sequent.format_sequent ()) sel ;
+      let sel = Sequent.freshen sel () in
+      if __debug then
+        Format.printf " `--> [%d] %a@." sel.sqid (Sequent.format_sequent ()) sel ;
+      Some sel
     with Queue.Empty -> None
 
   let iter_active doit =
@@ -85,13 +98,97 @@ and percolate_once ~sc_fact rules iter =
   in
   List.iter begin fun rr ->
     iter begin fun sq ->
+      Format.(
+        if __debug then
+          printf "  >>> Trying [%d] @[%a@]@.  >>> with %a@."
+            sq.sqid (format_sequent ()) sq
+            (format_rule ()) rr
+      ) ;
       Rule.specialize_default rr sq
-        ~sc_fact
-        ~sc_rule:add_rule
+        ~sc_fact:(fun sq ->
+            if __debug then
+              Format.printf "  >>> produced sequent: [%d] @[%a@]@." sq.sqid (format_sequent ()) sq ;
+            sc_fact sq
+          )
+        ~sc_rule:(fun rr ->
+            if __debug then
+              Format.printf "  >>> produced rule @[%a@]@." (format_rule ()) rr ;
+            add_rule rr
+          )
     end
   end rules ;
   !new_rules
 
+let get_polarity ~lforms p =
+  match List.find (fun lf -> lf.label == p) lforms with
+  | exception Not_found ->
+      Idt.IdtMap.find p !polarity_map
+  | lf -> polarity lf.skel
+
+let __paranoia = [
+  (* `reconstruct ; *)
+  (* `check ; *)
+]
+let paranoid_check ~lforms sq =
+  if List.mem `reconstruct __paranoia then begin
+    (* Seqproof.hypgen#reset ; *)
+    Config.pprintf "<p>Paranoia for [%d]</p>@." sq.sqid ;
+    let next_local =
+      let current = ref 0 in
+      fun () -> incr current ; Idt.intern ("v" ^ string_of_int !current)
+    in
+    let ctx_ambient = List.filter_map begin
+        fun lf -> match lf.place with
+          | Left Global ->
+              Some (lf.label, (lf.label, lf.Form.skel))
+          | Left Pseudo -> begin
+              let skel = match lf.Form.skel.form with
+                | Atom (pol, p, _) -> atom pol p []
+                | _ ->
+                    Format.(
+                      eprintf "[WEIRD] %a = %s@." (format_form ()) lf.skel lf.label.Idt.rep
+                    ) ;
+                    lf.skel
+              in
+              Some (lf.Form.label, (lf.label, skel))
+            end
+          | _ -> None
+      end lforms
+    in
+    let ctx_particular =
+      Sequent.to_list sq.left
+      |> List.map (fun (p, ts) -> (next_local (), (p, atom (get_polarity ~lforms p) p ts)))
+    in
+    let goal = Seqproof.{
+        term_vars = Idt.IdtMap.empty ;
+        left_active = [] ;
+        left_passive = ctx_particular @ ctx_ambient ;
+        right = begin
+          match sq.right with
+          | None -> disj []
+          | Some (p, ts) -> atom (get_polarity ~lforms p) p ts
+        end
+      } in
+    Format.(
+      eprintf "Reconstructing: @[%a@]@."
+        Seqproof.format_sequent goal
+    ) ;
+    match Reconstruct.reconstruct (module Agencies.Rebuild)
+            ~max:1 ~lforms ~goal
+            ~cert:sq.skel
+    with
+    | Some (prf :: _) ->
+        Config.pprintf "<p>Found: <code>%a</code></p>@."
+          Seqproof.format_seqproof prf ;
+        if List.mem `check __paranoia then begin
+          Seqproof_print.print prf ~lforms ~goal ;
+          Config.pprintf "<hr>@."
+        end
+    | Some []
+    | None ->
+        Format.(eprintf "Could not reconstruct@.@[<v0>%a@]@." Seqproof.format_sequent goal) ;
+        failwith "[PARANOIA] proof reconstruction failed"
+  end
 
 let noop () = ()
 
@@ -114,13 +211,15 @@ module Inv (D : Data) = struct
       (* Format.printf "Goal sequent: %a@." (Sequent.format_sequent ()) goal_seq ; *)
       let add_seq sq =
         if Sequent.subsume sq goal_seq then begin
-          Sequent.Test.print sq ;
+          D.register sq ;
+          (* Sequent.Test.print sq ; *)
           (* Format.printf "[%d] %a@." sq.sqid (Sequent.format_sequent ()) sq ; *)
           raise (Escape {lforms = lfs ;
                          goal = goal_lf ;
                          found = sq})
         end ;
-        D.register sq
+        D.register sq ;
+        paranoid_check ~lforms:lfs sq
       in
       let add_rule rr =
         match rr.prems with

@@ -11,6 +11,8 @@ module Ft = FingerTree
 open Idt
 open Term
 
+let __debug = false
+
 type latm = idt * term list
 type ctx = (latm, int) Ft.fg
 
@@ -195,7 +197,15 @@ let factor_one ~sc sq =
     | Some (right, ((q, qargs) as m)) ->
         if p == q then begin
           try
+            let pargs0 = pargs in
             let (repl, pargs) = Unify.unite_lists IdtMap.empty pargs qargs in
+            if __debug then
+              Format.(
+                eprintf "%a =?= %a {%a}@."
+                  (format_term ()) (Term.replace ~repl (app p pargs0))
+                  (format_term ()) (app p pargs)
+                  Reconstruct.format_repl repl
+              ) ;
             let left = Ft.map (replace_latm ~repl) left in
             let middle = Ft.map (replace_latm ~repl) middle in
             let right = Ft.map (replace_latm ~repl) right in

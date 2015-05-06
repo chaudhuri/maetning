@@ -11,13 +11,10 @@ open Idt
 open Term
 open Form
 
-let polarity_map : Form.polarity IdtMap.t ref = ref IdtMap.empty
-
 let register_polarity idt pol =
   polarity_map := IdtMap.add idt pol !polarity_map ;
   Format.printf "Predicate %S is now treated as: %s.@." idt.rep
     (match pol with POS -> "POSITIVE" | _ -> "NEGATIVE")
-
 
 let default_polarity = NEG
 let lookup_polarity idt =

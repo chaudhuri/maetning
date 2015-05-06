@@ -19,6 +19,8 @@ type idt = private {
     Invariant: if [s1 = s2], then [intern s1 == intern s2]. *)
 val intern : string -> idt
 
+module IdtOrdered : Set.OrderedType with type t = idt
+
 module IdtSet : sig
   include Set.S
   val insert : t -> elt -> t

@@ -83,7 +83,7 @@ and unite_lists ?depth ?frz ss ts1 ts2 =
   | (t1 :: ts1), (t2 :: ts2) ->
       let (ss, t) = unite ?depth ?frz ss t1 t2 in
       let (ss, ts) = unite_lists ?depth ?frz ss ts1 ts2 in
-      (ss, t :: ts)
+      (ss, replace ~repl:ss t :: ts)
   | _ -> unif_fail "argument lists not the same length"
 
 let unite_match ?depth ss t1 t2 =

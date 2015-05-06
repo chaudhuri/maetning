@@ -7,6 +7,25 @@
 
 open Idt
 
+(* type var = *)
+(*   | Param of Idt.t * Idt.t list *)
+(*   | Logic of Idt.t *)
+
+(* module VarOrdered = struct *)
+(*   type t = var *)
+(*   let var_name = function *)
+(*     | Param (v, _) | Logic v -> v *)
+(*   let compare v1 v2 = IdtOrdered.compare (var_name v1) (var_name v2) *)
+(* end *)
+
+(* module VarSet = struct *)
+(*   include Set.Make (VarOrdered) *)
+(* end *)
+
+(* module VarMap = struct *)
+(*   include Map.Make (VarOrdered) *)
+(* end *)
+
 type term = {
   term : term_ ;
   vars : IdtSet.t ;
@@ -19,6 +38,7 @@ and term_ =
   | Idx of int
   | App of idt * term list
 
+
 let idx n = {
   term = Idx n ;
   vars = IdtSet.empty ;
@@ -27,6 +47,13 @@ let idx n = {
 
 let evar_cookie = "?"
 let param_cookie = "\'"
+
+(* let param v deps = *)
+(*   assert (v.rep.[0] == param_cookie.[0]) ; *)
+(*   assert (List.for_all (fun v -> v.rep.[0] == evar_cookie.[0]) deps) ; *)
+(*   { term = Var (Param (v, deps)) ; *)
+(*     vars = IdtSet.add v (IdtSet.of_list deps) ; *)
+(*     imax = -1 } *)
 
 let var v =
   assert (v.rep.[0] == evar_cookie.[0] || v.rep.[0] == param_cookie.[0]) ;
@@ -50,11 +77,9 @@ let app f ts = {
 
 let vargen = new Namegen.namegen1 begin
   fun n (flav : [`evar | `param]) ->
-    let v = match flav with
-      | `evar -> intern (evar_cookie ^ string_of_int n)
-      | `param -> intern (param_cookie ^ string_of_int n)
-    in
-    { term = Var v ; vars = IdtSet.singleton v ; imax = -1 }
+    match flav with
+    | `evar -> var @@ intern (evar_cookie ^ string_of_int n)
+    | `param -> var (intern (param_cookie ^ string_of_int n))
 end
 
 type sub =
@@ -130,9 +155,9 @@ let rec replace ?(depth=0) ~repl t0 =
     | App (f, ts) -> app f (List.map (replace ~depth ~repl) ts)
 
 let replace_eigen ~repl v =
-  match IdtMap.find_opt v repl with
-  | Some t -> unvar t
-  | None -> v
+  match IdtMap.find v repl with
+  | t -> unvar t
+  | exception Not_found -> v
 
 let replace_eigen_list ~repl evs =
   List.fold_left begin

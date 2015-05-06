@@ -178,6 +178,7 @@ let print ~lforms ~goal proof =
     | Atom (pol, p, ts) -> begin
         match M.find p dict with
         | lf ->
+            let ts = List.take (List.length lf.args) ts in
             let repl = List.fold_left2 begin
                 fun repl lfarg arg ->
                   M.add (unvar lfarg) arg repl
@@ -231,7 +232,7 @@ let print ~lforms ~goal proof =
                   (format_neutral ~sel:(fun _ -> false) ~dict) sq
             (* | Atom (NEG, q, qts) when p == q -> *)
             (*     pprintf "<ul><li>@.%a [BAD left-init: <code>%a ≠ %a</code>]<br><code>%a</code></li></ul>@." *)
-            (*       (format_neutral ~dict) sq *)
+            (*       (format_neutral ~sel:(fun _ -> false) ~dict) sq *)
             (*       (format_term ()) (app p pts) *)
             (*       (format_term ()) (app q qts) *)
             (*       format_seqproof pf *)
