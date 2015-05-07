@@ -7,25 +7,6 @@
 
 open Idt
 
-(* type var = *)
-(*   | Param of Idt.t * Idt.t list *)
-(*   | Logic of Idt.t *)
-
-(* module VarOrdered = struct *)
-(*   type t = var *)
-(*   let var_name = function *)
-(*     | Param (v, _) | Logic v -> v *)
-(*   let compare v1 v2 = IdtOrdered.compare (var_name v1) (var_name v2) *)
-(* end *)
-
-(* module VarSet = struct *)
-(*   include Set.Make (VarOrdered) *)
-(* end *)
-
-(* module VarMap = struct *)
-(*   include Map.Make (VarOrdered) *)
-(* end *)
-
 type term = {
   term : term_ ;
   vars : IdtSet.t ;
@@ -47,13 +28,6 @@ let idx n = {
 
 let evar_cookie = "?"
 let param_cookie = "\'"
-
-(* let param v deps = *)
-(*   assert (v.rep.[0] == param_cookie.[0]) ; *)
-(*   assert (List.for_all (fun v -> v.rep.[0] == evar_cookie.[0]) deps) ; *)
-(*   { term = Var (Param (v, deps)) ; *)
-(*     vars = IdtSet.add v (IdtSet.of_list deps) ; *)
-(*     imax = -1 } *)
 
 let var v =
   assert (v.rep.[0] == evar_cookie.[0] || v.rep.[0] == param_cookie.[0]) ;

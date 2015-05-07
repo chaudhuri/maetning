@@ -15,6 +15,10 @@ open Rule
 open Sequent
 
 let __debug = false
+let __paranoia = [
+  (* `reconstruct ; *)
+  (* `check ; *)
+]
 
 module type Data = sig
   val reset : unit -> unit
@@ -125,14 +129,27 @@ let get_polarity ~lforms p =
   | exception Not_found ->
       lookup_polarity p
 
-let __paranoia = [
-  (* `reconstruct ; *)
-  (* `check ; *)
-]
+let rec freeze_vars t =
+  match t.term with
+  | Var v -> app (Idt.intern (v.Idt.rep ^ "¶")) []
+  | App (f, ts) -> app f (List.map freeze_vars ts)
+  | Idx n -> t
+
+let rec freeze_vars_form f =
+  match f.form with
+  | Atom (pol, p, ts) -> atom pol p (List.map freeze_vars ts)
+  | And (pol, f, g) -> conj ~pol [freeze_vars_form f ; freeze_vars_form g]
+  | True pol -> conj ~pol []
+  | Or (f, g) -> disj [freeze_vars_form f ; freeze_vars_form g]
+  | False -> disj []
+  | Implies (f, g) -> implies [freeze_vars_form f] (freeze_vars_form g)
+  | Exists (x, f) -> exists x (freeze_vars_form f)
+  | Forall (x, f) -> forall x (freeze_vars_form f)
+  | Shift f -> shift (freeze_vars_form f)
+
 let paranoid_check ~lforms sq =
   if List.mem `reconstruct __paranoia then begin
     (* Seqproof.hypgen#reset ; *)
-    Config.pprintf "<p>Paranoia for [%d]</p>@." sq.sqid ;
     let next_local =
       let current = ref 0 in
       fun () -> incr current ; Idt.intern ("v" ^ string_of_int !current)
@@ -140,7 +157,7 @@ let paranoid_check ~lforms sq =
     let ctx_ambient = List.filter_map begin
         fun lf -> match lf.place with
           | Left Global ->
-              Some (lf.label, (lf.label, lf.Form.skel))
+              Some (lf.label, (lf.label, freeze_vars_form lf.Form.skel))
           | Left Pseudo -> begin
               let skel = match lf.Form.skel.form with
                 | Atom (pol, p, _) -> atom pol p []
@@ -150,14 +167,14 @@ let paranoid_check ~lforms sq =
                     ) ;
                     lf.skel
               in
-              Some (lf.Form.label, (lf.label, skel))
+              Some (lf.Form.label, (lf.label, freeze_vars_form skel))
             end
           | _ -> None
       end lforms
     in
     let ctx_particular =
       Sequent.to_list sq.left
-      |> List.map (fun (p, ts) -> (next_local (), (p, atom (get_polarity ~lforms p) p ts)))
+      |> List.map (fun (p, ts) -> (next_local (), (p, atom (get_polarity ~lforms p) p (List.map freeze_vars ts))))
     in
     let goal = Seqproof.{
         term_vars = Idt.IdtMap.empty ;
@@ -166,18 +183,20 @@ let paranoid_check ~lforms sq =
         right = begin
           match sq.right with
           | None -> disj []
-          | Some (p, ts) -> atom (get_polarity ~lforms p) p ts
+          | Some (p, ts) -> atom (get_polarity ~lforms p) p (List.map freeze_vars ts)
         end
       } in
-    Format.(
-      eprintf "Reconstructing: @[%a@]@."
-        Seqproof.format_sequent goal
-    ) ;
+    if __debug then
+      Format.(
+        eprintf "Reconstructing: @[%a@]@."
+          Seqproof.format_sequent goal
+      ) ;
     match Reconstruct.reconstruct (module Agencies.Rebuild)
             ~max:1 ~lforms ~goal
             ~cert:sq.skel
     with
     | Some (prf :: _) ->
+        Config.pprintf "<p>Paranoia for <code>[%d] %a</code></p>@." sq.sqid (format_sequent ()) sq ;
         Config.pprintf "<p>Found: <code>%a</code></p>@."
           Seqproof.format_seqproof prf ;
         if List.mem `check __paranoia then begin
