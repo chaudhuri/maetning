@@ -205,3 +205,18 @@ let term_to_string ?(cx=[]) ?max_depth t =
   format_term ~cx ?max_depth () fmt t ;
   Format.pp_print_flush fmt () ;
   Buffer.contents buf
+
+let format_repl fmt repl =
+  let open Format in
+  pp_open_hvbox fmt 1 ; begin
+    pp_print_string fmt "{" ;
+    IdtMap.iter begin fun v t ->
+      pp_print_string fmt v.rep ;
+      pp_print_string fmt ":=" ;
+      pp_print_space fmt () ;
+      format_term () fmt t ;
+      pp_print_string fmt ";" ;
+      pp_print_space fmt () ;
+    end repl ;
+    pp_print_string fmt "}" ;
+  end ; pp_close_box fmt ()

@@ -19,6 +19,7 @@ module S = IdtSet
 type rule = {
   prems : Sequent.t list ;
   concl : Sequent.t ;
+  sats  : Sequent.t list ;
   eigen : S.t ;
   extra : term list M.t ;
 }
@@ -72,21 +73,20 @@ let format_rule ?max_depth () fmt rr =
           (* fprintf fmt " [%a]" Skeleton.format_skeleton prem.skel ; *)
           pp_print_cut fmt () ;
       end rr.prems ;
+      if __debug && rr.sats <> [] then begin
+        List.iteri begin
+          fun k sat ->
+            pp_print_string fmt "{" ;
+            format_sequent ?max_depth () fmt sat ;
+            pp_print_string fmt "}" ;
+            pp_print_cut fmt () ;
+        end rr.sats ;
+      end ;
       fprintf fmt "-------------------- %a %a@," format_eigen rr.eigen format_extra rr.extra ;
     end ;
     format_sequent ?max_depth () fmt rr.concl ;
     (* fprintf fmt " [%a]" Skeleton.format_skeleton rr.concl.skel ; *)
   end ; pp_close_box fmt ()
-
-let foo ff =
-  let open Format in
-  let bar ff x = pp_print_string ff x in
-  pp_print_string ff "abc == " ;
-  pp_open_vbox ff 0 ;
-  fprintf ff "%a@," bar "x" ;
-  fprintf ff "%a@," bar "y" ;
-  fprintf ff "%a@]@." bar "z" ;
-  pp_close_box ff ()
 
 let ec_viol eigen concl =
   let rec scan_term t =
@@ -117,7 +117,15 @@ let ec_viol eigen concl =
   in
   scan concl.left
 
-let evc_ok eigen concl = not @@ ec_viol eigen concl
+let evc_ok eigen concl =
+  let ret = ec_viol eigen concl in
+  if __debug && ret then
+    Format.(
+      printf "[EVC] rejecting [%d] @[%a@] -- EVS = %s@."
+        concl.sqid (format_sequent ()) concl
+        (String.concat "," @@ List.map (fun v -> v.rep) (IdtSet.elements eigen)) ;
+    ) ;
+  not ret
 
 let rec occurs v t =
   match t.term with
@@ -136,21 +144,6 @@ let extra_ok extra =
     (* Format.eprintf "    %s@." (if ret then "SUCC" else "FAIL") ; *)
     (* ret *)
   end extra
-
-let format_repl fmt repl =
-  let open Format in
-  pp_open_hvbox fmt 1 ; begin
-    pp_print_string fmt "{" ;
-    M.iter begin fun v t ->
-      pp_print_string fmt v.rep ;
-      pp_print_string fmt ":=" ;
-      pp_print_space fmt () ;
-      Term.format_term () fmt t ;
-      pp_print_string fmt ";" ;
-      pp_print_space fmt () ;
-    end repl ;
-    pp_print_string fmt "}" ;
-  end ; pp_close_box fmt ()
 
 let rule_match_exn ~sc prem cand =
   (* Format.(eprintf "CAND: %a@." (format_sequent ()) cand) ; *)
@@ -251,13 +244,15 @@ let distribute right sq =
       override sq ~right:(Some right)
   | _ -> sq
 
-let specialize_one ~sc ~sq ~concl ~eigen ~extra current_prem remaining_prems =
+let specialize_one ~sc ~sq ~concl ~sats ~eigen ~extra current_prem remaining_prems =
   let current_premid = match current_prem.skel with
     | Skeleton.Prem k -> k
     | _ -> failwith "Invalid premise"
   in
+  let sq0 = sq in
   rule_match current_prem sq ~sc:begin
     fun repl sq ->
+      let sats = List.map (replace_sequent ~repl) (sq0 :: sats) in
       let prems = List.map (replace_sequent ~repl) remaining_prems in
       let new_hyps =
         let removed = Ft.to_list current_prem.left in
@@ -302,7 +297,7 @@ let specialize_one ~sc ~sq ~concl ~eigen ~extra current_prem remaining_prems =
         let extra = M.filter (fun v _ -> S.mem v prem_vars) extra in
         let concl = override concl
             ~skel:(Skeleton.reduce [(concl.skel, -1) ; (sq.skel, current_premid)]) in
-        sc { prems ; concl ; eigen ; extra }
+        sc { prems ; concl ; sats ; eigen ; extra }
       (* else *)
       (*   Format.( *)
       (*     eprintf "Killed: %a@.with eigen: %s@." *)
@@ -319,31 +314,39 @@ let specialize ~sc rr sq =
     | [] -> ()
     | prem :: right ->
         specialize_one prem (List.rev_append left right)
-          ~sc ~sq ~concl:rr.concl ~eigen:rr.eigen ~extra:rr.extra ;
+          ~sc ~sq ~concl:rr.concl ~eigen:rr.eigen ~extra:rr.extra ~sats:rr.sats ;
         spin (prem :: left) right
   in
   spin [] rr.prems
 
 let factor_loop ~sc sq =
   let seen = ref [] in
+  (* let __debug = true in *)
   if __debug then
     Format.(
-      eprintf "Trying to factor: @[%a@]@."
+      printf "Trying to factor: @[%a@]@."
         (format_sequent ()) sq
     ) ;
   let doit sq =
     if __debug then
       Format.(
-        eprintf "Here's a factor: @[%a@]@."
+        printf "Here's a factor: @[%a@]@."
           (format_sequent ()) sq
       ) ;
-    if List.exists (fun seensq -> Sequent.subsume seensq sq) !seen then begin
-      (* Format.(eprintf "factor_loop: killed %a@." *)
-      (*           (format_sequent ()) sq) *)
-    end else begin
-      sc sq ;
-      seen := sq :: !seen
-    end
+    match List.find (fun seensq -> Sequent.subsume seensq sq) !seen with
+    | seensq ->
+        if __debug then
+          Format.(
+            printf "factor_loop: [%d] killed [%d] @[%a@]@."
+              seensq.sqid sq.sqid (format_sequent ()) sq
+          )
+    | exception Not_found ->
+        if __debug then
+          Format.(
+            printf "factor_loop: [%d] survived@." sq.sqid
+          ) ;
+        sc sq ;
+        seen := sq :: !seen
   in
   Sequent.factor sq ~sc:doit
 
@@ -371,17 +374,6 @@ let rule_subsumes r1 r2 =
   List.length r1.prems = List.length r2.prems
   && (try rule_subsumes_exn r1 r2 with Unify.Unif _ -> false)
 
-let rule_subsumes_loudly r1 r2 =
-  let res = rule_subsumes r1 r2 in
-  if res then
-    Format.(
-      fprintf std_formatter
-        "   >>> @[<v0>@[%a@]@,subsumes@,@[%a@]@] <<<@."
-        (format_rule ()) r1
-        (format_rule ()) r2
-    ) ;
-  res
-
 module Test = struct
   let p = Idt.intern "p"
   let q = Idt.intern "q"
@@ -400,6 +392,7 @@ module Test = struct
         ~right:(q, [_X]) ;
     eigen = S.singleton (unvar _a) ;
     extra = M.empty ;
+    sats = [] ;
   }
 
   let sq1 = mk_sequent ()
@@ -415,6 +408,7 @@ module Test = struct
         ~left:(Ft.singleton (q, [app (Idt.intern "nat") []])) ;
     eigen = S.empty ;
     extra = M.empty ;
+    sats = [] ;
   }
 
   let sq2 = mk_sequent () ~left:(Ft.singleton (q, [_X])) ~right:(q, [s _X])

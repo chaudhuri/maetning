@@ -45,7 +45,9 @@ let rec focus_right left right =
       [{ prems = [] ;
          concl = mk_sequent () ~skel:OneR ;
          eigen = S.empty ;
-         extra = M.empty }]
+         extra = M.empty ;
+         sats = [] ;
+       }]
   | Or (f1, f2) ->
       skel_map (fun sk -> PlusR1 sk) (focus_right left f1)
       @
@@ -108,7 +110,9 @@ and active_right left_passive left_active right =
       [{ prems = [] ;
          concl = mk_sequent () ~skel:TopR ;
          eigen = S.empty ;
-         extra = M.empty }]
+         extra = M.empty ;
+         sats = [] ;
+       }]
   | Implies (f, g) ->
       skel_map (fun sk -> ImpR sk)
         (active_right left_passive (f :: left_active) g)
@@ -138,7 +142,9 @@ and active_left left_passive left_active ratm =
                     ?right:ratm] ;
          concl = mk_sequent ~skel () ;
          eigen = S.empty ;
-         extra = M.empty }]
+         extra = M.empty ;
+         sats = [] ;
+       }]
   | la :: left_active ->
       active_left_one left_passive left_active la ratm
 
@@ -163,7 +169,7 @@ and active_left_one left_passive left_active la ratm =
         (fun sk1 sk2 -> PlusL (sk1, sk2))
   | False ->
       [{prems = [] ; concl = mk_sequent () ~skel:ZeroL ;
-        eigen = S.empty ; extra = M.empty}]
+        eigen = S.empty ; extra = M.empty ; sats = []}]
   | Exists (_, f) ->
       let vt = vargen#next `param in
       let v = unvar vt in
@@ -185,7 +191,7 @@ and right_init p pargs =
         ~left:(Ft.singleton (p, pargs))
         ~skel:InitR ;
     eigen = S.empty ;
-    extra = M.empty }]
+    extra = M.empty ; sats = [] }]
 
 and left_init p pargs =
   [{prems = [] ;
@@ -193,7 +199,7 @@ and left_init p pargs =
         ~right:(p, pargs)
         ~skel:InitL ;
     eigen = S.empty ;
-    extra = M.empty }]
+    extra = M.empty ; sats = [] }]
 
 and binary_join ?(right_selector=`none) left_rules right_rules mk_skel =
   let rules = List.map begin
@@ -215,7 +221,8 @@ and binary_join ?(right_selector=`none) left_rules right_rules mk_skel =
                   (fun _ ts1 ts2 -> Some (Option.default [] ts1 @ Option.default [] ts2
                                           |> List.sort_unique Pervasives.compare))
                   left_rule.extra
-                  right_rule.extra }
+                  right_rule.extra ;
+              sats = left_rule.sats @ right_rule.sats }
         end right_rules
     end left_rules in
   List.concat rules

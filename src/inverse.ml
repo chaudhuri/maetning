@@ -15,6 +15,7 @@ open Rule
 open Sequent
 
 let __debug = false
+let __paranoid_percolate = false
 let __paranoia = [
   (* `reconstruct ; *)
   (* `check ; *)
@@ -53,17 +54,18 @@ module Trivial : Data = struct
 
   let register sq =
     if not (subsumed sq) then index sq
-    (* else Format.printf "Subsumed: %a@." (Sequent.format_sequent ()) sq *)
+    (* else Format.printf "Subsumed: [%d] @[%a@]@." sq.sqid (Sequent.format_sequent ()) sq *)
 
   let select () =
     try
       let sel = Queue.take sos in
       active := sel :: !active ;
+      (* let __debug = true in *)
       if __debug then
-        Format.printf "Selected: [%d] %a@." sel.sqid (Sequent.format_sequent ()) sel ;
+        Format.printf "Selected: [%d] %a" sel.sqid (Sequent.format_sequent ()) sel ;
       let sel = Sequent.freshen sel () in
       if __debug then
-        Format.printf " `--> [%d] %a@." sel.sqid (Sequent.format_sequent ()) sel ;
+        Format.printf "  `--> [%d]@." sel.sqid ;
       Some sel
     with Queue.Empty -> None
 
@@ -85,10 +87,10 @@ let rec spin_until_quiescence measure op =
 let is_new_rule_wrt rules rr =
   not @@ List.exists (fun oldrr -> Rule.rule_subsumes oldrr rr) rules
 
-let rec percolate ~sc_fact ~sc_rule rules iter =
-  let new_rules = percolate_once ~sc_fact rules iter in
+let rec percolate ~sc_fact ~sc_rule ~sel rules =
+  let new_rules = percolate_once ~sc_fact rules (fun doit -> doit sel) in
   List.iter sc_rule new_rules ;
-  if new_rules <> [] then percolate ~sc_fact ~sc_rule new_rules iter
+  if new_rules <> [] then percolate ~sc_fact ~sc_rule ~sel:(freshen sel ()) new_rules
 
 and percolate_once ~sc_fact rules iter =
   let new_rules = ref [] in
@@ -101,22 +103,29 @@ and percolate_once ~sc_fact rules iter =
         then new_rules := rr :: !new_rules
   in
   List.iter begin fun rr ->
+    (* let __debug = true in *)
     iter begin fun sq ->
-      Format.(
-        if __debug then
-          printf "  >>> Trying [%d] @[%a@]@.  >>> with %a@."
-            sq.sqid (format_sequent ()) sq
-            (format_rule ()) rr
-      ) ;
+      let sq0 = sq in
+      let rr0 = rr in
       Rule.specialize_default rr sq
         ~sc_fact:(fun sq ->
             if __debug then
-              Format.printf "  >>> produced sequent: [%d] @[%a@]@." sq.sqid (format_sequent ()) sq ;
+              Format.(
+                printf "  >>> Trying [%d] @[%a@]@.  >>> with %a@."
+                  sq0.sqid (format_sequent ()) sq0
+                  (format_rule ()) rr ;
+                printf "  >>> produced sequent: [%d] @[%a@]@." sq.sqid (format_sequent ()) sq ;
+              ) ;
             sc_fact sq
           )
         ~sc_rule:(fun rr ->
             if __debug then
-              Format.printf "  >>> produced rule @[%a@]@." (format_rule ()) rr ;
+              Format.(
+                printf "  >>> Trying [%d] @[%a@]@.  >>> with %a@."
+                  sq0.sqid (format_sequent ()) sq0
+                  (format_rule ()) rr0 ;
+                printf "  >>> produced rule @[%a@]@." (format_rule ()) rr ;
+              ) ;
             add_rule rr
           )
     end
@@ -247,11 +256,13 @@ module Inv (D : Data) = struct
             if not @@ List.exists (fun oldrr -> Rule.rule_subsumes oldrr rr) !rules then begin
               Rule.Test.print rr ;
               rules := rr :: !rules
-            end
+            end ;
+            Rule.Test.print rr ;
+            rules := rr :: !rules
       in
       gen ~sc:add_rule ;
       spin_until_none D.select begin fun sel ->
-        (* Format.printf "Selected: %a@." (Sequent.format_sequent ()) sel ; *)
+        (* Format.printf "Selected: [%d] @[%a@]@." sel.sqid (Sequent.format_sequent ()) sel ; *)
         (* let new_rules = ref [] in *)
         (* let add_new_rule rr = *)
         (*   match rr.prems with *)
@@ -260,15 +271,16 @@ module Inv (D : Data) = struct
         (*       Rule.Test.print rr ; *)
         (*       new_rules := rr :: !new_rules *)
         (* in *)
-        percolate !rules (fun doit -> doit sel)
+        percolate !rules ~sel  (* (fun doit -> doit sel) *)
           ~sc_rule:add_rule ~sc_fact:add_seq ;
         (* List.iter begin fun rr -> *)
         (*   Rule.specialize_default rr sel *)
         (*     ~sc_rule:add_new_rule *)
         (*     ~sc_fact:add_seq ; *)
         (* end !rules ; *)
-        percolate !rules D.iter_active
-          ~sc_rule:add_rule ~sc_fact:add_seq ;
+        (* if __paranoid_percolate then *)
+        (*   percolate !rules D.iter_active *)
+        (*     ~sc_rule:add_rule ~sc_fact:add_seq ; *)
         (* spin_until_quiescence (fun () -> List.length !new_rules) begin fun () -> *)
         (*   List.iter begin fun rr -> *)
         (*     D.iter_active begin fun act -> *)

@@ -49,9 +49,10 @@ let rec unite ?depth ?(frz=IdtSet.empty) ss t1 t2 =
   let t1 = vnorm ss t1 in
   let t2 = vnorm ss t2 in
   (* Format.( *)
-  (*   fprintf std_formatter "Unite: %a == %a@." *)
+  (*   fprintf std_formatter "Unite: %a == %a [%s]@." *)
   (*     (format_term ()) t1 *)
   (*     (format_term ()) t2 *)
+  (*     (String.concat "," @@ List.map (fun v -> v.rep) (IdtSet.elements frz)) *)
   (* ) ; *)
   if t1 = t2 then (ss, t1) else
   match t1.term, t2.term with
@@ -85,14 +86,6 @@ and unite_lists ?depth ?frz ss ts1 ts2 =
       let (ss, ts) = unite_lists ?depth ?frz ss ts1 ts2 in
       (ss, replace ~repl:ss t :: ts)
   | _ -> unif_fail "argument lists not the same length"
-
-let unite_match ?depth ss t1 t2 =
-  let frz = freeze_term t2 in
-  unite ?depth ~frz ss t1 t2
-
-let unite_match_lists ?depth ss ts1 ts2 =
-  let frz = freeze_terms ts2 in
-  unite_lists ?depth ~frz ss ts1 ts2
 
 module Test = struct
   let eq x y = app (intern "eq") [x ; y]
