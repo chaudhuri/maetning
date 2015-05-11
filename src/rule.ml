@@ -358,6 +358,31 @@ let specialize_default ~sc_rule ~sc_fact rr sq =
   in
   specialize ~sc rr sq
 
+let freshen ?(repl=IdtMap.empty) rr =
+  let (repl, concl) = Sequent.freshen_ ~repl rr.concl in
+  let concl = concl () in
+  let (repl, prems) = List.fold_right begin
+      fun sq (repl, prems) ->
+        let (repl, sq) = Sequent.freshen_ ~repl sq in
+        (repl, sq () :: prems)
+    end rr.prems (repl, [])
+  in
+  let (repl, sats) = List.fold_right begin
+      fun sq (repl, sats) ->
+        let (repl, sqf) = Sequent.freshen_ ~repl sq in
+        (repl, sqf () :: sats)
+    end rr.sats (repl, [])
+  in
+  let eigen = replace_eigen_set ~repl rr.eigen in
+  let extra = M.fold begin
+      fun u ts extra ->
+        let v = replace_eigen ~repl u in
+        let ts = List.map (Term.replace ~repl) ts in
+        M.add v ts extra
+    end rr.extra M.empty
+  in
+  { prems ; concl ; sats ; eigen ; extra }
+
 let rule_subsumes_exn r1 r2 =
   let repl = Sequent.subsume_exn r1.concl r2.concl in
   let _repl =

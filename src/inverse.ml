@@ -98,6 +98,7 @@ and percolate_once ~sc_fact rules iter =
     match rr.prems with
     | [] -> sc_fact rr.concl
     | _ ->
+        let rr = Rule.freshen rr in
         if is_new_rule_wrt !new_rules rr &&
            is_new_rule_wrt rules rr
         then new_rules := rr :: !new_rules
@@ -253,12 +254,11 @@ module Inv (D : Data) = struct
         match rr.prems with
         | [] ->  add_seq rr.concl
         | _ ->
+            let rr = Rule.freshen rr in
             if not @@ List.exists (fun oldrr -> Rule.rule_subsumes oldrr rr) !rules then begin
               Rule.Test.print rr ;
               rules := rr :: !rules
-            end ;
-            Rule.Test.print rr ;
-            rules := rr :: !rules
+            end
       in
       gen ~sc:add_rule ;
       spin_until_none D.select begin fun sel ->
