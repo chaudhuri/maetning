@@ -8,13 +8,13 @@
 (* prover internals *)
 
 open Batteries
+open Debug
 
 open Term
 open Form
 open Rule
 open Sequent
 
-let __debug = false
 let __paranoid_percolate = false
 let __paranoia = [
   (* `reconstruct ; *)
@@ -42,30 +42,22 @@ module Trivial : Data = struct
     List.exists (fun oldsq -> Sequent.subsume oldsq sq) !db
 
   let index sq =
-    Format.(
-      fprintf std_formatter "[%d] %a %t@."
-        sq.sqid
-        (format_sequent ()) sq
-        (* Skeleton.format_skeleton sq.skel *)
-        (fun ff -> if __debug then fprintf ff "[%a]" Skeleton.format_skeleton sq.skel)
-    ) ;
+    dprintf "index" "[%d] @[%a@]@." sq.sqid (format_sequent ()) sq ;
+    dprintf "skeleton" "%a@." Skeleton.format_skeleton sq.skel ;
     db := sq :: !db ;
     Queue.add sq sos
 
   let register sq =
     if not (subsumed sq) then index sq
-    (* else Format.printf "Subsumed: [%d] @[%a@]@." sq.sqid (Sequent.format_sequent ()) sq *)
+    else dprintf "subsumption" "[%d] @[%a@]@." sq.sqid (format_sequent ()) sq
 
   let select () =
     try
       let sel = Queue.take sos in
       active := sel :: !active ;
-      (* let __debug = true in *)
-      if __debug then
-        Format.printf "Selected: [%d] %a" sel.sqid (Sequent.format_sequent ()) sel ;
+      dprintf "select" "[%d] @[%a@]@." sel.sqid (format_sequent ()) sel ;
       let sel = Sequent.freshen sel () in
-      if __debug then
-        Format.printf "  `--> [%d]@." sel.sqid ;
+      dprintf "rename" "[%d] @[%a@]@." sel.sqid (format_sequent ()) sel ;
       Some sel
     with Queue.Empty -> None
 
@@ -104,29 +96,22 @@ and percolate_once ~sc_fact rules iter =
         then new_rules := rr :: !new_rules
   in
   List.iter begin fun rr ->
-    (* let __debug = true in *)
     iter begin fun sq ->
       let sq0 = sq in
       let rr0 = rr in
       Rule.specialize_default rr sq
         ~sc_fact:(fun sq ->
-            if __debug then
-              Format.(
-                printf "  >>> Trying [%d] @[%a@]@.  >>> with %a@."
-                  sq0.sqid (format_sequent ()) sq0
-                  (format_rule ()) rr ;
-                printf "  >>> produced sequent: [%d] @[%a@]@." sq.sqid (format_sequent ()) sq ;
-              ) ;
+            dprintf "factgen" "@[<v0>Trying [%d] @[%a@]@,With @[%a@]@,Produced [%d] @[%a@]@]@."
+              sq0.sqid (format_sequent ()) sq0
+              (format_rule ()) rr
+              sq.sqid (format_sequent ()) sq ;
             sc_fact sq
           )
         ~sc_rule:(fun rr ->
-            if __debug then
-              Format.(
-                printf "  >>> Trying [%d] @[%a@]@.  >>> with %a@."
-                  sq0.sqid (format_sequent ()) sq0
-                  (format_rule ()) rr0 ;
-                printf "  >>> produced rule @[%a@]@." (format_rule ()) rr ;
-              ) ;
+            dprintf "rulegen" "@[<v0>Trying [%d] @[%a@]@,With @[%a@]@,Produced rule @[%a@]@]@."
+              sq0.sqid (format_sequent ()) sq0
+              (format_rule ()) rr0
+              (format_rule ()) rr ;
             add_rule rr
           )
     end
@@ -196,16 +181,12 @@ let paranoid_check ~lforms sq =
           | Some (p, ts) -> atom (get_polarity ~lforms p) p (List.map freeze_vars ts)
         end
       } in
-    if __debug then
-      Format.(
-        eprintf "Reconstructing: @[%a@]@."
-          Seqproof.format_sequent goal
-      ) ;
+    dprintf "paranoia" "Reconstructing: @[%a@]@." Seqproof.format_sequent goal ;
     match Reconstruct.reconstruct (module Agencies.Rebuild)
             ~max:1 ~lforms ~goal
             ~cert:sq.skel
     with
-    | Some (prf :: _) ->
+    | Some prf ->
         Config.pprintf "<p>Paranoia for <code>[%d] %a</code></p>@." sq.sqid (format_sequent ()) sq ;
         Config.pprintf "<p>Found: <code>%a</code></p>@."
           Seqproof.format_seqproof prf ;
@@ -213,7 +194,6 @@ let paranoid_check ~lforms sq =
           Seqproof_print.print prf ~lforms ~goal ;
           Config.pprintf "<hr>@."
         end
-    | Some []
     | None ->
         Format.(eprintf "Could not reconstruct@.@[<v0>%a@]@." Seqproof.format_sequent goal) ;
         failwith "[PARANOIA] proof reconstruction failed"
@@ -256,7 +236,7 @@ module Inv (D : Data) = struct
         | _ ->
             let rr = Rule.freshen rr in
             if not @@ List.exists (fun oldrr -> Rule.rule_subsumes oldrr rr) !rules then begin
-              Rule.Test.print rr ;
+              dprintf "rule" "@[%a@]@." (format_rule ()) rr ;
               rules := rr :: !rules
             end
       in

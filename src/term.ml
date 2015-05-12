@@ -30,7 +30,8 @@ let evar_cookie = "?"
 let param_cookie = "\'"
 
 let var v =
-  assert (v.rep.[0] == evar_cookie.[0] || v.rep.[0] == param_cookie.[0]) ;
+  if v.rep.[0] != evar_cookie.[0] && v.rep.[0] != param_cookie.[0] then
+    Debug.bugf "Term.var: invalid variable name %S" v.rep ;
   { term = Var v ;
     vars = IdtSet.singleton v ;
     imax = -1 }

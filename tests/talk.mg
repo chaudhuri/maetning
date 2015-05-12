@@ -24,4 +24,4 @@
                              fib(s(v),y) =>
                              sum(x,y,z) => fib(s(s(v)),z).
 
-%prove \E x. fib(s(s(s(s(zero)))),x).
+%prove \E x. fib(s(s(s(s(s(s(zero)))))),x).

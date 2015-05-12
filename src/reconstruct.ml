@@ -6,13 +6,12 @@
  *)
 
 open Batteries
+open Debug
 
 open Idt
 open Term
 open Form
 open Seqproof
-
-let __debug = false
 
 module M = IdtMap
 
@@ -95,24 +94,9 @@ let rec backtrack ~cc ~fail fn =
   | Choices [c] -> fn c ~fail
   | Choices (c :: cs) ->
       fn c ~fail:(fun reason ->
-          if __debug then
-            Format.(printf "[REBUILD] Backtracking because %S@." reason) ;
+          dprintf "reconstruct" "Backtracking because %S@." reason ;
           backtrack ~cc:(Choices cs) ~fail fn
         )
-
-let format_repl ff repl =
-  match M.bindings repl with
-  | [] -> ()
-  | (x, t) :: bs ->
-      Format.(
-        pp_open_box ff 1 ; begin
-          fprintf ff "{%s:%a" x.rep (format_term ()) t ;
-          List.iter begin fun (x, t) ->
-            fprintf ff ",@,%s:%a" x.rep (format_term ()) t
-          end bs ;
-          pp_print_string ff "}" ;
-        end ; pp_close_box ff ()
-      )
 
 let repl_join repl_left repl_right =
   M.merge begin fun k ts1 ts2 ->
@@ -131,13 +115,7 @@ let reconstruct (type cert)
     (module Ag : AGENCY with type cert = cert)
     ?(max=1) ~lforms ~goal ~(cert:cert) =
 
-  (* assert (goal.left_active = [] && polarity goal.right = POS) ; *)
-  assert (max > 0) ;
-
-  if __debug then Format.(
-      pp_set_margin std_formatter max_int ;
-      pp_set_max_indent std_formatter max_int ;
-    ) ;
+  if max <= 0 then Debug.bugf "reconstruct max = %d" max ;
 
   let lf_dict = List.fold_left begin
       fun dict lf ->
@@ -167,24 +145,12 @@ let reconstruct (type cert)
   in
 
   let rec right_focus lev ~succ ~fail sq c =
-    assert (List.length sq.left_active = 0) ;
-    Format.(
-      if __debug then
-        fprintf std_formatter "%s@[<v0>right_focus: @[%a@]@,  @[%a@]@]@."
-          (indent lev)
-          format_sequent sq Ag.format_cert c
-    ) ;
+    if List.length sq.left_active <> 0 then Debug.bugf "right_focus: has left active" ;
+    dprintf "reconstruct"
+      "%s@[<v0>right_focus: @[%a@]@,  @[%a@]@]@."
+      (indent lev)
+      format_sequent sq Ag.format_cert c ;
     let lev = lev + 1 in
-    (* let succ (pf, repl) ~fail = *)
-    (*   Format.( *)
-    (*     if __debug then *)
-    (*       fprintf std_formatter "  >>> branch end: %a@.  >>> subsitution: %a@.  >>> proof: %a@." *)
-    (*         format_sequent sq *)
-    (*         format_repl repl *)
-    (*         format_seqproof pf *)
-    (*   ) ; *)
-    (*   succ (pf, repl) ~fail *)
-    (* in *)
     match sq.right.form with
     | Atom (POS, p, pts) ->
         backtrack ~cc:(Ag.ex_InitR sq c) ~fail begin
@@ -253,12 +219,10 @@ let reconstruct (type cert)
         failwith "right focus on active formula"
 
   and left_focus lev ~succ ~fail sq c =
-    Format.(
-      if __debug then
-        fprintf std_formatter "%s@[<v0>left_focus: @[%a@]@,  @[%a@]@]@."
-          (indent lev)
-          format_sequent sq Ag.format_cert c
-    ) ;
+    dprintf "reconstruct"
+      "%s@[<v0>left_focus: @[%a@]@,  @[%a@]@]@."
+      (indent lev)
+      format_sequent sq Ag.format_cert c ;
     let lev = lev + 1 in
     match sq.left_active with
     | [_, {form = Atom (NEG, p, pts) ; _}] -> begin
@@ -268,15 +232,7 @@ let reconstruct (type cert)
             | Atom (NEG, q, qts) when p == q -> begin
                 match Unify.unite_lists M.empty pts qts with
                 | (repl, _) -> succ (InitL, repl) ~fail
-                | exception Unify.Unif msg ->
-                    if __debug then
-                      Format.(
-                        eprintf "[UNIFY: %s] %a != %a@."
-                          msg
-                          (Term.format_term ()) (Term.app p pts)
-                          (Term.format_term ()) (Term.app q qts)
-                      ) ;
-                    fail "InitL/unify"
+                | exception Unify.Unif _ -> fail "InitL/unify"
               end
             | _ -> fail "InitL/incompat"
           end
@@ -343,12 +299,10 @@ let reconstruct (type cert)
         failwith "left focus requires singleton focus"
 
   and right_active lev ~succ ~fail sq c =
-    Format.(
-      if __debug then
-        fprintf std_formatter "%s@[<v0>right_active: @[%a@]@,  @[%a@]@]@."
-          (indent lev)
-          format_sequent sq Ag.format_cert c
-    ) ;
+    dprintf "reconstruct"
+      "%s@[<v0>right_active: @[%a@]@,  @[%a@]@]@."
+      (indent lev)
+      format_sequent sq Ag.format_cert c ;
     let lev = lev + 1 in
     match sq.right.form with
     | Atom (NEG, _, _) ->
@@ -409,12 +363,10 @@ let reconstruct (type cert)
         failwith "right active on positive formula"
 
   and left_active lev ~succ ~fail sq c =
-    Format.(
-      if __debug then
-        fprintf std_formatter "%s@[<v0>left_active: @[%a@]@,  @[%a@]@]@."
-          (indent lev)
-          format_sequent sq Ag.format_cert c
-    ) ;
+    dprintf "reconstruct"
+      "%s@[<v0>left_active: @[%a@]@,  @[%a@]@]@."
+      (indent lev)
+      format_sequent sq Ag.format_cert c ;
     let lev = lev + 1 in
     match sq.left_active with
     | [] -> frontier lev ~succ ~fail sq c
@@ -509,12 +461,10 @@ let reconstruct (type cert)
       end
 
   and frontier lev ~succ ~fail sq c =
-    Format.(
-      if __debug then
-        fprintf std_formatter "%s@[<v0>frontier: @[%a@]@,  @[%a@]@]@."
-          (indent lev)
-          format_sequent sq Ag.format_cert c ;
-    ) ;
+    dprintf "reconstruct"
+      "%s@[<v0>frontier: @[%a@]@,  @[%a@]@]@."
+      (indent lev)
+      format_sequent sq Ag.format_cert c ;
     let lev = lev + 1 in
     backtrack ~cc:(Ag.ex_Foc sq c) ~fail begin
       fun instr ~fail -> match instr with
@@ -522,8 +472,7 @@ let reconstruct (type cert)
             right_focus lev sq c ~fail
               ~succ:(fun (der, repl) ~fail -> succ (FocR der, repl) ~fail)
         | `left (x, cfn) -> begin
-            if __debug then
-              Format.(printf "[REBUILD] Trying choice %s@." x.rep) ;
+            dprintf "reconstruct" "Trying choice %s@." x.rep ;
             let xx = hypgen#next in
             let c = cfn xx in
             match List.assoc x sq.left_passive with
@@ -538,7 +487,7 @@ let reconstruct (type cert)
   in
 
   frontier 0 goal cert
-    ~succ:(fun (der, _) ~fail -> Some [der])
+    ~succ:(fun (der, _) ~fail -> Some der)
     ~fail:(fun msg ->
         Format.eprintf "reconstruct: %s@." msg ;
         None

@@ -6,6 +6,7 @@
  *)
 
 open Batteries
+open Debug
 
 open Idt
 open Term
@@ -16,7 +17,6 @@ open Rule
 
 module S = IdtSet
 module M = IdtMap
-
 
 let skel_map skf rrs =
   List.map begin fun rr ->
@@ -66,7 +66,7 @@ let rec focus_right left right =
   | True NEG
   | Forall _
   | Implies _ ->
-      assert false
+      Debug.bugf "Rule_gen.focus_right: negative: @[%a@]" (format_form ()) right
 
 and focus_left left lfoc ratm =
   match lfoc.form with
@@ -95,7 +95,7 @@ and focus_left left lfoc ratm =
   | And (POS, _, _)
   | True POS
   | Or _ | False | Exists _ ->
-      assert false
+      Debug.bugf "Rule_gen.focus_left: positive: @[%a@]" (format_form ()) lfoc
 
 and active_right left_passive left_active right =
   match right.form with
@@ -130,7 +130,7 @@ and active_right left_passive left_active right =
   | True POS
   | Or _ | False | Exists _
   | Shift _ ->
-      assert false
+      Debug.bugf "Rule_gen.active_right: positive: @[%a@]" (format_form ()) right
 
 and active_left left_passive left_active ratm =
   match left_active with
@@ -183,7 +183,7 @@ and active_left_one left_passive left_active la ratm =
   | Implies _
   | Forall _
   | Shift _ ->
-      assert false
+      Debug.bugf "Rule_gen.active_left_one: negative: @[%a@]" (format_form ()) la
 
 and right_init p pargs =
   [{prems = [] ;
@@ -269,12 +269,17 @@ let freshen_atom lf =
   match f0.term with
   | App (_, args) ->
       {lf with args = args}
-  | _ -> assert false
+  | _ ->
+      Debug.bugf "Rule_gen.freshen_atom: not an app: @[%a@]"
+        (format_term ()) f0
 
 let generate0 left pseudo right =
-  assert (List.for_all (fun (_, l) -> polarity l = NEG) left) ;
-  assert (List.for_all (fun (_, l) -> polarity l = NEG) pseudo) ;
-  assert (polarity right = POS) ;
+  if List.exists (fun (_, l) -> polarity l <> NEG) left then
+    Debug.bugf "generate0: non-negative left" ;
+  if List.exists (fun (_, l) -> polarity l <> NEG) pseudo then
+    Debug.bugf "generate0: non-negative pseudo" ;
+  if polarity right <> POS then
+    Debug.bugf "generate0: non-positive right" ;
   let lforms = ref [] in
   let process place hyps =
     List.iter begin
@@ -290,23 +295,12 @@ let generate0 left pseudo right =
   process (Left Pseudo) pseudo ;
   process Right [intern "_", right] ;
   let goal_lform = List.hd !lforms in
-  Format.(
-    printf "Labelled formulas:@." ;
-    List.iter (printf "  %a.@." format_lform) !lforms ;
-    printf "goal is %s.@." goal_lform.label.rep ;
-  ) ;
-  let _expl ff =
-    Format.(
-      fprintf ff "<pre>%t--------------------@. %a</pre>@."
-        (fun ff -> List.iter (fprintf ff "%a@."
-                                (fun ff (_, f) -> format_form () ff f))
-            left)
-        (format_form ()) right ;
-      fprintf ff "<p>Labeling</p>@.<pre>@." ;
-      List.iter (fprintf ff "%a.@." format_lform) !lforms ;
-      fprintf ff "</pre><p>Goal: <code>%s</code></p>@." goal_lform.label.rep ;
-    )
-  in
+  dprintf "label"
+    "@[<v0>Labeled formulas:@,  %t@,Goal is %s@]@."
+    (fun ff ->
+       format_lform ff (List.hd !lforms) ;
+       List.iter (Format.fprintf ff "@,  @[%a@]" format_lform) (List.tl !lforms))
+    goal_lform.label.rep ;
   (!lforms, goal_lform, generate_rules !lforms)
 
 module Test = struct

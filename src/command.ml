@@ -91,12 +91,12 @@ let dump_proof ?(pseudos=false) f res =
           ~goal
           ~cert:res.Inverse.found.Sequent.skel
   with
-  | Some (prf :: _) ->
+  | Some prf ->
       if pseudos then Config.pprintf "<p class='pseudo'>THIS IS A PSEUDO PROOF</p>@." ;
       Seqproof_print.print prf
         ~lforms:res.Inverse.lforms ~goal ;
       Config.pprintf "<hr>@."
-  | Some [] | None -> failwith "Reconstruction failed"
+  | None -> failwith "Reconstruction failed"
 
 let prove f =
   match setup f with

@@ -5,9 +5,8 @@
  * See LICENSE for licensing details.
  *)
 
-let __debug = false
-
 open Batteries
+open Debug
 
 open Idt
 open Term
@@ -73,7 +72,7 @@ let format_rule ?max_depth () fmt rr =
           (* fprintf fmt " [%a]" Skeleton.format_skeleton prem.skel ; *)
           pp_print_cut fmt () ;
       end rr.prems ;
-      if __debug && rr.sats <> [] then begin
+      if not !Config.shrink && rr.sats <> [] then begin
         List.iteri begin
           fun k sat ->
             pp_print_string fmt "{" ;
@@ -119,12 +118,11 @@ let ec_viol eigen concl =
 
 let evc_ok eigen concl =
   let ret = ec_viol eigen concl in
-  if __debug && ret then
-    Format.(
-      printf "[EVC] rejecting [%d] @[%a@] -- EVS = %s@."
-        concl.sqid (format_sequent ()) concl
-        (String.concat "," @@ List.map (fun v -> v.rep) (IdtSet.elements eigen)) ;
-    ) ;
+  if ret then
+    dprintf "evc"
+      "rejecting [%d] @[%a@] -- EVS = %s@."
+      concl.sqid (format_sequent ()) concl
+      (String.concat "," @@ List.map (fun v -> v.rep) (IdtSet.elements eigen)) ;
   not ret
 
 let rec occurs v t =
@@ -135,23 +133,12 @@ let rec occurs v t =
 
 let extra_ok extra =
   M.for_all begin fun v ts ->
-    (* Format.eprintf "EXTRA CHECK: %a@." format_extra1 (v, ts) ; *)
-    (* let ret = *)
     List.for_all begin fun t ->
       not @@ occurs v t
     end ts
-    (* in *)
-    (* Format.eprintf "    %s@." (if ret then "SUCC" else "FAIL") ; *)
-    (* ret *)
   end extra
 
 let rule_match_exn ~sc prem cand =
-  (* Format.(eprintf "CAND: %a@." (format_sequent ()) cand) ; *)
-  (* let sc repl sq = *)
-  (*   Format.(eprintf "RULE_MATCH: %a@." *)
-  (*             (Sequent.format_sequent ()) sq) ; *)
-  (*   sc repl sq *)
-  (* in *)
   let repl = M.empty in
   let (repl, right, strict) =
     match prem.right, cand.right with
@@ -167,24 +154,7 @@ let rule_match_exn ~sc prem cand =
         (repl, None, true)
       end
   in
-  (* Format.( *)
-  (*   eprintf "rule_match: right matched with %a@." format_repl repl *)
-  (* ) ; *)
   let rec gen ~repl ~strict left hyps =
-    (* Format.( *)
-    (*   eprintf "gen: %s@." (if strict then "strict" else "") ; *)
-    (*   eprintf "  left: @[<v0>" ; *)
-    (*   Ft.iter begin *)
-    (*     fun (p, pargs) -> *)
-    (*       eprintf "  %a@," (format_term ()) (app p pargs) *)
-    (*   end left ; *)
-    (*   eprintf "@.  hyps: @[<v0>" ; *)
-    (*   Ft.iter begin *)
-    (*     fun (p, pargs) -> *)
-    (*       eprintf "  %a@," (format_term ()) (app p pargs) *)
-    (*   end hyps ; *)
-    (*   eprintf "@." ; *)
-    (* ) ; *)
     match Ft.front hyps with
     | Some (hyps, (p, pargs)) ->
         (* weaken *)
@@ -198,34 +168,11 @@ let rule_match_exn ~sc prem cand =
         if strict then sc repl sq
         else ((* Format.(eprintf "non-strict discard: %a@." (format_sequent ()) sq) *))
   and test ~repl ~strict ~cont ?(discard=Ft.empty) left p pargs =
-    (* Format.( *)
-    (*   eprintf "test: %s@." (if strict then "strict" else "") ; *)
-    (*   eprintf "  left: @[<v0>" ; *)
-    (*   Ft.iter begin *)
-    (*     fun (p, pargs) -> *)
-    (*       eprintf "  %a@," (format_term ()) (app p pargs) *)
-    (*   end left ; *)
-    (*   eprintf "@.  discard: @[<v0>" ; *)
-    (*   Ft.iter begin *)
-    (*     fun (p, pargs) -> *)
-    (*       eprintf "  %a@," (format_term ()) (app p pargs) *)
-    (*   end discard ; *)
-    (*   eprintf "@." ; *)
-    (* ) ; *)
     match Ft.front left with
     | Some (left, ((q, qargs) as l)) ->
         if p == q then begin
           try
-            (* Format.( *)
-            (*   eprintf "  >>> rule_match: %a =?= %a@.  >>> Under: %a@." *)
-            (*     (format_term ()) (app p pargs) *)
-            (*     (format_term ()) (app q qargs) *)
-            (*     format_repl repl ; *)
-            (* ) ; *)
             let (repl, _) = Unify.unite_lists repl pargs qargs in
-            (* Format.( *)
-            (*   eprintf "rule_match: hyp matched with %a@." format_repl repl *)
-            (* ) ; *)
             cont ~repl ~strict:true (Ft.append discard left)
           with Unify.Unif _ -> ()
         end ;
@@ -321,30 +268,19 @@ let specialize ~sc rr sq =
 
 let factor_loop ~sc sq =
   let seen = ref [] in
-  (* let __debug = true in *)
-  if __debug then
-    Format.(
-      printf "Trying to factor: @[%a@]@."
-        (format_sequent ()) sq
-    ) ;
+  dprintf "factor"
+    "Trying to factor: @[%a@]@."
+    (format_sequent ()) sq ;
   let doit sq =
-    if __debug then
-      Format.(
-        printf "Here's a factor: @[%a@]@."
-          (format_sequent ()) sq
-      ) ;
+    dprintf "factor"
+      "Here's a factor: @[%a@]@."
+      (format_sequent ()) sq ;
     match List.find (fun seensq -> Sequent.subsume seensq sq) !seen with
     | seensq ->
-        if __debug then
-          Format.(
-            printf "factor_loop: [%d] killed [%d] @[%a@]@."
-              seensq.sqid sq.sqid (format_sequent ()) sq
-          )
+        dprintf "factor" "factor_loop: [%d] killed [%d] @[%a@]@."
+          seensq.sqid sq.sqid (format_sequent ()) sq
     | exception Not_found ->
-        if __debug then
-          Format.(
-            printf "factor_loop: [%d] survived@." sq.sqid
-          ) ;
+        dprintf "factor" "factor_loop: [%d] survived@." sq.sqid ;
         sc sq ;
         seen := sq :: !seen
   in

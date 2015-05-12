@@ -7,6 +7,14 @@
 
 open Batteries
 
+let () =
+  let open Debug in
+  List.iter on_stdout [
+    "label" ;
+    "index" ;
+    (* "rule" ; *)
+  ]
+
 let input_files : string list ref = ref []
 let add_input_file f = input_files := f :: !input_files
 

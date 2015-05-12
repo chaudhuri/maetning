@@ -72,7 +72,8 @@ let rec unite ?depth ?(frz=IdtSet.empty) ss t1 t2 =
   | App (f1, _), App (f2, _) ->
       unif_fail "function-function: %s != %s" f1.rep f2.rep
   | Idx m, Idx n ->
-      assert (m != n) ;
+      if m == n then
+        Debug.bugf "Unify.unite: identical indexes (%d) in main loop" m ;
       unif_fail "index-index: %d != %d" m n
   | Idx _, App _
   | App _, Idx _  ->

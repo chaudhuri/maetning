@@ -8,10 +8,10 @@
 open Batteries
 module Ft = FingerTree
 
+open Debug
+
 open Idt
 open Term
-
-let __debug = false
 
 type latm = idt * term list
 type ctx = (latm, int) Ft.fg
@@ -229,12 +229,10 @@ let subsume ss0 tt0 =
   let tt0 = freshen tt0 () in
   try
     ignore (subsume_exn ss0 tt0) ;
-    if __debug then
-      Format.(
-        printf "  @[<v0>[SUBS]@,++ [%d]@,   @[%a@]@,-- @[%a@]@]@."
-          ss0.sqid (format_sequent ()) ss0
-          (format_sequent ()) tt0
-      ) ;
+    dprintf "subsumption"
+      "  @[<v0>[SUBS]@,++ [%d]@,   @[%a@]@,-- @[%a@]@]@."
+      ss0.sqid (format_sequent ()) ss0
+      (format_sequent ()) tt0 ;
     true
   with Unify.Unif _ -> false
 
@@ -262,13 +260,11 @@ let factor_one ~sc sq =
           try
             let pargs0 = pargs in
             let (repl, pargs) = Unify.unite_lists IdtMap.empty pargs qargs in
-            if __debug then
-              Format.(
-                eprintf "%a =?= %a {%a}@."
-                  (format_term ()) (Term.replace ~repl (app p pargs0))
-                  (format_term ()) (app p pargs)
-                  Reconstruct.format_repl repl
-              ) ;
+            dprintf "factor"
+              "%a =?= %a {%a}@."
+              (format_term ()) (Term.replace ~repl (app p pargs0))
+              (format_term ()) (app p pargs)
+              format_repl repl ;
             let left = Ft.map (replace_latm ~repl) left in
             let middle = Ft.map (replace_latm ~repl) middle in
             let right = Ft.map (replace_latm ~repl) right in

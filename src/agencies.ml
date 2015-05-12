@@ -12,8 +12,6 @@ open Form
 open Seqproof
 open Reconstruct
 
-let __debug = false
-
 (* For any certificate format, create an agency that ignores the cert and generates
  * the full list of choices for each branching rule. *)
 module Trivial (C : sig
@@ -314,8 +312,9 @@ module Rebuild : AGENCY with type cert = Skeleton.t = struct
                     Some (`left (x, (fun xx -> cc)))
                   else None
               end sq.left_passive in
-            if __debug then
-              Format.(printf "[REBUILD] Found %d choices for FocL@." (List.length choices)) ;
+            Debug.(
+              dprintf "rebuild" "Found %d choices for FocL@." (List.length choices)
+            ) ;
             Choices choices
         | FocR cc ->
             Choices [`right cc]

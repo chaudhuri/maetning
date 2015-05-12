@@ -271,7 +271,7 @@ type lform = {
 
 let format_lform fmt lf =
   let open Format in
-  pp_open_box fmt 0 ; begin
+  pp_open_box fmt 2 ; begin
     pp_print_string fmt begin match lf.place with
       | Left lf -> begin
           match lf with
@@ -291,7 +291,7 @@ let format_lform fmt lf =
 
 let unvar t = match t.term with
   | Var v -> v
-  | _ -> assert false
+  | _ -> Debug.bugf "unvar on a non-term"
 
 let is_frontier place pol =
   match place, pol with
