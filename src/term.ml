@@ -161,6 +161,19 @@ let rec freshen ?depth ~repl t0 =
     end t0.vars repl in
   (repl, replace ?depth ~repl t0)
 
+let canonize_var v n =
+  (String.sub v.rep 0 1 ^ string_of_int n)
+  |> intern |> var
+
+let canonize ~repl t0 =
+  IdtSet.fold begin fun v repl ->
+    if IdtMap.mem v repl then repl else
+      IdtMap.insert repl v (canonize_var v @@ 1 + IdtMap.cardinal repl)
+  end t0.vars repl
+
+let canonize_list ~repl ts =
+  List.fold_left (fun repl t -> canonize ~repl t) repl ts
+
 let compact_print = ref true
 
 let rec format_term ?(cx=[]) ?max_depth () fmt t =
@@ -213,8 +226,7 @@ let format_repl fmt repl =
     pp_print_string fmt "{" ;
     IdtMap.iter begin fun v t ->
       pp_print_string fmt v.rep ;
-      pp_print_string fmt ":=" ;
-      pp_print_space fmt () ;
+      pp_print_string fmt ":= " ;
       format_term () fmt t ;
       pp_print_string fmt ";" ;
       pp_print_space fmt () ;

@@ -15,54 +15,76 @@ open Form
 open Rule
 open Sequent
 
-let __paranoid_percolate = false
 let __paranoia = [
   (* `reconstruct ; *)
   (* `check ; *)
 ]
 
+type 'a ts = {
+  id : int ;
+  th : 'a ;
+}
+
 module type Data = sig
   val reset : unit -> unit
   val register : Sequent.t -> unit
-  val select : unit -> Sequent.t option
-  val iter_active : (Sequent.t -> 'a) -> unit
+  val select : unit -> Sequent.t ts option
+  val iter_active : (Sequent.t ts -> 'a) -> unit
+  val print_statistics : unit -> unit
+  val finish_initial : unit -> unit
 end
 
 module Trivial : Data = struct
-  let sos : Sequent.t Queue.t = Queue.create ()
-  let active : Sequent.t list ref = ref []
-  let db : Sequent.t list ref = ref []
+  let sos : Sequent.t ts Deque.t ref = ref Deque.empty
+  let active : Sequent.t ts list ref = ref []
+  let db : Sequent.t ts list ref = ref []
+
+  let sqidgen = new Namegen.namegen (fun n -> n)
 
   let reset () =
-    Queue.clear sos ;
+    sos := Deque.empty ;
     active := [] ;
-    db := []
+    db := [] ;
+    sqidgen#reset
+
+  let finish_initial () = ()
+    (* sos := Deque.rev !sos *)
 
   let subsumed sq =
-    List.exists (fun oldsq -> Sequent.subsume oldsq sq) !db
+    List.exists (fun old -> Sequent.subsume old.th sq) !db
 
   let index sq =
-    dprintf "index" "[%d] @[%a@]@." sq.sqid (format_sequent ()) sq ;
+    let id = sqidgen#next in
+    dprintf "index" "[%d] @[%a@]@." id (format_sequent ())
+      (Sequent.replace_sequent ~repl:(Sequent.canonize sq) sq) ;
     dprintf "skeleton" "%a@." Skeleton.format_skeleton sq.skel ;
-    db := sq :: !db ;
-    Queue.add sq sos
+    let sqt = {id ; th = sq} in
+    db := sqt :: !db ;
+    sos := Deque.snoc !sos sqt
 
   let register sq =
     if not (subsumed sq) then index sq
-    else dprintf "subsumption" "[%d] @[%a@]@." sq.sqid (format_sequent ()) sq
+    (* else dprintf "subsumption" "[%d] @[%a@]@." sq.sqid (format_sequent ()) sq *)
 
   let select () =
-    try
-      let sel = Queue.take sos in
-      active := sel :: !active ;
-      dprintf "select" "[%d] @[%a@]@." sel.sqid (format_sequent ()) sel ;
-      let sel = Sequent.freshen sel () in
-      dprintf "rename" "[%d] @[%a@]@." sel.sqid (format_sequent ()) sel ;
-      Some sel
-    with Queue.Empty -> None
+    match Deque.front !sos with
+    | Some (sel, rest) ->
+        sos := rest ;
+        active := sel :: !active ;
+        dprintf "select" "[%d] @[%a@]@." sel.id (format_sequent ()) sel.th ;
+        let sel = {sel with th = Sequent.freshen sel.th ()} in
+        dprintf "rename" "@[%a@]@." (format_sequent ()) sel.th ;
+        Some sel
+    | None -> None
 
   let iter_active doit =
-    List.iter (fun sq -> ignore (doit (Sequent.freshen sq ()))) !active
+    List.iter begin fun act ->
+        let act = {act with th = Sequent.freshen act.th ()} in
+        doit act |> ignore
+    end !active
+
+  let print_statistics () =
+    dprintf "stats" "@[<v0>#active = %d@,#db = %d@]@." (List.length !active) (List.length !db)
 end
 
 let rec spin_until_none get op =
@@ -77,15 +99,28 @@ let rec spin_until_quiescence measure op =
   if before != after then spin_until_quiescence measure op
 
 let is_new_rule_wrt rules rr =
-  not @@ List.exists (fun oldrr -> Rule.rule_subsumes oldrr rr) rules
+  match List.find (fun oldrr -> Rule.rule_subsumes oldrr.th rr) rules with
+  | oldrr ->
+      dprintf "rulesub" "@[<v0>Rule @[%a@]@,Subs @[%a@]@]@."
+        (format_rule ()) oldrr.th
+        (format_rule ()) rr ;
+      false
+  | exception Not_found -> true
 
-let rec percolate ~sc_fact ~sc_rule ~sel rules =
-  let new_rules = percolate_once ~sc_fact rules (fun doit -> doit sel) in
+let ruleidgen = new Namegen.namegen (fun n -> n)
+
+let rec percolate0 ~sc_fact ~sc_rule ~sel ~iter rules =
+  let new_rules = percolate_once ~sc_fact ~iter:(fun doit -> doit sel) rules in
   List.iter sc_rule new_rules ;
-  if new_rules <> [] then percolate ~sc_fact ~sc_rule ~sel:(freshen sel ()) new_rules
+  if new_rules <> [] then percolate1 ~sc_fact ~sc_rule ~iter new_rules
 
-and percolate_once ~sc_fact rules iter =
-  let new_rules = ref [] in
+and percolate1 ~sc_fact ~sc_rule ~iter rules =
+  let new_rules = percolate_once ~sc_fact ~iter rules in
+  (* List.iter sc_rule new_rules ; *)
+  if new_rules <> [] then percolate1 ~sc_fact ~sc_rule ~iter new_rules
+
+and percolate_once ~sc_fact ~iter rules =
+  let new_rules : rule ts list ref = ref [] in
   let add_rule rr =
     match rr.prems with
     | [] -> sc_fact rr.concl
@@ -93,24 +128,29 @@ and percolate_once ~sc_fact rules iter =
         let rr = Rule.freshen rr in
         if is_new_rule_wrt !new_rules rr &&
            is_new_rule_wrt rules rr
-        then new_rules := rr :: !new_rules
+        then new_rules := {id = ruleidgen#next ; th = rr} :: !new_rules
   in
   List.iter begin fun rr ->
     iter begin fun sq ->
       let sq0 = sq in
       let rr0 = rr in
-      Rule.specialize_default rr sq
+      (* if sq0.ts < rr0.ts then *)
+      (*   dprintf "rulefilter" "@[<v0>Dropping [%d:%d] @[%a@]@,Against [:%d] rule @[%a@]@]@." *)
+      (*     sq.id sq.ts (format_sequent ()) sq0.th *)
+      (*     rr.ts (format_rule ()) rr0.th *)
+      (* else *)
+      Rule.specialize_default rr.th sq.th
         ~sc_fact:(fun sq ->
-            dprintf "factgen" "@[<v0>Trying [%d] @[%a@]@,With @[%a@]@,Produced [%d] @[%a@]@]@."
-              sq0.sqid (format_sequent ()) sq0
-              (format_rule ()) rr
-              sq.sqid (format_sequent ()) sq ;
+            dprintf "factgen" "@[<v0>Trying [%d] @[%a@]@,With @[%a@]@,Produced @[%a@]@]@."
+              sq0.id (format_sequent ()) sq0.th
+              (format_rule ()) rr0.th
+              (format_sequent ()) sq ;
             sc_fact sq
           )
         ~sc_rule:(fun rr ->
             dprintf "rulegen" "@[<v0>Trying [%d] @[%a@]@,With @[%a@]@,Produced rule @[%a@]@]@."
-              sq0.sqid (format_sequent ()) sq0
-              (format_rule ()) rr0
+              sq0.id (format_sequent ()) sq0.th
+              (format_rule ()) rr0.th
               (format_rule ()) rr ;
             add_rule rr
           )
@@ -187,7 +227,7 @@ let paranoid_check ~lforms sq =
             ~cert:sq.skel
     with
     | Some prf ->
-        Config.pprintf "<p>Paranoia for <code>[%d] %a</code></p>@." sq.sqid (format_sequent ()) sq ;
+        Config.pprintf "<p>Paranoia for <code>%a</code></p>@." (format_sequent ()) sq ;
         Config.pprintf "<p>Found: <code>%a</code></p>@."
           Seqproof.format_seqproof prf ;
         if List.mem `check __paranoia then begin
@@ -214,6 +254,7 @@ module Inv (D : Data) = struct
   let inverse_method ?(left=[]) ?(pseudo=[]) ?(per_loop=noop) right =
     try
       D.reset () ;
+      ruleidgen#reset ;
       let rules = ref [] in
       let (lfs, goal_lf, gen) = Rule_gen.generate0 left pseudo right in
       let goal_seq = mk_sequent ~right:(goal_lf.label, goal_lf.args) () in
@@ -231,50 +272,26 @@ module Inv (D : Data) = struct
         paranoid_check ~lforms:lfs sq
       in
       let add_rule rr =
-        match rr.prems with
-        | [] ->  add_seq rr.concl
+        match rr.th.prems with
+        | [] ->  add_seq rr.th.concl
         | _ ->
-            let rr = Rule.freshen rr in
-            if not @@ List.exists (fun oldrr -> Rule.rule_subsumes oldrr rr) !rules then begin
-              dprintf "rule" "@[%a@]@." (format_rule ()) rr ;
+            let rr = {rr with th = Rule.freshen rr.th} in
+            if not @@ List.exists (fun oldrr -> Rule.rule_subsumes oldrr.th rr.th) !rules then begin
+              dprintf "rule" "@[%a@]@." (format_rule ()) rr.th ;
               rules := rr :: !rules
             end
       in
-      gen ~sc:add_rule ;
+      gen ~sc:(fun rr -> add_rule {id = ruleidgen#next ; th = rr}) ;
+      D.finish_initial () ;
+      dprintf "rule" "  ****************************************@." ;
       spin_until_none D.select begin fun sel ->
-        (* Format.printf "Selected: [%d] @[%a@]@." sel.sqid (Sequent.format_sequent ()) sel ; *)
-        (* let new_rules = ref [] in *)
-        (* let add_new_rule rr = *)
-        (*   match rr.prems with *)
-        (*   | [] ->  add_seq rr.concl *)
-        (*   | _ -> *)
-        (*       Rule.Test.print rr ; *)
-        (*       new_rules := rr :: !new_rules *)
-        (* in *)
-        percolate !rules ~sel  (* (fun doit -> doit sel) *)
-          ~sc_rule:add_rule ~sc_fact:add_seq ;
-        (* List.iter begin fun rr -> *)
-        (*   Rule.specialize_default rr sel *)
-        (*     ~sc_rule:add_new_rule *)
-        (*     ~sc_fact:add_seq ; *)
-        (* end !rules ; *)
-        (* if __paranoid_percolate then *)
-        (*   percolate !rules D.iter_active *)
-        (*     ~sc_rule:add_rule ~sc_fact:add_seq ; *)
-        (* spin_until_quiescence (fun () -> List.length !new_rules) begin fun () -> *)
-        (*   List.iter begin fun rr -> *)
-        (*     D.iter_active begin fun act -> *)
-        (*       Rule.specialize_default rr act *)
-        (*         ~sc_rule:add_new_rule *)
-        (*         ~sc_fact:add_seq *)
-        (*     end ; *)
-        (*   end !new_rules ; *)
-        (* end ; *)
-        (* List.iter add_rule !new_rules ; *)
+        percolate0 !rules ~sel ~iter:D.iter_active ~sc_rule:add_rule ~sc_fact:add_seq ;
+        D.print_statistics () ;
         per_loop () ;
       end ;
       None
-    with Escape res -> Some res
+    with Escape res ->
+      Some res
 end
 
 include Inv(Trivial)

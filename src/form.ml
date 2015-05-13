@@ -327,6 +327,9 @@ let relabel ?(place=Right) ?top f =
         let lab = labelgen#next (place_cookie place) in
         (* Format.(fprintf std_formatter "  labelled %s@." lab.rep) ; *)
         let f = spin place args f in
+        let args = List.filter begin
+            fun arg -> IdtSet.mem (unvar arg) f0.vars
+          end args in
         emit_lform { place ; label = lab ; args ; skel = f } ;
         shift @@ atom (polarity f) lab args
     | Shift f ->

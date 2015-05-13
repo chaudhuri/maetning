@@ -72,20 +72,28 @@ let unconst t =
 
 exception Occurs
 
-(* [TODO] term hashconsing will make this faster *)
-let rec contains_term small big =
-  big = small || begin
-    match big.term with
-    | Var _ | Idx _ -> false
-    | App (_, ts) ->
-        List.exists (contains_term small) ts
-  end
+let rec evc_term u t =
+  match t.term with
+  | Term.App (_, []) ->
+      if u = t then raise Occurs
+  | Term.App (_, ts) -> List.iter (evc_term u) ts
+  | Var _ | Idx _ -> ()
 
-let evc u repl =
-  M.iter begin
-    fun _ t ->
-      if contains_term u t then raise Occurs
-  end repl
+let rec evc_form u f =
+  match f.form with
+  | Atom (_, _, ts) ->
+      List.iter (evc_term u) ts
+  | And (_, f, g) | Or (f, g) | Implies (f, g) ->
+      evc_form u f ; evc_form u g
+  | True _ | False -> ()
+  | Exists (_, f) | Forall (_, f) | Shift f ->
+      evc_form u f
+
+let evc_sequent u sq =
+  List.iter (fun (_, (_, f)) -> evc_form u f) sq.left_passive ;
+  List.iter (fun (_, f) -> evc_form u f) sq.left_active ;
+  evc_form u sq.right
+
 
 let rec backtrack ~cc ~fail fn =
   match cc with
@@ -147,7 +155,7 @@ let reconstruct (type cert)
   let rec right_focus lev ~succ ~fail sq c =
     if List.length sq.left_active <> 0 then Debug.bugf "right_focus: has left active" ;
     dprintf "reconstruct"
-      "%s@[<v0>right_focus: @[%a@]@,  @[%a@]@]@."
+      "@.%s@[<v0>right_focus: @[%a@]@,  @[%a@]@]@."
       (indent lev)
       format_sequent sq Ag.format_cert c ;
     let lev = lev + 1 in
@@ -220,7 +228,7 @@ let reconstruct (type cert)
 
   and left_focus lev ~succ ~fail sq c =
     dprintf "reconstruct"
-      "%s@[<v0>left_focus: @[%a@]@,  @[%a@]@]@."
+      "@.%s@[<v0>left_focus: @[%a@]@,  @[%a@]@]@."
       (indent lev)
       format_sequent sq Ag.format_cert c ;
     let lev = lev + 1 in
@@ -300,7 +308,7 @@ let reconstruct (type cert)
 
   and right_active lev ~succ ~fail sq c =
     dprintf "reconstruct"
-      "%s@[<v0>right_active: @[%a@]@,  @[%a@]@]@."
+      "@.%s@[<v0>right_active: @[%a@]@,  @[%a@]@]@."
       (indent lev)
       format_sequent sq Ag.format_cert c ;
     let lev = lev + 1 in
@@ -353,9 +361,15 @@ let reconstruct (type cert)
             let sq = {sq with right} in
             right_active lev sq c ~fail
               ~succ:begin fun (der, repl) ~fail ->
-                match evc u repl with
+                let sq = {sq with right = abstract (unconst u) sq.right} in
+                match evc_sequent u (Seqproof.replace_sequent ~repl sq) with
                 | () -> succ (AllR (unconst u, der), repl) ~fail
-                | exception Occurs -> fail "AllR/evc"
+                | exception Occurs ->
+                    dprintf "reconstruct" "@.%s%a occurs in @[%a@]@."
+                      (indent lev)
+                      (format_term ()) u
+                      Seqproof.format_sequent (Seqproof.replace_sequent ~repl sq) ;
+                    fail "AllR/evc"
               end
         end
     | Atom (POS, _, _) | And (POS, _, _) | True POS
@@ -364,13 +378,13 @@ let reconstruct (type cert)
 
   and left_active lev ~succ ~fail sq c =
     dprintf "reconstruct"
-      "%s@[<v0>left_active: @[%a@]@,  @[%a@]@]@."
+      "@.%s@[<v0>left_active: @[%a@]@,  @[%a@]@]@."
       (indent lev)
       format_sequent sq Ag.format_cert c ;
     let lev = lev + 1 in
     match sq.left_active with
     | [] -> frontier lev ~succ ~fail sq c
-    | (_, f0) :: rest -> begin
+    | (u0, f0) :: rest -> begin
         match f0.form with
         | Atom (POS, p, _) ->
             backtrack ~cc:(Ag.cl_Store sq c) ~fail begin
@@ -450,9 +464,15 @@ let reconstruct (type cert)
                 let sq = {sq with left_active = (xx, a) :: rest} in
                 left_active lev sq c ~fail
                   ~succ:begin fun (der, repl) ~fail ->
-                    match evc u repl with
+                    let sq = {sq with left_active = (u0, abstract (unconst u) a) :: rest} in
+                    match evc_sequent u (Seqproof.replace_sequent ~repl sq) with
                     | () -> succ (ExL (unconst u, (xx, der)), repl) ~fail
-                    | exception Occurs -> fail "ExL/evc"
+                    | exception Occurs ->
+                        dprintf "reconstruct" "@.%s%a occurs in @[%a@]@."
+                          (indent lev)
+                          (format_term ()) u
+                          Seqproof.format_sequent (Seqproof.replace_sequent ~repl sq) ;
+                        fail "ExL/evc"
                   end
             end
         | Atom (NEG, _, _) | And (NEG, _, _) | True NEG
@@ -462,7 +482,7 @@ let reconstruct (type cert)
 
   and frontier lev ~succ ~fail sq c =
     dprintf "reconstruct"
-      "%s@[<v0>frontier: @[%a@]@,  @[%a@]@]@."
+      "@.%s@[<v0>frontier: @[%a@]@,  @[%a@]@]@."
       (indent lev)
       format_sequent sq Ag.format_cert c ;
     let lev = lev + 1 in

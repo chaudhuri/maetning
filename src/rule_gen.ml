@@ -139,7 +139,7 @@ and active_left left_passive left_active ratm =
       [{ prems = [mk_sequent ()
                     ~skel
                     ~left:(Ft.of_list left_passive)
-                    ?right:ratm] ;
+                    ?right:ratm, `extract] ;
          concl = mk_sequent ~skel () ;
          eigen = S.empty ;
          extra = M.empty ;

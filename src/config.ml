@@ -13,6 +13,15 @@ let () =
     "label" ;
     "index" ;
     (* "rule" ; *)
+    (* "select" ; *)
+    (* "rulegen" ; *)
+    (* "rulesub" ; *)
+    (* "factor" ; *)
+    (* "factgen" ; *)
+    (* "subsumption" ; *)
+    (* "stats" ; *)
+    (* "skeleton" ; *)
+    (* "reconstruct" ; *)
   ]
 
 let input_files : string list ref = ref []
@@ -31,6 +40,8 @@ let shrink = ref true
 let pseudo_proofs = ref true
 
 let tptp = ref false
+
+let rule_sub = ref false
 
 let proof_formatter : Format.formatter option ref = ref None
 let set_proof_channel filename =

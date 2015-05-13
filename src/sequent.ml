@@ -31,7 +31,6 @@ let to_list : ctx -> (idt * term list) list =
 
 module Sq : sig
   type sequent = private {
-    sqid : int ;
     left : ctx ;
     right : latm option ;
     vars : IdtSet.t ;
@@ -42,16 +41,13 @@ module Sq : sig
   val override : ?skel:Skeleton.t -> ?right:latm option -> ?left:ctx -> sequent -> sequent
 end = struct
   type sequent = {
-    sqid : int ;
-    left : ctx ; right : latm option ;
+    left : ctx ;
+    right : latm option ;
     vars : IdtSet.t ;
     skel : Skeleton.t ;
   }
 
-  let sqidgen = new Namegen.namegen (fun n -> n)
-
   let mk_sequent ?(skel=Skeleton.Prem (Skeleton.premidgen#next)) ?right ?(left=Ft.empty) () =
-    let sqid = sqidgen#next in
     let terms = match right with
       | None -> left
       | Some right -> Ft.snoc left right
@@ -62,7 +58,7 @@ end = struct
             fun vars t -> IdtSet.union vars t.Term.vars
           end vars ts
       end IdtSet.empty terms in
-    {sqid ; left ; right ; vars ; skel}
+    {left ; right ; vars ; skel}
 
   let override ?skel ?right ?left sq =
     mk_sequent ()
@@ -135,6 +131,12 @@ let freshen_ ?(repl=IdtMap.empty) s0 =
   (repl, fun () -> override ~left ~right s0)
 
 let freshen ?repl s0 = snd (freshen_ ?repl s0)
+
+let canonize ?(repl=IdtMap.empty) sq =
+  IdtSet.fold begin fun v repl ->
+    if IdtMap.mem v repl then repl else
+      IdtMap.insert repl v (canonize_var v @@ 1 + IdtMap.cardinal repl)
+  end sq.vars repl
 
 let subsume_one ~frz ~repl (p, pargs) cx =
   (* Format.( *)
@@ -230,8 +232,8 @@ let subsume ss0 tt0 =
   try
     ignore (subsume_exn ss0 tt0) ;
     dprintf "subsumption"
-      "  @[<v0>[SUBS]@,++ [%d]@,   @[%a@]@,-- @[%a@]@]@."
-      ss0.sqid (format_sequent ()) ss0
+      "@[<v0>[SUBS]@,++ @[%a@]@,-- @[%a@]@]@."
+      (format_sequent ()) ss0
       (format_sequent ()) tt0 ;
     true
   with Unify.Unif _ -> false
@@ -258,13 +260,13 @@ let factor_one ~sc sq =
     | Some (right, ((q, qargs) as m)) ->
         if p == q then begin
           try
-            let pargs0 = pargs in
+            (* let pargs0 = pargs in *)
             let (repl, pargs) = Unify.unite_lists IdtMap.empty pargs qargs in
-            dprintf "factor"
-              "%a =?= %a {%a}@."
-              (format_term ()) (Term.replace ~repl (app p pargs0))
-              (format_term ()) (app p pargs)
-              format_repl repl ;
+            (* dprintf "factor" *)
+            (*   "%a =?= %a {%a}@." *)
+            (*   (format_term ()) (Term.replace ~repl (app p pargs0)) *)
+            (*   (format_term ()) (app p pargs) *)
+            (*   format_repl repl ; *)
             let left = Ft.map (replace_latm ~repl) left in
             let middle = Ft.map (replace_latm ~repl) middle in
             let right = Ft.map (replace_latm ~repl) right in
@@ -307,8 +309,7 @@ module Test = struct
     mk_sequent ~left ?right
 
   let print sq =
-      Format.(fprintf std_formatter "[%d] %a [%a]@."
-                sq.sqid
+      Format.(fprintf std_formatter "%a [%a]@."
                 (format_sequent ()) sq
                 Skeleton.format_skeleton sq.skel )
 
@@ -322,7 +323,7 @@ module Test = struct
         end !seen
       with
       | Some sq ->
-          Format.(fprintf std_formatter "   (subsumed by: %d)@." sq.sqid)
+          Format.(fprintf std_formatter "   (subsumed by: @[%a@])@." (format_sequent ()) sq)
       | None ->
           seen := sq :: !seen
     in
@@ -338,7 +339,7 @@ module Test = struct
     print sq1 ;
     subsume sq0 sq1
 
-  let test_subsume () =
+  let test_subsume_0 () =
     let open Format in
     let v52 = var (intern "'52") in
     let v86 = var (intern "'86") in
@@ -352,5 +353,16 @@ module Test = struct
     printf "sq_new: @[%a@]@." (format_sequent ()) sq_new ;
     let repl = subsume_exn sq_old sq_new in
     printf "repl: %a@." format_repl repl
+
+  let p n = var (intern @@ "'" ^ string_of_int n)
+  let v n = var (intern @@ "?" ^ string_of_int n)
+  let l n = intern @@ "#" ^ string_of_int n
+  let test_subsume () =
+    let open Format in
+    let sq_old = mk_sequent ~left:(Ft.of_list [(l 1, [p 84]) ; (l 6, [p 84]) ;
+                                               (l 1, [p 95]) ; (l 1, [p 95])]) () in
+    printf "sq_old: @[%a@]@." (format_sequent ()) sq_old ;
+    factor ~sc:(printf "sq_new: @[%a@]@." (format_sequent ())) sq_old ;
+    ()
 
 end

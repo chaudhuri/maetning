@@ -15,13 +15,40 @@ open Sequent
 module M = IdtMap
 module S = IdtSet
 
+type right_mode = [`extract | `test]
+
 type rule = {
-  prems : Sequent.t list ;
+  prems : (Sequent.t * right_mode) list ;
   concl : Sequent.t ;
   sats  : Sequent.t list ;
   eigen : S.t ;
   extra : term list M.t ;
 }
+
+let canonize ?(repl=IdtMap.empty) rr =
+  let (repl, prems) = List.fold_left begin
+      fun (repl, prems) (prem, mode) ->
+        let repl = Sequent.canonize ~repl prem in
+        (repl, (Sequent.replace_sequent ~repl prem, mode) :: prems)
+    end (repl, []) rr.prems in
+  let prems = List.rev prems in
+  let repl = Sequent.canonize ~repl rr.concl in
+  let concl = Sequent.replace_sequent ~repl rr.concl in
+  let (repl, sats) = List.fold_left begin
+      fun (repl, sats) sat ->
+        let repl = Sequent.canonize ~repl sat in
+        (repl, Sequent.replace_sequent ~repl sat :: sats)
+    end (repl, []) rr.sats in
+  let sats = List.rev sats in
+  let eigen = replace_eigen_set ~repl rr.eigen in
+  let extra = M.fold begin
+      fun u ts extra ->
+        let v = replace_eigen ~repl u in
+        let ts = List.map (Term.replace ~repl) ts in
+        M.add v ts extra
+    end rr.extra M.empty
+  in
+  { prems ; concl ; sats ; eigen ; extra }
 
 let format_eigen ff eigen =
   match S.elements eigen with
@@ -63,12 +90,14 @@ let format_extra ff extra =
       end ; pp_close_box ff ()
 
 let format_rule ?max_depth () fmt rr =
+  let rr = canonize rr in
   let open Format in
   pp_open_vbox fmt 0 ; begin
     if rr.prems <> [] then begin
       List.iteri begin
-        fun k prem ->
+        fun k (prem, mode) ->
           format_sequent ?max_depth () fmt prem ;
+          if mode = `test then pp_print_string fmt "@" ;
           (* fprintf fmt " [%a]" Skeleton.format_skeleton prem.skel ; *)
           pp_print_cut fmt () ;
       end rr.prems ;
@@ -120,8 +149,8 @@ let evc_ok eigen concl =
   let ret = ec_viol eigen concl in
   if ret then
     dprintf "evc"
-      "rejecting [%d] @[%a@] -- EVS = %s@."
-      concl.sqid (format_sequent ()) concl
+      "rejecting @[%a@] -- EVS = %s@."
+      (format_sequent ()) concl
       (String.concat "," @@ List.map (fun v -> v.rep) (IdtSet.elements eigen)) ;
   not ret
 
@@ -138,7 +167,7 @@ let extra_ok extra =
     end ts
   end extra
 
-let rule_match_exn ~sc prem cand =
+let rule_match_exn ~sc (prem, mode) cand =
   let repl = M.empty in
   let (repl, right, strict) =
     match prem.right, cand.right with
@@ -151,7 +180,7 @@ let rule_match_exn ~sc prem cand =
         if p != q then Unify.unif_fail "right hand sides" ;
         (* let (repl, args) = Unify.unite_match_lists repl pargs qargs in *)
         let (repl, args) = Unify.unite_lists repl pargs qargs in
-        (repl, None, true)
+        (repl, None, mode = `extract)
       end
   in
   let rec gen ~repl ~strict left hyps =
@@ -185,22 +214,23 @@ let rule_match ~sc prem cand =
   try rule_match_exn ~sc prem cand
   with Unify.Unif _ -> ()
 
-let distribute right sq =
+let distribute right (sq, mode) =
   match right, sq.right with
   | Some right, None ->
-      override sq ~right:(Some right)
-  | _ -> sq
+      (override sq ~right:(Some right), `test)
+  | _ ->
+      (sq, mode)
 
-let specialize_one ~sc ~sq ~concl ~sats ~eigen ~extra current_prem remaining_prems =
+let specialize_one ~sc ~sq ~concl ~sats ~eigen ~extra ((current_prem, current_mode) as current) remaining_prems =
   let current_premid = match current_prem.skel with
     | Skeleton.Prem k -> k
     | _ -> failwith "Invalid premise"
   in
   let sq0 = sq in
-  rule_match current_prem sq ~sc:begin
+  rule_match current sq ~sc:begin
     fun repl sq ->
       let sats = List.map (replace_sequent ~repl) (sq0 :: sats) in
-      let prems = List.map (replace_sequent ~repl) remaining_prems in
+      let prems = List.map (fun (sq, mode) -> (replace_sequent ~repl sq, mode)) remaining_prems in
       let new_hyps =
         let removed = Ft.to_list current_prem.left in
         let removed = List.map (replace_latm ~repl) removed in
@@ -211,7 +241,7 @@ let specialize_one ~sc ~sq ~concl ~sats ~eigen ~extra current_prem remaining_pre
       let concl = replace_sequent ~repl concl in
       let concl = override concl ~left:(Ft.append concl.left new_hyps) in
       let prems = List.map (distribute sq.right) prems in
-      let concl = distribute sq.right concl in
+      let concl = distribute sq.right (concl, `test) |> fst in
       let extra = M.fold begin
           fun v ts extra ->
             let newts = List.map (Term.replace ~repl) ts in
@@ -238,7 +268,7 @@ let specialize_one ~sc ~sq ~concl ~sats ~eigen ~extra current_prem remaining_pre
          evc_ok eigen concl && extra_ok extra
       then
         let prem_vars = List.fold_left begin
-            fun vars sq -> S.union vars sq.vars
+            fun vars (sq, _) -> S.union vars sq.vars
           end S.empty prems in
         let eigen = S.inter eigen prem_vars in
         let extra = M.filter (fun v _ -> S.mem v prem_vars) extra in
@@ -255,7 +285,7 @@ let specialize_one ~sc ~sq ~concl ~sats ~eigen ~extra current_prem remaining_pre
       (*   ) *)
   end
 
-let specialize ~sc rr sq =
+let specialize_any ~sc rr sq =
   let rec spin left right =
     match right with
     | [] -> ()
@@ -265,6 +295,15 @@ let specialize ~sc rr sq =
         spin (prem :: left) right
   in
   spin [] rr.prems
+
+let specialize_left ~sc rr sq =
+  match rr.prems with
+  | [] -> ()
+  | prem :: prems ->
+      specialize_one prem prems
+        ~sc ~sq ~concl:rr.concl ~eigen:rr.eigen ~extra:rr.extra ~sats:rr.sats
+
+let specialize ~sc rr sq = specialize_left ~sc rr sq
 
 let factor_loop ~sc sq =
   let seen = ref [] in
@@ -277,10 +316,9 @@ let factor_loop ~sc sq =
       (format_sequent ()) sq ;
     match List.find (fun seensq -> Sequent.subsume seensq sq) !seen with
     | seensq ->
-        dprintf "factor" "factor_loop: [%d] killed [%d] @[%a@]@."
-          seensq.sqid sq.sqid (format_sequent ()) sq
+        dprintf "factor" "factor_loop: killed @[%a@]@."
+          (format_sequent ()) sq
     | exception Not_found ->
-        dprintf "factor" "factor_loop: [%d] survived@." sq.sqid ;
         sc sq ;
         seen := sq :: !seen
   in
@@ -298,9 +336,9 @@ let freshen ?(repl=IdtMap.empty) rr =
   let (repl, concl) = Sequent.freshen_ ~repl rr.concl in
   let concl = concl () in
   let (repl, prems) = List.fold_right begin
-      fun sq (repl, prems) ->
+      fun (sq, mode) (repl, prems) ->
         let (repl, sq) = Sequent.freshen_ ~repl sq in
-        (repl, sq () :: prems)
+        (repl, (sq (), mode) :: prems)
     end rr.prems (repl, [])
   in
   let (repl, sats) = List.fold_right begin
@@ -323,7 +361,7 @@ let rule_subsumes_exn r1 r2 =
   let repl = Sequent.subsume_exn r1.concl r2.concl in
   let _repl =
     List.fold_left2 begin
-      fun repl p1 p2 ->
+      fun repl (p1, _) (p2, _) ->
         let p1 = Sequent.replace_sequent ~repl p1 in
         let p2 = Sequent.replace_sequent ~repl p2 in
         Sequent.subsume_exn p1 p2
@@ -332,7 +370,8 @@ let rule_subsumes_exn r1 r2 =
   true
 
 let rule_subsumes r1 r2 =
-  List.length r1.prems = List.length r2.prems
+  !Config.rule_sub
+  && List.length r1.prems = List.length r2.prems
   && (try rule_subsumes_exn r1 r2 with Unify.Unif _ -> false)
 
 module Test = struct
@@ -347,7 +386,7 @@ module Test = struct
   let _c = vargen#next `param
 
   let rule1 = {
-    prems = [ mk_sequent ~left:Ft.empty ~right:(p, [_X ; _a]) () ] ;
+    prems = [ mk_sequent ~left:Ft.empty ~right:(p, [_X ; _a]) (), `extract ] ;
     concl = mk_sequent ()
         ~left:(Ft.of_list [(q, [_X])])
         ~right:(q, [_X]) ;
@@ -362,9 +401,9 @@ module Test = struct
 
   let rule2 = {
     prems = [ mk_sequent ()
-                ~left:(Ft.of_list [(q, [z])]) ;
+                ~left:(Ft.of_list [(q, [z])]), `extract ;
               mk_sequent ()
-                ~left:(Ft.of_list [(q, [s z])]) ] ;
+                ~left:(Ft.of_list [(q, [s z])]), `extract ] ;
     concl = mk_sequent ()
         ~left:(Ft.singleton (q, [app (Idt.intern "nat") []])) ;
     eigen = S.empty ;
