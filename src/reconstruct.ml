@@ -465,13 +465,14 @@ let reconstruct (type cert)
                 left_active lev sq c ~fail
                   ~succ:begin fun (der, repl) ~fail ->
                     let sq = {sq with left_active = (u0, abstract (unconst u) a) :: rest} in
-                    match evc_sequent u (Seqproof.replace_sequent ~repl sq) with
+                    let sq = Seqproof.replace_sequent ~repl sq in
+                    match evc_sequent u sq with
                     | () -> succ (ExL (unconst u, (xx, der)), repl) ~fail
                     | exception Occurs ->
                         dprintf "reconstruct" "@.%s%a occurs in @[%a@]@."
                           (indent lev)
                           (format_term ()) u
-                          Seqproof.format_sequent (Seqproof.replace_sequent ~repl sq) ;
+                          Seqproof.format_sequent sq ;
                         fail "ExL/evc"
                   end
             end

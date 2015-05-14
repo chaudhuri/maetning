@@ -50,4 +50,4 @@ let fresh_wrt nst x0 =
       let nst = IdtMap.add x n nst in
       (nst, Idt.intern (x.rep ^ string_of_int n))
   | exception Not_found ->
-      (IdtMap.add x 0 nst, x0)
+      (IdtMap.add x salt nst, x0)

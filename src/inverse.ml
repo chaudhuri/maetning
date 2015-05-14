@@ -141,16 +141,16 @@ and percolate_once ~sc_fact ~iter rules =
       (* else *)
       Rule.specialize_default rr.th sq.th
         ~sc_fact:(fun sq ->
-            dprintf "factgen" "@[<v0>Trying [%d] @[%a@]@,With @[%a@]@,Produced @[%a@]@]@."
+            dprintf "factgen" "@[<v0>Trying [%d] @[%a@]@,With [%d] @[%a@]@,Produced @[%a@]@]@."
               sq0.id (format_sequent ()) sq0.th
-              (format_rule ()) rr0.th
+              rr0.id (format_rule ()) rr0.th
               (format_sequent ()) sq ;
             sc_fact sq
           )
         ~sc_rule:(fun rr ->
-            dprintf "rulegen" "@[<v0>Trying [%d] @[%a@]@,With @[%a@]@,Produced rule @[%a@]@]@."
+            dprintf "rulegen" "@[<v0>Trying [%d] @[%a@]@,With [%d] @[%a@]@,Produced rule @[%a@]@]@."
               sq0.id (format_sequent ()) sq0.th
-              (format_rule ()) rr0.th
+              rr0.id (format_rule ()) rr0.th
               (format_rule ()) rr ;
             add_rule rr
           )
@@ -277,7 +277,7 @@ module Inv (D : Data) = struct
         | _ ->
             let rr = {rr with th = Rule.freshen rr.th} in
             if not @@ List.exists (fun oldrr -> Rule.rule_subsumes oldrr.th rr.th) !rules then begin
-              dprintf "rule" "@[%a@]@." (format_rule ()) rr.th ;
+              dprintf "rule" "[%d] @[%a@]@." rr.id (format_rule ()) rr.th ;
               rules := rr :: !rules
             end
       in
