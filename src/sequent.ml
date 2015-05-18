@@ -267,52 +267,47 @@ let replace_sequent ~repl sq =
   let right = Option.map (replace_latm ~repl) sq.right in
   override sq ~left ~right
 
-let factor_one ~sc sq =
-  let skel = sq.skel in
-  let ancs = sq.ancs in
-  let rec gen left right =
-    match Ft.front right with
-    | None -> ()
-    | Some (right, ((p, pargs) as l)) ->
-        test left p pargs Ft.empty right ;
-        gen (Ft.snoc left l) right
-  and test left p pargs middle right =
-    match Ft.front right with
-    | None -> ()
-    | Some (right, ((q, qargs) as m)) ->
-        if p == q then begin
-          try
-            (* let pargs0 = pargs in *)
-            let (repl, pargs) = Unify.unite_lists IdtMap.empty pargs qargs in
-            (* dprintf "factor" *)
-            (*   "%a =?= %a {%a}@." *)
-            (*   (format_term ()) (Term.replace ~repl (app p pargs0)) *)
-            (*   (format_term ()) (app p pargs) *)
-            (*   format_repl repl ; *)
-            let left = Ft.map (replace_latm ~repl) left in
-            let middle = Ft.map (replace_latm ~repl) middle in
-            let right = Ft.map (replace_latm ~repl) right in
-            let left = Ft.append left @@ Ft.append middle right in
-            let left = Ft.snoc left (p, pargs) in
-            let right = Option.map (replace_latm ~repl) sq.right in
-            sc @@ mk_sequent ~left ?right ~skel ~ancs ()
-          with
-          Unify.Unif _ -> ()
-        end ;
-        test left p pargs (Ft.snoc middle m) right
-  in
-  gen Ft.empty sq.left
+let rec unite_arg_lists ~repl args =
+  match args with
+  | [] -> (repl, [])
+  | [arg] -> (repl, arg)
+  | arg1 :: arg2 :: args ->
+      let (repl, arg1) = Unify.unite_lists repl arg1 arg2 in
+      unite_arg_lists ~repl (arg1 :: args)
 
-let rec factor ~sc sq =
-  let dones = ref [] in
-  let worklist = ref [sq] in
-  while !worklist <> [] do
-    let sq = List.hd !worklist in
-    worklist := List.tl !worklist ;
-    dones := sq :: !dones ;
-    factor_one ~sc:(fun sq -> worklist := sq :: !worklist) sq ;
-  done ;
-  List.iter sc !dones
+let factor ~sc sq =
+  let rec facts l =
+    match l with
+    | [] -> [[]]
+    | ((p, pargs) as a) :: l ->
+        let lf = facts l in
+        List.map (fun xs -> (p, [pargs]) :: xs) lf @
+        (List.map (fun xs -> comb a xs) lf |> List.concat)
+
+  and comb ((p, pa) as a) xs =
+    match xs with
+    | [] -> []
+    | ((q, qas) as x) :: xs ->
+        (if p == q then [(p, pa :: qas) :: xs] else [])
+        @
+        (List.map (fun y -> x :: y) (comb a xs))
+  in
+  let rec process_cand (_, cand) =
+    let (left, repl) =
+      List.fold_left begin
+        fun (cx, repl) (p, pas) ->
+          let (repl, pas) = unite_arg_lists ~repl pas in
+          (Ft.snoc cx (p, pas), repl)
+      end (Ft.empty, IdtMap.empty) cand in
+    let sq = override sq ~left in
+    sc @@ replace_sequent ~repl sq
+  in
+  sq.left |>
+  Ft.to_list |>
+  facts |>
+  List.map (fun l -> (List.length l, l)) |>
+  List.sort (fun (n, _) (m, _) -> Pervasives.compare n m) |>
+  List.iter process_cand
 
 type t = sequent
 

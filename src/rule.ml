@@ -329,9 +329,9 @@ let specialize_default ~sc_rule ~sc_fact rr idsq =
   let sc rule =
     match rule.prems with
     | [] ->
-        Config.maybe_timeout () ;
         factor_loop ~sc:sc_fact rule.concl
-    | _ -> sc_rule rule
+    | _ ->
+        sc_rule rule
   in
   specialize ~sc rr idsq
 
