@@ -17,7 +17,7 @@ let pseudo_map : Form.form IdtMap.t ref = ref IdtMap.empty
 let ensure_new x =
   if IdtMap.mem x !global_map ||
      IdtMap.mem x !pseudo_map ||
-     IdtMap.mem x !polarity_map
+     (not !Config.tptp && IdtMap.mem x !polarity_map)
   then begin
     Format.eprintf "Name %S already used..@." x.rep ;
     failwith "ensure_new"
