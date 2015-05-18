@@ -15,11 +15,6 @@ open Form
 open Rule
 open Sequent
 
-let __paranoia = [
-  (* `reconstruct ; *)
-  (* `check ; *)
-]
-
 type 'a ts = {
   id : int ;
   th : 'a ;
@@ -183,7 +178,7 @@ let rec freeze_vars_form f =
   | Shift f -> shift (freeze_vars_form f)
 
 let paranoid_check ~lforms sq =
-  if List.mem `reconstruct __paranoia then begin
+  if !Config.paranoia then begin
     (* Seqproof.hypgen#reset ; *)
     let next_local =
       let current = ref 0 in
@@ -230,7 +225,7 @@ let paranoid_check ~lforms sq =
         Config.pprintf "<p>Paranoia for <code>%a</code></p>@." (format_sequent ()) sq ;
         Config.pprintf "<p>Found: <code>%a</code></p>@."
           Seqproof.format_seqproof prf ;
-        if List.mem `check __paranoia then begin
+        if Config.print_paranoia then begin
           Seqproof_print.print prf ~lforms ~goal ;
           Config.pprintf "<hr>@."
         end

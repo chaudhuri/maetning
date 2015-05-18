@@ -7,9 +7,16 @@
 
 open Batteries
 
-let () =
-  let open Debug in
-  List.iter on_stdout [
+let set_debug_flags fls =
+  String.nsplit fls ~by:"," |>
+  List.iter begin fun fl ->
+    match fl.[0] with
+    | '-' -> Debug.disable @@ String.lchop ~n:1 fl
+    | '+' -> Debug.on_stdout @@ String.lchop ~n:1 fl
+    | _ -> Debug.on_stdout fl
+  end
+
+let () = set_debug_flags @@ String.concat "," [
     "label" ;
     "index" ;
     (* "rule" ; *)
@@ -42,6 +49,9 @@ let pseudo_proofs = ref true
 let tptp = ref false
 
 let rule_sub = ref false
+
+let paranoia = ref false
+let print_paranoia = false
 
 let proof_formatter : Format.formatter option ref = ref None
 let set_proof_channel filename =

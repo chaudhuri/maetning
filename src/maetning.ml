@@ -12,13 +12,22 @@ let set_input file =
   at_exit disch
 
 let options = Arg.(align [
-    "-check", Set Config.do_check, " Reconstruct a full proof from the skeleton and check it" ;
+    "", Unit (fun () -> ()), " \n\t*** INPUT ***\n" ;
+    "-tptp", Set Config.tptp, " Assume input files are in TPTP/ILTP format (only supports FOF)" ;
+    "", Unit (fun () -> ()), " \n\t*** OUTPUT ***\n" ;
     "-proofs", String set_input, "<file> Output proofs to <file> (in HTML format)" ;
-    "-shifts", Set Config.show_shifts, " Show polarity shifts in output" ;
-    "-nobias", Set Config.hide_bias, " Hide predicate biases in output" ;
+    "-shifts", Set Config.show_shifts, " Show polarity shifts" ;
+    "-nobias", Set Config.hide_bias, " Hide predicate biases" ;
     "-noshrink", Clear Config.shrink, " Do not shrink proofs down to relevant details" ;
+    "", Unit (fun () -> ()), " \n\t*** CONSISTENCY ***\n" ;
+    "-check", Set Config.do_check, " Reconstruct a full proof from the skeleton and check it" ;
+    "-paranoia", Set Config.paranoia, " Check every indexed sequent" ;
     "-nopseudos", Clear Config.pseudo_proofs, " Do not reconstruct pseudo proofs" ;
-    "-tptp", Set Config.tptp, " Assume input file is in TPTP format" ;
+    "", Unit (fun () -> ()), " \n\t*** DEBUG ***\n" ;
+    "-debug", String Config.set_debug_flags, "<flags> Enable debug flags <flags>, comma-separated" ;
+    "-XX:EVCPseudos", Set Config.evc_pseudos, " Perform EVC on pseudos as well (default: false)" ;
+    "", Unit (fun () -> ()), " \t(A flag is an identifier prefixed by + or -.)" ;
+    "", Unit (fun () -> ()), " \n\t*** MISCELLANEOUS ***\n" ;
     "-version", Unit (fun () ->
         Printf.printf "Maetning version %s\n" Version.version ;
         Pervasives.exit 0
@@ -27,10 +36,9 @@ let options = Arg.(align [
         Printf.printf "%s%!" Version.version ;
         Pervasives.exit 0
       ), " Display a version number (no newline at end)" ;
-    "-XX:EVCPseudos", Set Config.evc_pseudos, " Perform EVC on pseudos as well (default: false)" ;
   ])
 let parse_options () =
-  let umsg = "Usage: maetning [options] file ..." in
+  let umsg = Printf.sprintf "Usage: %s [options] file ..." (Filename.basename Sys.executable_name) in
   Arg.parse options Config.add_input_file umsg
 
 let process_file_native file =
