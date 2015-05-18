@@ -24,6 +24,7 @@ let options = Arg.(align [
     "-paranoia", Set Config.paranoia, " Check every indexed sequent" ;
     "-nopseudos", Clear Config.pseudo_proofs, " Do not reconstruct pseudo proofs" ;
     "", Unit (fun () -> ()), " \n\t*** DEBUG ***\n" ;
+    "-timeout", Int Config.set_timeout, "<millis> Set a (soft) timeout in milliseconds" ;
     "-debug", String Config.set_debug_flags, "<flags> Enable debug flags <flags>, comma-separated" ;
     "-XX:EVCPseudos", Set Config.evc_pseudos, " Perform EVC on pseudos as well (default: false)" ;
     "", Unit (fun () -> ()), " \t(A flag is an identifier prefixed by + or -.)" ;

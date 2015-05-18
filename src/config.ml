@@ -55,6 +55,13 @@ let print_paranoia = false
 
 let print_trail = ref false
 
+let timeout = ref (Unix.gettimeofday () +. float_of_int max_int)
+let set_timeout millis =
+  timeout := Unix.gettimeofday () +. float_of_int millis /. 1000.
+let maybe_timeout () =
+  if Unix.gettimeofday () > !timeout then
+    Debug.failwithf "Timeout exceeded"
+
 let proof_formatter : Format.formatter option ref = ref None
 let set_proof_channel filename =
   let oc = open_out_bin filename in
