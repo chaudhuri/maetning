@@ -53,6 +53,8 @@ let rule_sub = ref false
 let paranoia = ref false
 let print_paranoia = false
 
+let print_trail = ref false
+
 let proof_formatter : Format.formatter option ref = ref None
 let set_proof_channel filename =
   let oc = open_out_bin filename in

@@ -36,18 +36,20 @@ module Sq : sig
     vars : IdtSet.t ;
     (** invariant: fvs(sq.left) \cup fvs(sq.right) \subseteq sq.vars *)
     skel : Skeleton.t ;
+    ancs : ISet.t ;
   }
-  val mk_sequent : ?skel:Skeleton.t -> ?right:latm -> ?left:ctx -> unit -> sequent
-  val override : ?skel:Skeleton.t -> ?right:latm option -> ?left:ctx -> sequent -> sequent
+  val mk_sequent : ?ancs:ISet.t -> ?skel:Skeleton.t -> ?right:latm -> ?left:ctx -> unit -> sequent
+  val override : ?ancs:ISet.t -> ?skel:Skeleton.t -> ?right:latm option -> ?left:ctx -> sequent -> sequent
 end = struct
   type sequent = {
     left : ctx ;
     right : latm option ;
     vars : IdtSet.t ;
     skel : Skeleton.t ;
+    ancs : ISet.t ;
   }
 
-  let mk_sequent ?(skel=Skeleton.Prem (Skeleton.premidgen#next)) ?right ?(left=Ft.empty) () =
+  let mk_sequent ?(ancs=ISet.empty) ?(skel=Skeleton.Prem (Skeleton.premidgen#next)) ?right ?(left=Ft.empty) () =
     let terms = match right with
       | None -> left
       | Some right -> Ft.snoc left right
@@ -58,13 +60,14 @@ end = struct
             fun vars t -> IdtSet.union vars t.Term.vars
           end vars ts
       end IdtSet.empty terms in
-    {left ; right ; vars ; skel}
+    {left ; right ; vars ; skel ; ancs}
 
-  let override ?skel ?right ?left sq =
+  let override ?ancs ?skel ?right ?left sq =
     mk_sequent ()
       ~left:(Option.default sq.left left)
       ?right:(Option.default sq.right right)
       ~skel:(Option.default sq.skel skel)
+      ~ancs:(Option.default sq.ancs ancs)
 end
 
 include Sq
@@ -92,6 +95,24 @@ let format_sequent ?max_depth () fmt sq =
             format_term ?max_depth () fmt (app p ts)
         | None ->
             pp_print_as fmt 1 "·"
+      end ;
+      if !Config.print_trail then begin
+        pp_print_space fmt () ; begin
+          pp_print_string fmt "[" ; begin
+            match ISet.elements sq.ancs with
+            | [] -> ()
+            | first :: rest ->
+                pp_open_box fmt 0 ; begin
+                  pp_print_int fmt first ;
+                  List.iter begin fun x ->
+                    pp_print_string fmt "," ;
+                    pp_print_space fmt () ;
+                    pp_print_int fmt x
+                  end rest ;
+                end ; pp_close_box fmt ()
+          end ;
+          pp_print_string fmt "]" ;
+        end ;
       end ;
     end ; pp_close_box fmt () ;
     (* fprintf fmt "@ @[<b1>[%a]@]" Skeleton.format_skeleton sq.skel ; *)
@@ -248,6 +269,7 @@ let replace_sequent ~repl sq =
 
 let factor_one ~sc sq =
   let skel = sq.skel in
+  let ancs = sq.ancs in
   let rec gen left right =
     match Ft.front right with
     | None -> ()
@@ -273,7 +295,7 @@ let factor_one ~sc sq =
             let left = Ft.append left @@ Ft.append middle right in
             let left = Ft.snoc left (p, pargs) in
             let right = Option.map (replace_latm ~repl) sq.right in
-            sc @@ mk_sequent ~left ?right ~skel ()
+            sc @@ mk_sequent ~left ?right ~skel ~ancs ()
           with
           Unify.Unif _ -> ()
         end ;

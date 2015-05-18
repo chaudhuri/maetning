@@ -24,6 +24,7 @@ module type Data = sig
   val reset : unit -> unit
   val register : Sequent.t -> unit
   val select : unit -> Sequent.t ts option
+  val subsumes : Sequent.t -> bool
   val iter_active : (Sequent.t ts -> 'a) -> unit
   val print_statistics : unit -> unit
   val finish_initial : unit -> unit
@@ -32,54 +33,104 @@ end
 module Trivial : Data = struct
   let sos : Sequent.t ts Deque.t ref = ref Deque.empty
   let active : Sequent.t ts list ref = ref []
-  let db : Sequent.t ts list ref = ref []
+  let db : (int, Sequent.t ts) Hashtbl.t = Hashtbl.create 19
+  let concs : (int, ISet.t) Hashtbl.t = Hashtbl.create 19
+  let kills : (int, unit) Hashtbl.t = Hashtbl.create 19
 
   let sqidgen = new Namegen.namegen (fun n -> n)
 
   let reset () =
     sos := Deque.empty ;
     active := [] ;
-    db := [] ;
+    Hashtbl.clear db ;
+    Hashtbl.clear concs ;
+    Hashtbl.clear kills ;
     sqidgen#reset
 
   let finish_initial () = ()
     (* sos := Deque.rev !sos *)
 
-  let subsumed sq =
-    List.exists (fun old -> Sequent.subsume old.th sq) !db
+  let subsumes sq =
+    try
+      Hashtbl.iter begin
+        fun _ old ->
+          if Sequent.subsume old.th sq then
+            raise Not_found
+      end db ; false
+    with Not_found -> true
+
+  let sos_subsumes sq =
+    Deque.find (fun old -> not (Hashtbl.mem kills old.id) && Sequent.subsume old.th sq) !sos
+    |> Option.is_some
 
   let index sq =
     let id = sqidgen#next in
     dprintf "index" "[%d] @[%a@]@." id (format_sequent ())
       (Sequent.replace_sequent ~repl:(Sequent.canonize sq) sq) ;
     dprintf "skeleton" "%a@." Skeleton.format_skeleton sq.skel ;
+    let sq = Sequent.freshen sq () in
     let sqt = {id ; th = sq} in
-    db := sqt :: !db ;
-    sos := Deque.snoc !sos sqt
+    Hashtbl.replace db id sqt ;
+    ISet.iter begin fun ancid ->
+      match Hashtbl.find concs ancid with
+      | cs -> Hashtbl.replace concs ancid (ISet.add id cs)
+      | exception Not_found -> Hashtbl.add concs ancid (ISet.singleton id)
+    end sq.ancs ;
+    sos := Deque.snoc !sos sqt ;
+    sqt
 
   let register sq =
-    if not (subsumed sq) then index sq
-    (* else dprintf "subsumption" "[%d] @[%a@]@." sq.sqid (format_sequent ()) sq *)
+    if subsumes sq then () else
+    let sqt = index sq in
+    let tokill = Hashtbl.fold begin
+      fun _ old tokill ->
+        if sqt.id <> old.id &&
+           not (Hashtbl.mem kills old.id) &&
+           Sequent.subsume sqt.th old.th
+        then old.id :: tokill
+        else tokill
+    end db [] in
+    let rec spin wl =
+      match wl with
+      | [] -> ()
+      | ksqid :: wl ->
+          if ksqid == sqt.id || Hashtbl.mem kills ksqid then spin wl else begin
+            Hashtbl.replace kills ksqid () ;
+            Hashtbl.remove db ksqid ;
+            dprintf "backsub" "Killed %d@." ksqid ;
+            let wl =
+              match Hashtbl.find concs ksqid with
+              | ksqcons -> ISet.elements ksqcons @ wl
+              | exception Not_found -> wl
+            in
+            spin wl
+          end
+    in
+    spin tokill
 
-  let select () =
+  let rec select () =
     match Deque.front !sos with
     | Some (sel, rest) ->
         sos := rest ;
-        active := sel :: !active ;
-        dprintf "select" "[%d] @[%a@]@." sel.id (format_sequent ()) sel.th ;
-        let sel = {sel with th = Sequent.freshen sel.th ()} in
-        dprintf "rename" "@[%a@]@." (format_sequent ()) sel.th ;
-        Some sel
+        if Hashtbl.mem kills sel.id then (dprintf "backsub" "DEAD: %d@." sel.id ; select ()) else
+        let rsel = {sel with th = Sequent.freshen sel.th ()} in
+        if sos_subsumes rsel.th then select () else begin
+          active := sel :: !active ;
+          dprintf "select" "[%d] @[%a@]@." sel.id (format_sequent ()) sel.th ;
+          dprintf "rename" "@[%a@]@." (format_sequent ()) rsel.th ;
+          Some rsel
+        end
     | None -> None
 
   let iter_active doit =
     List.iter begin fun act ->
-        let act = {act with th = Sequent.freshen act.th ()} in
-        doit act |> ignore
+      if Hashtbl.mem kills act.id then () else
+      let act = {act with th = Sequent.freshen act.th ()} in
+      doit act |> ignore
     end !active
 
   let print_statistics () =
-    dprintf "stats" "@[<v0>#active = %d@,#db = %d@]@." (List.length !active) (List.length !db)
+    dprintf "stats" "@[<v0>#active = %d@,#db = %d@]@." (List.length !active) (Hashtbl.length db)
 end
 
 let rec spin_until_none get op =
@@ -93,37 +144,30 @@ let rec spin_until_quiescence measure op =
   let after = measure () in
   if before != after then spin_until_quiescence measure op
 
-let is_new_rule_wrt rules rr =
-  match List.find (fun oldrr -> Rule.rule_subsumes oldrr.th rr) rules with
-  | oldrr ->
-      dprintf "rulesub" "@[<v0>Rule @[%a@]@,Subs @[%a@]@]@."
-        (format_rule ()) oldrr.th
-        (format_rule ()) rr ;
-      false
-  | exception Not_found -> true
+let is_new_rule (module D : Data) rr =
+  not @@ D.subsumes rr.concl
 
 let ruleidgen = new Namegen.namegen (fun n -> n)
 
-let rec percolate0 ~sc_fact ~sc_rule ~sel ~iter rules =
-  let new_rules = percolate_once ~sc_fact ~iter:(fun doit -> doit sel) rules in
+let rec percolate0 (module D : Data) ~sc_fact ~sc_rule ~sel ~iter rules =
+  let new_rules = percolate_once (module D : Data) ~sc_fact ~iter:(fun doit -> doit sel) rules in
   List.iter sc_rule new_rules ;
-  if new_rules <> [] then percolate1 ~sc_fact ~sc_rule ~iter new_rules
+  if new_rules <> [] then percolate1 (module D : Data) ~sc_fact ~sc_rule ~iter new_rules
 
-and percolate1 ~sc_fact ~sc_rule ~iter rules =
-  let new_rules = percolate_once ~sc_fact ~iter rules in
+and percolate1 (module D : Data) ~sc_fact ~sc_rule ~iter rules =
+  let new_rules = percolate_once (module D) ~sc_fact ~iter rules in
   (* List.iter sc_rule new_rules ; *)
-  if new_rules <> [] then percolate1 ~sc_fact ~sc_rule ~iter new_rules
+  if new_rules <> [] then percolate1 (module D) ~sc_fact ~sc_rule ~iter new_rules
 
-and percolate_once ~sc_fact ~iter rules =
+and percolate_once (module D : Data) ~sc_fact ~iter rules =
   let new_rules : rule ts list ref = ref [] in
   let add_rule rr =
     match rr.prems with
     | [] -> sc_fact rr.concl
     | _ ->
         let rr = Rule.freshen rr in
-        if is_new_rule_wrt !new_rules rr &&
-           is_new_rule_wrt rules rr
-        then new_rules := {id = ruleidgen#next ; th = rr} :: !new_rules
+        if is_new_rule (module D) rr then
+          new_rules := {id = ruleidgen#next ; th = rr} :: !new_rules
   in
   List.iter begin fun rr ->
     iter begin fun sq ->
@@ -134,7 +178,7 @@ and percolate_once ~sc_fact ~iter rules =
       (*     sq.id sq.ts (format_sequent ()) sq0.th *)
       (*     rr.ts (format_rule ()) rr0.th *)
       (* else *)
-      Rule.specialize_default rr.th sq.th
+      Rule.specialize_default rr.th (sq.id, sq.th)
         ~sc_fact:(fun sq ->
             dprintf "factgen" "@[<v0>Trying [%d] @[%a@]@,With [%d] @[%a@]@,Produced @[%a@]@]@."
               sq0.id (format_sequent ()) sq0.th
@@ -255,15 +299,14 @@ module Inv (D : Data) = struct
       let goal_seq = mk_sequent ~right:(goal_lf.label, goal_lf.args) () in
       (* Format.printf "Goal sequent: %a@." (Sequent.format_sequent ()) goal_seq ; *)
       let add_seq sq =
+        D.register sq ;
         if Sequent.subsume sq goal_seq then begin
-          D.register sq ;
           (* Sequent.Test.print sq ; *)
           (* Format.printf "[%d] %a@." sq.sqid (Sequent.format_sequent ()) sq ; *)
           raise (Escape {lforms = lfs ;
                          goal = goal_lf ;
                          found = sq})
         end ;
-        D.register sq ;
         paranoid_check ~lforms:lfs sq
       in
       let add_rule rr =
@@ -280,7 +323,7 @@ module Inv (D : Data) = struct
       D.finish_initial () ;
       dprintf "rule" "  ****************************************@." ;
       spin_until_none D.select begin fun sel ->
-        percolate0 !rules ~sel ~iter:D.iter_active ~sc_rule:add_rule ~sc_fact:add_seq ;
+        percolate0 (module D) !rules ~sel ~iter:D.iter_active ~sc_rule:add_rule ~sc_fact:add_seq ;
         D.print_statistics () ;
         per_loop () ;
       end ;

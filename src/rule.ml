@@ -221,7 +221,7 @@ let distribute right (sq, mode) =
   | _ ->
       (sq, mode)
 
-let specialize_one ~sc ~sq ~concl ~sats ~eigen ~extra ((current_prem, current_mode) as current) remaining_prems =
+let specialize_one ~sc ~id ~sq ~concl ~sats ~eigen ~extra ((current_prem, current_mode) as current) remaining_prems =
   let current_premid = match current_prem.skel with
     | Skeleton.Prem k -> k
     | _ -> failwith "Invalid premise"
@@ -273,6 +273,7 @@ let specialize_one ~sc ~sq ~concl ~sats ~eigen ~extra ((current_prem, current_mo
         let eigen = S.inter eigen prem_vars in
         let extra = M.filter (fun v _ -> S.mem v prem_vars) extra in
         let concl = override concl
+            ~ancs:(ISet.add id (ISet.union sq.ancs concl.ancs))
             ~skel:(Skeleton.reduce [(concl.skel, -1) ; (sq.skel, current_premid)]) in
         sc { prems ; concl ; sats ; eigen ; extra }
       (* else *)
@@ -285,25 +286,25 @@ let specialize_one ~sc ~sq ~concl ~sats ~eigen ~extra ((current_prem, current_mo
       (*   ) *)
   end
 
-let specialize_any ~sc rr sq =
+let specialize_any ~sc rr (id, sq) =
   let rec spin left right =
     match right with
     | [] -> ()
     | prem :: right ->
         specialize_one prem (List.rev_append left right)
-          ~sc ~sq ~concl:rr.concl ~eigen:rr.eigen ~extra:rr.extra ~sats:rr.sats ;
+          ~sc ~id ~sq ~concl:rr.concl ~eigen:rr.eigen ~extra:rr.extra ~sats:rr.sats ;
         spin (prem :: left) right
   in
   spin [] rr.prems
 
-let specialize_left ~sc rr sq =
+let specialize_left ~sc rr (id, sq) =
   match rr.prems with
   | [] -> ()
   | prem :: prems ->
       specialize_one prem prems
-        ~sc ~sq ~concl:rr.concl ~eigen:rr.eigen ~extra:rr.extra ~sats:rr.sats
+        ~sc ~id ~sq ~concl:rr.concl ~eigen:rr.eigen ~extra:rr.extra ~sats:rr.sats
 
-let specialize ~sc rr sq = specialize_left ~sc rr sq
+let specialize ~sc rr (id, sq) = specialize_left ~sc rr (id, sq)
 
 let factor_loop ~sc sq =
   let seen = ref [] in
@@ -324,13 +325,13 @@ let factor_loop ~sc sq =
   in
   Sequent.factor sq ~sc:doit
 
-let specialize_default ~sc_rule ~sc_fact rr sq =
+let specialize_default ~sc_rule ~sc_fact rr idsq =
   let sc rule =
     match rule.prems with
     | [] -> factor_loop ~sc:sc_fact rule.concl
     | _ -> sc_rule rule
   in
-  specialize ~sc rr sq
+  specialize ~sc rr idsq
 
 let freshen ?(repl=IdtMap.empty) rr =
   let (repl, concl) = Sequent.freshen_ ~repl rr.concl in
@@ -422,6 +423,6 @@ module Test = struct
     let sc_rule = print in
     Sequent.Test.print sq ;
     print rule ;
-    specialize_default ~sc_rule ~sc_fact rule sq
+    specialize_default ~sc_rule ~sc_fact rule (0, sq)
 
 end
