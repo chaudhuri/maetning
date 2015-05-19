@@ -1,0 +1,12 @@
+Predicate "r" is now treated as: NEGATIVE.
+Predicate "s" is now treated as: NEGATIVE.
+[LABEL] Labeled formulas:
+          right #1⁺ := #3⁻ ⊃ (∀X. #2⁻(X) ⊃ s⁻(X))
+          local #3⁻ := ∀X. #5⁻(X) ∨ #4⁻(X)
+          local #5⁻(?12) := r⁻(?12)
+          local #4⁻(?12) := s⁻(?12) ≡ (r⁻(?12) ∧ s⁻(?12))
+          local #2⁻('11) := r⁻('11)
+        Goal is #1
+[INDEX] [1] #5(?1) --> r(?1)
+[INDEX] [2] #2('1) --> r('1)
+Refuted.

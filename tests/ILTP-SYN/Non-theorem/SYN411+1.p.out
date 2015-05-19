@@ -1,0 +1,20 @@
+Predicate "f" is now treated as: NEGATIVE.
+[LABEL] Labeled formulas:
+          right #1⁺ :=
+            (#7⁻ ⊃ (∃U. ∃V. ∃W. #6⁻(W,V,U)) ⊃ #5⁺) ∧
+              (#2⁻ ⊃ (∀X. ∀Y. ∀Z. f⁻(X,Y,Z)))
+          local #7⁻ := ∀X. ∀Y. ∀Z. f⁻(X,Y,Z)
+          local #6⁻('19,'18,'17) := ¬f⁻('17,'18,'19)
+          right #5⁺ := ⊥
+          local #2⁻ := ¬∃U. ∃V. ∃W. #4⁻(W,V,U) ⊃ #3⁺
+          local #4⁻(?16,?15,?14) := f⁻(?14,?15,?16)
+          right #3⁺ := ⊥
+        Goal is #1
+[INDEX] [1] #7 --> f(?1,?2,?3)
+[INDEX] [2] #4(?3,?2,?1) --> f(?1,?2,?3)
+[INDEX] [3] #6('1,'2,'3), #7 --> ·
+[INDEX] [4] #6('1,'2,'3), #4('1,'2,'3) --> ·
+[INDEX] [5] #7 --> #1
+[INDEX] [6] #2, #6('1,'2,'3) --> ·
+[INDEX] [7] #6('1,'2,'3) --> #1
+Refuted.

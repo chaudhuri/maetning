@@ -1,0 +1,22 @@
+Predicate "f" is now treated as: NEGATIVE.
+[LABEL] Labeled formulas:
+          right #1⁺ :=
+            (#8⁻ ⊃ #5⁺) ∧ ((∃Y. #4⁻(Y)) ⊃ #3⁻ ⊃ #2⁺)
+          local #8⁻ := ¬∀X. f⁻(X)
+          right #5⁺ := ∃Y. #7⁻(Y) ⊃ #6⁺
+          local #7⁻(?13) := f⁻(?13)
+          right #6⁺ := ⊥
+          local #4⁻('12) := ¬f⁻('12)
+          local #3⁻ := ∀X. f⁻(X)
+          right #2⁺ := ⊥
+        Goal is #1
+[INDEX] [1] #7(?1) --> f(?1)
+[INDEX] [2] #3 --> f(?1)
+[INDEX] [3] #4('1), #7('1) --> ·
+[INDEX] [4] #4('1), #3 --> ·
+[INDEX] [5] #8, #3 --> ·
+[INDEX] [6] #4('1) --> #5
+[INDEX] [7] #3 --> #1
+[INDEX] [8] #4('1), #8 --> #1
+[INDEX] [9] #4('1) --> #1
+Refuted.

@@ -1,0 +1,26 @@
+Predicate "p" is now treated as: NEGATIVE.
+Predicate "c" is now treated as: NEGATIVE.
+[LABEL] Labeled formulas:
+          right #1⁺ :=
+            ((∃X. #6⁻(X)) ⊃ #5⁻ ⊃ c⁻) ∧ (#4⁻ ⊃ #2⁺)
+          local #6⁻('14) := p⁻('14) ⊃ c⁻
+          local #5⁻ := ∀X. p⁻(X)
+          local #4⁻ := (∀X. p⁻(X)) ⊃ c⁻
+          right #2⁺ := ∃X. #3⁻(X) ⊃ c⁻
+          local #3⁻(?11) := p⁻(?11)
+        Goal is #1
+[INDEX] [1] #5 --> p(?1)
+[INDEX] [2] #3(?1) --> p(?1)
+[INDEX] [3] #4, #5 --> c
+[INDEX] [4] #6('1), #5 --> c
+[INDEX] [5] #6('1), #3('1) --> c
+[INDEX] [6] #4, #5 --> #2
+[INDEX] [7] #6('1), #5 --> #2
+[INDEX] [8] #6('1), #3('1) --> #2
+[INDEX] [9] #6('1) --> #2
+[INDEX] [10] #6('1), #3('1), #5 --> #1
+[INDEX] [11] #6('1), #5 --> #1
+[INDEX] [12] #5 --> #1
+[INDEX] [13] #3('1), #6('1) --> #1
+[INDEX] [14] #6('1) --> #1
+Refuted.

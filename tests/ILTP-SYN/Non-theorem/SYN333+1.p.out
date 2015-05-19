@@ -1,0 +1,17 @@
+Predicate "big_f" is now treated as: NEGATIVE.
+Predicate "big_g" is now treated as: NEGATIVE.
+[LABEL] Labeled formulas:
+          right #1⁺ :=
+            ∃X.
+              ∃Y.
+                ∀Z.
+                  #3⁻(Y,X) ⊃
+                    big_f⁻(Y,Z) ∧ big_f⁻(Z,Z) ∧
+                      (#2⁻(Y,X) ⊃ big_g⁻(X,Z) ∧ big_g⁻(Z,Z))
+          local #3⁻(?12,?11) := big_f⁻(?11,?12)
+          local #2⁻(?12,?11) := big_f⁻(?11,?12) ∧ big_g⁻(?11,?12)
+        Goal is #1
+[INDEX] [1] #3(?2,?1) --> big_f(?1,?2)
+[INDEX] [2] #2(?2,?1) --> big_f(?1,?2)
+[INDEX] [3] #2(?2,?1) --> big_g(?1,?2)
+Refuted.

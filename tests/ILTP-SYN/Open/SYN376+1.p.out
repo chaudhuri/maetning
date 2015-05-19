@@ -1,0 +1,17 @@
+Predicate "big_p" is now treated as: NEGATIVE.
+[LABEL] Labeled formulas:
+          right #1⁺ := (∃X. #5⁻(X)) ⊃ #2⁺
+          local #5⁻('13) := ∀Y. big_p⁻(Y) ≡ big_p⁻('13)
+          right #2⁺ := (∀X. big_p⁻(X)) ∨ (∀X. #4⁻(X) ⊃ #3⁺)
+          local #4⁻('11) := big_p⁻('11)
+          right #3⁺ := ⊥
+        Goal is #1
+[INDEX] [1] #4('1) --> big_p('1)
+[INDEX] [2] #5('2), #4('2) --> big_p(?1)
+[INDEX] [3] #5('1), #4('2) --> big_p('1)
+[INDEX] [4] #5('1), #4('1) --> #2
+[INDEX] [5] #5('2), #4('3) --> big_p(?1)
+[INDEX] [6] #5('1), #4('2) --> #2
+[INDEX] [7] #5('1), #4('2) --> #1
+[INDEX] [8] #4('1) --> #1
+Refuted.

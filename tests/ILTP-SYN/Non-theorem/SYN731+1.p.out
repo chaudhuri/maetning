@@ -1,0 +1,12 @@
+Predicate "p" is now treated as: NEGATIVE.
+[LABEL] Labeled formulas:
+          right #1⁺ := ∃W. #3⁻(W) ⊃ #2⁺(W)
+          local #3⁻(?11) := ∀X. ∃Y. #4⁻(Y,X,?11)
+          local #4⁻('14,?13,?11) := p⁻(?11,?13,'14)
+          right #2⁺(?11) := ∃Z. p⁻(Z,Z,?11)
+        Goal is #1
+[INDEX] [1] #4('3,?2,?1) --> p(?1,?2,'3)
+[INDEX] [2] #4('2,?1,?1) --> #2('2)
+[INDEX] [3] #4('1,?2,?2) --> #1
+[INDEX] [4] #3(?1) --> #1
+Refuted.

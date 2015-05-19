@@ -1,0 +1,29 @@
+Predicate "p" is now treated as: NEGATIVE.
+Predicate "big_f" is now treated as: NEGATIVE.
+[LABEL] Labeled formulas:
+          right #1⁺ :=
+            (#6⁻ ⊃ #5⁺) ∧ (#4⁻ ∨ #3⁻ ⊃ (∀X. #2⁺(X)))
+          local #6⁻ := ∀X. #8⁻ ∨ #7⁻(X)
+          local #8⁻ := p⁻
+          local #7⁻(?14) := big_f⁻(?14)
+          right #5⁺ := p⁻ ∨ (∀X1. big_f⁻(X1))
+          local #4⁻ := p⁻
+          local #3⁻ := ∀X1. big_f⁻(X1)
+          right #2⁺('11) := p⁻ ∨ big_f⁻('11)
+        Goal is #1
+[INDEX] [1] #8 --> p
+[INDEX] [2] #7(?1) --> big_f(?1)
+[INDEX] [3] #4 --> p
+[INDEX] [4] #3 --> big_f(?1)
+[INDEX] [5] #8 --> #2('1)
+[INDEX] [6] #8 --> #5
+[INDEX] [7] #7('1) --> #2('1)
+[INDEX] [8] #4 --> #2('1)
+[INDEX] [9] #4 --> #5
+[INDEX] [10] #3 --> #2('1)
+[INDEX] [11] #3 --> #5
+[INDEX] [12] #8 --> #1
+[INDEX] [13] #6 --> #2('1)
+[INDEX] [14] #4 --> #1
+[INDEX] [15] #3 --> #1
+Refuted.

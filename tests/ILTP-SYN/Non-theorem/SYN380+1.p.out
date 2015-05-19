@@ -1,0 +1,19 @@
+Predicate "big_r" is now treated as: NEGATIVE.
+Predicate "big_q" is now treated as: NEGATIVE.
+[LABEL] Labeled formulas:
+          right #1⁺ := #6⁻ ⊃ #2⁺
+          local #6⁻ := ∀W. ¬big_r⁻(W,W)
+          right #2⁺ :=
+            ∃X.
+              ∃Y.
+                (#5⁻(Y,X) ⊃ #4⁺) ∧
+                  (#3⁻(Y,X) ⊃ (∀Z. big_q⁻(Z,Z)))
+          local #5⁻(?12,?11) := big_r⁻(?11,?12)
+          right #4⁺ := ⊥
+          local #3⁻(?12,?11) := big_q⁻(?12,?11)
+        Goal is #1
+[INDEX] [1] #5(?2,?1) --> big_r(?1,?2)
+[INDEX] [2] #3(?2,?1) --> big_q(?2,?1)
+[INDEX] [3] #6, #5(?1,?1) --> ·
+[INDEX] [4] #5(?1,?1) --> #1
+Refuted.

@@ -1,0 +1,37 @@
+Predicate "big_s" is now treated as: NEGATIVE.
+Predicate "big_q" is now treated as: NEGATIVE.
+Added global pel24_1 : ¬∃X. big_s⁻(X) ∧ big_q⁻(X).
+Predicate "big_p" is now treated as: NEGATIVE.
+Predicate "big_r" is now treated as: NEGATIVE.
+Added global pel24_2 : ∀X. big_p⁻(X) ⊃ big_q⁻(X) ∨ big_r⁻(X).
+Added global pel24_3 : (¬∃X. big_p⁻(X)) ⊃ (∃Y. big_q⁻(Y)).
+Added global pel24_4 : ∀X. big_q⁻(X) ∨ big_r⁻(X) ⊃ big_s⁻(X).
+[LABEL] Labeled formulas:
+          right #6⁺ := ∃X. big_p⁻(X) ∧ big_r⁻(X)
+          global #pel24_4⁻ :=
+            ∀X. big_q⁻(X) ∨ big_r⁻(X) ⊃ big_s⁻(X)
+          global #pel24_3⁻ :=
+            ((∃X. #5⁻(X)) ⊃ #4⁺) ⊃ (∃Y. #3⁻(Y))
+          local #5⁻('14) := big_p⁻('14)
+          right #4⁺ := ⊥
+          local #3⁻('13) := big_q⁻('13)
+          global #pel24_2⁻ := ∀X. big_p⁻(X) ⊃ #2⁻(X) ∨ #1⁻(X)
+          local #2⁻(?12) := big_q⁻(?12)
+          local #1⁻(?12) := big_r⁻(?12)
+          global #pel24_1⁻ := ¬∃X. big_s⁻(X) ∧ big_q⁻(X)
+        Goal is #6
+[INDEX] [1] #5('1) --> big_p('1)
+[INDEX] [2] #3('1) --> big_q('1)
+[INDEX] [3] #2(?1) --> big_q(?1)
+[INDEX] [4] #1(?1) --> big_r(?1)
+[INDEX] [5] #3('1) --> big_s('1)
+[INDEX] [6] #2(?1) --> big_s(?1)
+[INDEX] [7] #5('1), #1('1) --> #6
+[INDEX] [8] #1(?1) --> big_s(?1)
+[INDEX] [9] #3('1), #2('1) --> ·
+[INDEX] [10] #3('1) --> ·
+[INDEX] [11] #2(?1) --> ·
+[INDEX] [12] #5('1) --> big_s('1)
+[INDEX] [13] #5('1) --> big_r('1)
+[INDEX] [14] #5('1) --> #6
+Refuted.

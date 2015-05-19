@@ -1,0 +1,18 @@
+Predicate "f" is now treated as: NEGATIVE.
+Predicate "g" is now treated as: NEGATIVE.
+Predicate "h" is now treated as: NEGATIVE.
+[LABEL] Labeled formulas:
+          right #1⁺ := #4⁻ ⊃ #2⁺
+          local #4⁻ := ∀X. f⁻(X) ⊃ #6⁻(X) ∨ #5⁻(X)
+          local #6⁻(?13) := g⁻(?13)
+          local #5⁻(?13) := h⁻(?13)
+          right #2⁺ :=
+            (∀Y. #3⁻(Y) ⊃ g⁻(Y)) ∨ (∃Z. f⁻(Z) ∧ h⁻(Z))
+          local #3⁻('12) := f⁻('12)
+        Goal is #1
+[INDEX] [1] #6(?1) --> g(?1)
+[INDEX] [2] #5(?1) --> h(?1)
+[INDEX] [3] #3('1) --> f('1)
+[INDEX] [4] #3('1), #5('1) --> #2
+[INDEX] [5] #3('1), #5('1) --> #1
+Refuted.

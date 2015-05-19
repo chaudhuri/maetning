@@ -1,0 +1,12 @@
+Predicate "p" is now treated as: NEGATIVE.
+Predicate "q" is now treated as: NEGATIVE.
+[LABEL] Labeled formulas:
+          right #1⁺ := ∃X. ∀Y. #3⁻(Y,X) ⊃ #2⁻(X) ⊃ q⁻(X)
+          local #3⁻('12,?11) := p⁻('12) ⊃ q⁻(?11)
+          local #2⁻(?11) := p⁻(?11)
+        Goal is #1
+[INDEX] [1] #2(?1) --> p(?1)
+[INDEX] [2] #3('2,?1), #2('2) --> q(?1)
+[INDEX] [3] #3('2,?1), #2('2) --> #1
+[INDEX] [4] #3('1,'1) --> #1
+Refuted.

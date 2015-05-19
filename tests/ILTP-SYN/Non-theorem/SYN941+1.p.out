@@ -1,0 +1,27 @@
+Predicate "q" is now treated as: NEGATIVE.
+Predicate "p" is now treated as: NEGATIVE.
+Predicate "r" is now treated as: NEGATIVE.
+[LABEL] Labeled formulas:
+          right #1⁺ := ∀B. ∀C. #5⁻(B) ⊃ #2⁺(C,B)
+          local #5⁻('11) := q⁻(f('11))
+          right #2⁺('12,'11) :=
+            ∃X.
+              ∃Y.
+                (#4⁻(Y) ⊃
+                   p⁻(X) ∧ (#3⁻(Y) ⊃ r⁻('11) ∧ r⁻('12))) ∧
+                  q⁻(X)
+          local #4⁻(?14) := p⁻(f(?14))
+          local #3⁻(?14) := r⁻(?14)
+        Goal is #1
+[INDEX] [1] #5('1) --> q(f('1))
+[INDEX] [2] #4(?1) --> p(f(?1))
+[INDEX] [3] #3(?1) --> r(?1)
+[INDEX] [4] #4('3), #3('2), #5('3) --> #2('1,'2)
+[INDEX] [5] #4('2), #5('2) --> #2('1,'1)
+[INDEX] [6] #4('3), #3('1), #5('3) --> #2('1,'2)
+[INDEX] [7] #3('1), #5('2) --> #2('2,'1)
+[INDEX] [8] #3('1), #5('2) --> #2('1,'1)
+[INDEX] [9] #3('2), #3('1), #5('3) --> #2('1,'2)
+[INDEX] [10] #5('1) --> #2('1,'1)
+[INDEX] [11] #3('1), #5('2) --> #2('1,'2)
+Refuted.

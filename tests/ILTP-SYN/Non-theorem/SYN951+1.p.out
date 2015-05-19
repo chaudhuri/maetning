@@ -1,0 +1,24 @@
+Predicate "p" is now treated as: NEGATIVE.
+Predicate "a" is now treated as: NEGATIVE.
+Predicate "b" is now treated as: NEGATIVE.
+Predicate "q" is now treated as: NEGATIVE.
+[LABEL] Labeled formulas:
+          right #1⁺ :=
+            (∃X. #8⁻(X)) ⊃
+              #7⁺ ∧ (#6⁻ ⊃ #3⁺ ∧ (#2⁻ ⊃ q⁻))
+          local #8⁻('12) := p⁻('12)
+          right #7⁺ := ∃X. p⁻(X)
+          local #6⁻ := a⁻
+          right #3⁺ := b⁻ ∨ (#5⁻ ⊃ #4⁺)
+          local #5⁻ := b⁻
+          right #4⁺ := ⊥
+          local #2⁻ := q⁻
+        Goal is #1
+[INDEX] [1] #8('1) --> p('1)
+[INDEX] [2] #6 --> a
+[INDEX] [3] #5 --> b
+[INDEX] [4] #2 --> q
+[INDEX] [5] #8('1) --> #7
+[INDEX] [6] #5 --> #3
+[INDEX] [7] #5 --> #1
+Refuted.

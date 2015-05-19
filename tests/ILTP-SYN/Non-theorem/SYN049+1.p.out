@@ -1,0 +1,13 @@
+Predicate "big_p" is now treated as: NEGATIVE.
+Predicate "big_q" is now treated as: NEGATIVE.
+[LABEL] Labeled formulas:
+          right #1⁺ :=
+            ∃X. ∀Y. ∀Z. #3⁻(Z,Y) ⊃ #2⁻(X) ⊃ big_q⁻(X)
+          local #3⁻('13,'12) := big_p⁻('12) ⊃ big_q⁻('13)
+          local #2⁻(?11) := big_p⁻(?11)
+        Goal is #1
+[INDEX] [1] #2(?1) --> big_p(?1)
+[INDEX] [2] #3('1,'2), #2('2) --> big_q('1)
+[INDEX] [3] #3('1,'2), #2('2) --> #1
+[INDEX] [4] #3('1,'1) --> #1
+Refuted.

@@ -1,0 +1,16 @@
+Predicate "big_f" is now treated as: NEGATIVE.
+[LABEL] Labeled formulas:
+          right #1⁺ :=
+            ∃Z.
+              ∃X.
+                ∀Y1.
+                  ∀Y2. #3⁻(Y1,X,Z) ⊃ #2⁻(Y2,Z) ⊃ big_f⁻(Z,Y2)
+          local #3⁻('13,?12,?11) :=
+            (#5⁻(?12,?11) ⊃ #4⁺) ⊃ big_f⁻(?11,'13)
+          local #5⁻(?12,?11) := big_f⁻(?12,?11)
+          right #4⁺ := ⊥
+          local #2⁻('14,?11) := big_f⁻('14,?11)
+        Goal is #1
+[INDEX] [1] #5(?2,?1) --> big_f(?2,?1)
+[INDEX] [2] #2('2,?1) --> big_f('2,?1)
+Refuted.
