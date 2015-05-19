@@ -1,0 +1,42 @@
+%--------------------------------------------------------------------------
+% File     : SYN941+1 : ILTP v1.1.2
+% Domain   : Syntactic
+% Problem  : Syntactic from Shults
+% Version  : Especial.
+% English  : 
+
+% Refs     : [Shu04] Shults (2004), Email to G. Sutcliffe
+% Source   : [Shu04]
+% Names    :
+
+% Status   : Theorem
+% Rating   : 0.00 v3.1.0
+%
+% Status (intuit.) : Non-Theorem
+% Rating (intuit.) : 0.75 v1.1.0
+%
+% Syntax   : Number of formulae    :    1 (   0 unit)
+%            Number of atoms       :    7 (   0 equality)
+%            Maximal formula depth :   11 (  11 average)
+%            Number of connectives :    6 (   0 ~  ;   0  |;   3  &)
+%                                         (   0 <=>;   3 =>;   0 <=)
+%                                         (   0 <~>;   0 ~|;   0 ~&)
+%            Number of predicates  :    3 (   0 propositional; 1-1 arity)
+%            Number of functors    :    1 (   0 constant; 1-1 arity)
+%            Number of variables   :    4 (   0 singleton;   2 !;   2 ?)
+%            Maximal term depth    :    2 (   1 average)
+
+% Comments : 
+%--------------------------------------------------------------------------
+fof(prove_this,refute,
+    ( ! [B,C] : 
+        ( q(f(B))
+       => ? [X,Y] : 
+            ( ( p(f(Y))
+             => ( p(X)
+                & ( r(Y)
+                 => ( r(B)
+                    & r(C) ) ) ) )
+            & q(X) ) ) )).
+
+%--------------------------------------------------------------------------

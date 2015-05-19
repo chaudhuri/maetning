@@ -1,0 +1,2942 @@
+SYN036+2.p
+No polarity known for "big_p"!
+No polarity known for "big_q"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.021s
+user	0m59.790s
+sys	0m0.164s
+SYN051+1.p
+No polarity known for "p"!
+No polarity known for "big_f"!
+
+real	0m0.007s
+user	0m0.003s
+sys	0m0.003s
+SYN053+1.p
+No polarity known for "p"!
+No polarity known for "big_f"!
+
+real	0m0.007s
+user	0m0.003s
+sys	0m0.003s
+SYN054+1.p
+No polarity known for "big_s"!
+No polarity known for "big_q"!
+No polarity known for "big_p"!
+No polarity known for "big_r"!
+
+real	0m0.009s
+user	0m0.004s
+sys	0m0.004s
+SYN060+1.p
+No polarity known for "big_f"!
+No polarity known for "big_g"!
+No polarity known for "big_h"!
+No polarity known for "big_i"!
+
+real	0m0.006s
+user	0m0.002s
+sys	0m0.003s
+SYN063+1.p
+No polarity known for "big_p"!
+
+real	0m0.069s
+user	0m0.064s
+sys	0m0.004s
+SYN067+1.p
+No polarity known for "big_p"!
+No polarity known for "big_r"!
+
+real	0m7.777s
+user	0m7.750s
+sys	0m0.020s
+SYN070+1.p
+No polarity known for "big_f"!
+No polarity known for "big_h"!
+No polarity known for "big_g"!
+No polarity known for "big_j"!
+
+real	0m0.016s
+user	0m0.011s
+sys	0m0.004s
+SYN081+1.p
+No polarity known for "big_f"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.008s
+user	0m59.917s
+sys	0m0.043s
+SYN084+1.p
+No polarity known for "big_p"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.008s
+user	0m59.885s
+sys	0m0.057s
+SYN315+1.p
+No polarity known for "big_f"!
+No polarity known for "p"!
+
+real	0m0.006s
+user	0m0.002s
+sys	0m0.003s
+SYN317+1.p
+No polarity known for "big_f"!
+No polarity known for "big_g"!
+
+real	0m0.008s
+user	0m0.004s
+sys	0m0.003s
+SYN332+1.p
+No polarity known for "big_f"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.008s
+user	0m59.515s
+sys	0m0.148s
+SYN334+1.p
+No polarity known for "big_f"!
+No polarity known for "big_g"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m3.729s
+user	1m3.357s
+sys	0m0.164s
+SYN347+1.p
+No polarity known for "big_f"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.013s
+user	0m59.866s
+sys	0m0.096s
+SYN349+1.p
+No polarity known for "big_f"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.027s
+user	0m59.487s
+sys	0m0.194s
+SYN354+1.p
+No polarity known for "big_f"!
+No polarity known for "big_g"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.297s
+user	0m59.933s
+sys	0m0.139s
+SYN373+1.p
+No polarity known for "big_p"!
+No polarity known for "big_q"!
+
+real	0m0.008s
+user	0m0.003s
+sys	0m0.003s
+SYN376+1.p
+No polarity known for "big_p"!
+
+real	0m0.006s
+user	0m0.002s
+sys	0m0.003s
+SYN436+1.p
+No polarity known for "hskp0"!
+No polarity known for "ndr1_0"!
+No polarity known for "c3_1"!
+No polarity known for "c0_1"!
+No polarity known for "c2_1"!
+No polarity known for "hskp1"!
+No polarity known for "hskp2"!
+No polarity known for "c1_1"!
+No polarity known for "hskp3"!
+No polarity known for "hskp4"!
+No polarity known for "hskp5"!
+No polarity known for "hskp6"!
+No polarity known for "hskp7"!
+No polarity known for "hskp8"!
+No polarity known for "hskp9"!
+No polarity known for "hskp10"!
+No polarity known for "hskp11"!
+No polarity known for "hskp12"!
+No polarity known for "hskp13"!
+No polarity known for "hskp14"!
+No polarity known for "hskp15"!
+No polarity known for "hskp16"!
+No polarity known for "hskp17"!
+No polarity known for "hskp18"!
+No polarity known for "hskp19"!
+No polarity known for "hskp20"!
+No polarity known for "hskp21"!
+No polarity known for "hskp22"!
+No polarity known for "hskp23"!
+No polarity known for "hskp24"!
+No polarity known for "hskp25"!
+No polarity known for "hskp26"!
+No polarity known for "hskp27"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.017s
+user	0m59.844s
+sys	0m0.113s
+SYN439+1.p
+No polarity known for "hskp0"!
+No polarity known for "ndr1_0"!
+No polarity known for "c1_1"!
+No polarity known for "c0_1"!
+No polarity known for "c2_1"!
+No polarity known for "hskp1"!
+No polarity known for "hskp2"!
+No polarity known for "c3_1"!
+No polarity known for "hskp3"!
+No polarity known for "hskp4"!
+No polarity known for "hskp5"!
+No polarity known for "hskp6"!
+No polarity known for "hskp7"!
+No polarity known for "hskp8"!
+No polarity known for "hskp9"!
+No polarity known for "hskp10"!
+No polarity known for "hskp11"!
+No polarity known for "hskp12"!
+No polarity known for "hskp13"!
+No polarity known for "hskp14"!
+No polarity known for "hskp15"!
+No polarity known for "hskp16"!
+No polarity known for "hskp17"!
+No polarity known for "hskp18"!
+No polarity known for "hskp19"!
+No polarity known for "hskp20"!
+No polarity known for "hskp21"!
+No polarity known for "hskp22"!
+No polarity known for "hskp23"!
+No polarity known for "hskp24"!
+No polarity known for "hskp25"!
+No polarity known for "hskp26"!
+No polarity known for "hskp27"!
+No polarity known for "hskp28"!
+No polarity known for "hskp29"!
+No polarity known for "hskp30"!
+No polarity known for "hskp31"!
+No polarity known for "hskp32"!
+No polarity known for "hskp33"!
+No polarity known for "hskp34"!
+No polarity known for "hskp35"!
+No polarity known for "hskp36"!
+No polarity known for "hskp37"!
+No polarity known for "hskp38"!
+No polarity known for "hskp39"!
+No polarity known for "hskp40"!
+No polarity known for "hskp41"!
+No polarity known for "hskp42"!
+No polarity known for "hskp43"!
+No polarity known for "hskp44"!
+No polarity known for "hskp45"!
+No polarity known for "hskp46"!
+No polarity known for "hskp47"!
+No polarity known for "hskp48"!
+No polarity known for "hskp49"!
+No polarity known for "hskp50"!
+No polarity known for "hskp51"!
+No polarity known for "hskp52"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.019s
+user	0m59.662s
+sys	0m0.138s
+SYN440+1.p
+No polarity known for "hskp0"!
+No polarity known for "ndr1_0"!
+No polarity known for "c0_1"!
+No polarity known for "c3_1"!
+No polarity known for "c1_1"!
+No polarity known for "hskp1"!
+No polarity known for "c2_1"!
+No polarity known for "hskp2"!
+No polarity known for "hskp3"!
+No polarity known for "hskp4"!
+No polarity known for "hskp5"!
+No polarity known for "hskp6"!
+No polarity known for "hskp7"!
+No polarity known for "hskp8"!
+No polarity known for "hskp9"!
+No polarity known for "hskp10"!
+No polarity known for "hskp11"!
+No polarity known for "hskp12"!
+No polarity known for "hskp13"!
+No polarity known for "hskp14"!
+No polarity known for "hskp15"!
+No polarity known for "hskp16"!
+No polarity known for "hskp17"!
+No polarity known for "hskp18"!
+No polarity known for "hskp19"!
+No polarity known for "hskp20"!
+No polarity known for "hskp21"!
+No polarity known for "hskp22"!
+No polarity known for "hskp23"!
+No polarity known for "hskp24"!
+No polarity known for "hskp25"!
+No polarity known for "hskp26"!
+No polarity known for "hskp27"!
+No polarity known for "hskp28"!
+No polarity known for "hskp29"!
+No polarity known for "hskp30"!
+No polarity known for "hskp31"!
+No polarity known for "hskp32"!
+No polarity known for "hskp33"!
+No polarity known for "hskp34"!
+No polarity known for "hskp35"!
+No polarity known for "hskp36"!
+No polarity known for "hskp37"!
+No polarity known for "hskp38"!
+No polarity known for "hskp39"!
+No polarity known for "hskp40"!
+No polarity known for "hskp41"!
+No polarity known for "hskp42"!
+No polarity known for "hskp43"!
+No polarity known for "hskp44"!
+No polarity known for "hskp45"!
+No polarity known for "hskp46"!
+No polarity known for "hskp47"!
+No polarity known for "hskp48"!
+No polarity known for "hskp49"!
+No polarity known for "hskp50"!
+No polarity known for "hskp51"!
+No polarity known for "hskp52"!
+No polarity known for "hskp53"!
+No polarity known for "hskp54"!
+No polarity known for "hskp55"!
+No polarity known for "hskp56"!
+No polarity known for "hskp57"!
+No polarity known for "hskp58"!
+No polarity known for "hskp59"!
+No polarity known for "hskp60"!
+No polarity known for "hskp61"!
+No polarity known for "hskp62"!
+No polarity known for "hskp63"!
+No polarity known for "hskp64"!
+No polarity known for "hskp65"!
+No polarity known for "hskp66"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.006s
+user	0m59.553s
+sys	0m0.224s
+SYN442+1.p
+No polarity known for "hskp0"!
+No polarity known for "ndr1_0"!
+No polarity known for "c2_1"!
+No polarity known for "c3_1"!
+No polarity known for "c0_1"!
+No polarity known for "hskp1"!
+No polarity known for "c1_1"!
+No polarity known for "hskp2"!
+No polarity known for "hskp3"!
+No polarity known for "hskp4"!
+No polarity known for "hskp5"!
+No polarity known for "hskp6"!
+No polarity known for "hskp7"!
+No polarity known for "hskp8"!
+No polarity known for "hskp9"!
+No polarity known for "hskp10"!
+No polarity known for "hskp11"!
+No polarity known for "hskp12"!
+No polarity known for "hskp13"!
+No polarity known for "hskp14"!
+No polarity known for "hskp15"!
+No polarity known for "hskp16"!
+No polarity known for "hskp17"!
+No polarity known for "hskp18"!
+No polarity known for "hskp19"!
+No polarity known for "hskp20"!
+No polarity known for "hskp21"!
+No polarity known for "hskp22"!
+No polarity known for "hskp23"!
+No polarity known for "hskp24"!
+No polarity known for "hskp25"!
+No polarity known for "hskp26"!
+No polarity known for "hskp27"!
+No polarity known for "hskp28"!
+No polarity known for "hskp29"!
+No polarity known for "hskp30"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.016s
+user	0m59.641s
+sys	0m0.137s
+SYN443+1.p
+No polarity known for "hskp0"!
+No polarity known for "ndr1_0"!
+No polarity known for "c1_1"!
+No polarity known for "c2_1"!
+No polarity known for "c0_1"!
+No polarity known for "hskp1"!
+No polarity known for "c3_1"!
+No polarity known for "hskp2"!
+No polarity known for "hskp3"!
+No polarity known for "hskp4"!
+No polarity known for "hskp5"!
+No polarity known for "hskp6"!
+No polarity known for "hskp7"!
+No polarity known for "hskp8"!
+No polarity known for "hskp9"!
+No polarity known for "hskp10"!
+No polarity known for "hskp11"!
+No polarity known for "hskp12"!
+No polarity known for "hskp13"!
+No polarity known for "hskp14"!
+No polarity known for "hskp15"!
+No polarity known for "hskp16"!
+No polarity known for "hskp17"!
+No polarity known for "hskp18"!
+No polarity known for "hskp19"!
+No polarity known for "hskp20"!
+No polarity known for "hskp21"!
+No polarity known for "hskp22"!
+No polarity known for "hskp23"!
+No polarity known for "hskp24"!
+No polarity known for "hskp25"!
+No polarity known for "hskp26"!
+No polarity known for "hskp27"!
+No polarity known for "hskp28"!
+No polarity known for "hskp29"!
+No polarity known for "hskp30"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.008s
+user	0m59.811s
+sys	0m0.122s
+SYN444+1.p
+No polarity known for "hskp0"!
+No polarity known for "ndr1_0"!
+No polarity known for "c1_1"!
+No polarity known for "c3_1"!
+No polarity known for "c2_1"!
+No polarity known for "hskp1"!
+No polarity known for "c0_1"!
+No polarity known for "hskp2"!
+No polarity known for "hskp3"!
+No polarity known for "hskp4"!
+No polarity known for "hskp5"!
+No polarity known for "hskp6"!
+No polarity known for "hskp7"!
+No polarity known for "hskp8"!
+No polarity known for "hskp9"!
+No polarity known for "hskp10"!
+No polarity known for "hskp11"!
+No polarity known for "hskp12"!
+No polarity known for "hskp13"!
+No polarity known for "hskp14"!
+No polarity known for "hskp15"!
+No polarity known for "hskp16"!
+No polarity known for "hskp17"!
+No polarity known for "hskp18"!
+No polarity known for "hskp19"!
+No polarity known for "hskp20"!
+No polarity known for "hskp21"!
+No polarity known for "hskp22"!
+No polarity known for "hskp23"!
+No polarity known for "hskp24"!
+No polarity known for "hskp25"!
+No polarity known for "hskp26"!
+No polarity known for "hskp27"!
+No polarity known for "hskp28"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.017s
+user	0m59.860s
+sys	0m0.106s
+SYN445+1.p
+No polarity known for "hskp0"!
+No polarity known for "ndr1_0"!
+No polarity known for "c0_1"!
+No polarity known for "c2_1"!
+No polarity known for "c3_1"!
+No polarity known for "hskp1"!
+No polarity known for "c1_1"!
+No polarity known for "hskp2"!
+No polarity known for "hskp3"!
+No polarity known for "hskp4"!
+No polarity known for "hskp5"!
+No polarity known for "hskp6"!
+No polarity known for "hskp7"!
+No polarity known for "hskp8"!
+No polarity known for "hskp9"!
+No polarity known for "hskp10"!
+No polarity known for "hskp11"!
+No polarity known for "hskp12"!
+No polarity known for "hskp13"!
+No polarity known for "hskp14"!
+No polarity known for "hskp15"!
+No polarity known for "hskp16"!
+No polarity known for "hskp17"!
+No polarity known for "hskp18"!
+No polarity known for "hskp19"!
+No polarity known for "hskp20"!
+No polarity known for "hskp21"!
+No polarity known for "hskp22"!
+No polarity known for "hskp23"!
+No polarity known for "hskp24"!
+No polarity known for "hskp25"!
+No polarity known for "hskp26"!
+No polarity known for "hskp27"!
+No polarity known for "hskp28"!
+No polarity known for "hskp29"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.016s
+user	0m59.789s
+sys	0m0.127s
+SYN447+1.p
+No polarity known for "hskp0"!
+No polarity known for "ndr1_0"!
+No polarity known for "c0_1"!
+No polarity known for "c1_1"!
+No polarity known for "c2_1"!
+No polarity known for "hskp1"!
+No polarity known for "hskp2"!
+No polarity known for "c3_1"!
+No polarity known for "hskp3"!
+No polarity known for "hskp4"!
+No polarity known for "hskp5"!
+No polarity known for "hskp6"!
+No polarity known for "hskp7"!
+No polarity known for "hskp8"!
+No polarity known for "hskp9"!
+No polarity known for "hskp10"!
+No polarity known for "hskp11"!
+No polarity known for "hskp12"!
+No polarity known for "hskp13"!
+No polarity known for "hskp14"!
+No polarity known for "hskp15"!
+No polarity known for "hskp16"!
+No polarity known for "hskp17"!
+No polarity known for "hskp18"!
+No polarity known for "hskp19"!
+No polarity known for "hskp20"!
+No polarity known for "hskp21"!
+No polarity known for "hskp22"!
+No polarity known for "hskp23"!
+No polarity known for "hskp24"!
+No polarity known for "hskp25"!
+No polarity known for "hskp26"!
+No polarity known for "hskp27"!
+No polarity known for "hskp28"!
+No polarity known for "hskp29"!
+No polarity known for "hskp30"!
+No polarity known for "hskp31"!
+No polarity known for "hskp32"!
+No polarity known for "hskp33"!
+No polarity known for "hskp34"!
+No polarity known for "hskp35"!
+No polarity known for "hskp36"!
+No polarity known for "hskp37"!
+No polarity known for "hskp38"!
+No polarity known for "hskp39"!
+No polarity known for "hskp40"!
+No polarity known for "hskp41"!
+No polarity known for "hskp42"!
+No polarity known for "hskp43"!
+No polarity known for "hskp44"!
+No polarity known for "hskp45"!
+No polarity known for "hskp46"!
+No polarity known for "hskp47"!
+No polarity known for "hskp48"!
+No polarity known for "hskp49"!
+No polarity known for "hskp50"!
+No polarity known for "hskp51"!
+No polarity known for "hskp52"!
+No polarity known for "hskp53"!
+No polarity known for "hskp54"!
+No polarity known for "hskp55"!
+No polarity known for "hskp56"!
+No polarity known for "hskp57"!
+No polarity known for "hskp58"!
+No polarity known for "hskp59"!
+No polarity known for "hskp60"!
+No polarity known for "hskp61"!
+No polarity known for "hskp62"!
+No polarity known for "hskp63"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.009s
+user	0m59.717s
+sys	0m0.166s
+SYN448+1.p
+No polarity known for "hskp0"!
+No polarity known for "ndr1_0"!
+No polarity known for "c0_1"!
+No polarity known for "c2_1"!
+No polarity known for "c3_1"!
+No polarity known for "hskp1"!
+No polarity known for "c1_1"!
+No polarity known for "hskp2"!
+No polarity known for "hskp3"!
+No polarity known for "hskp4"!
+No polarity known for "hskp5"!
+No polarity known for "hskp6"!
+No polarity known for "hskp7"!
+No polarity known for "hskp8"!
+No polarity known for "hskp9"!
+No polarity known for "hskp10"!
+No polarity known for "hskp11"!
+No polarity known for "hskp12"!
+No polarity known for "hskp13"!
+No polarity known for "hskp14"!
+No polarity known for "hskp15"!
+No polarity known for "hskp16"!
+No polarity known for "hskp17"!
+No polarity known for "hskp18"!
+No polarity known for "hskp19"!
+No polarity known for "hskp20"!
+No polarity known for "hskp21"!
+No polarity known for "hskp22"!
+No polarity known for "hskp23"!
+No polarity known for "hskp24"!
+No polarity known for "hskp25"!
+No polarity known for "hskp26"!
+No polarity known for "hskp27"!
+No polarity known for "hskp28"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.008s
+user	0m59.772s
+sys	0m0.139s
+SYN450+1.p
+No polarity known for "hskp0"!
+No polarity known for "ndr1_0"!
+No polarity known for "c2_1"!
+No polarity known for "c3_1"!
+No polarity known for "c1_1"!
+No polarity known for "hskp1"!
+No polarity known for "c0_1"!
+No polarity known for "hskp2"!
+No polarity known for "hskp3"!
+No polarity known for "hskp4"!
+No polarity known for "hskp5"!
+No polarity known for "hskp6"!
+No polarity known for "hskp7"!
+No polarity known for "hskp8"!
+No polarity known for "hskp9"!
+No polarity known for "hskp10"!
+No polarity known for "hskp11"!
+No polarity known for "hskp12"!
+No polarity known for "hskp13"!
+No polarity known for "hskp14"!
+No polarity known for "hskp15"!
+No polarity known for "hskp16"!
+No polarity known for "hskp17"!
+No polarity known for "hskp18"!
+No polarity known for "hskp19"!
+No polarity known for "hskp20"!
+No polarity known for "hskp21"!
+No polarity known for "hskp22"!
+No polarity known for "hskp23"!
+No polarity known for "hskp24"!
+No polarity known for "hskp25"!
+No polarity known for "hskp26"!
+No polarity known for "hskp27"!
+No polarity known for "hskp28"!
+No polarity known for "hskp29"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.009s
+user	0m59.778s
+sys	0m0.135s
+SYN451+1.p
+No polarity known for "hskp0"!
+No polarity known for "ndr1_0"!
+No polarity known for "c0_1"!
+No polarity known for "c3_1"!
+No polarity known for "c1_1"!
+No polarity known for "hskp1"!
+No polarity known for "c2_1"!
+No polarity known for "hskp2"!
+No polarity known for "hskp3"!
+No polarity known for "hskp4"!
+No polarity known for "hskp5"!
+No polarity known for "hskp6"!
+No polarity known for "hskp7"!
+No polarity known for "hskp8"!
+No polarity known for "hskp9"!
+No polarity known for "hskp10"!
+No polarity known for "hskp11"!
+No polarity known for "hskp12"!
+No polarity known for "hskp13"!
+No polarity known for "hskp14"!
+No polarity known for "hskp15"!
+No polarity known for "hskp16"!
+No polarity known for "hskp17"!
+No polarity known for "hskp18"!
+No polarity known for "hskp19"!
+No polarity known for "hskp20"!
+No polarity known for "hskp21"!
+No polarity known for "hskp22"!
+No polarity known for "hskp23"!
+No polarity known for "hskp24"!
+No polarity known for "hskp25"!
+No polarity known for "hskp26"!
+No polarity known for "hskp27"!
+No polarity known for "hskp28"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.013s
+user	0m59.762s
+sys	0m0.117s
+SYN452+1.p
+No polarity known for "hskp0"!
+No polarity known for "ndr1_0"!
+No polarity known for "c0_1"!
+No polarity known for "c1_1"!
+No polarity known for "c3_1"!
+No polarity known for "hskp1"!
+No polarity known for "c2_1"!
+No polarity known for "hskp2"!
+No polarity known for "hskp3"!
+No polarity known for "hskp4"!
+No polarity known for "hskp5"!
+No polarity known for "hskp6"!
+No polarity known for "hskp7"!
+No polarity known for "hskp8"!
+No polarity known for "hskp9"!
+No polarity known for "hskp10"!
+No polarity known for "hskp11"!
+No polarity known for "hskp12"!
+No polarity known for "hskp13"!
+No polarity known for "hskp14"!
+No polarity known for "hskp15"!
+No polarity known for "hskp16"!
+No polarity known for "hskp17"!
+No polarity known for "hskp18"!
+No polarity known for "hskp19"!
+No polarity known for "hskp20"!
+No polarity known for "hskp21"!
+No polarity known for "hskp22"!
+No polarity known for "hskp23"!
+No polarity known for "hskp24"!
+No polarity known for "hskp25"!
+No polarity known for "hskp26"!
+No polarity known for "hskp27"!
+No polarity known for "hskp28"!
+No polarity known for "hskp29"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.009s
+user	0m59.530s
+sys	0m0.172s
+SYN454+1.p
+No polarity known for "hskp0"!
+No polarity known for "ndr1_0"!
+No polarity known for "c1_1"!
+No polarity known for "c2_1"!
+No polarity known for "c3_1"!
+No polarity known for "hskp1"!
+No polarity known for "hskp2"!
+No polarity known for "c0_1"!
+No polarity known for "hskp3"!
+No polarity known for "hskp4"!
+No polarity known for "hskp5"!
+No polarity known for "hskp6"!
+No polarity known for "hskp7"!
+No polarity known for "hskp8"!
+No polarity known for "hskp9"!
+No polarity known for "hskp10"!
+No polarity known for "hskp11"!
+No polarity known for "hskp12"!
+No polarity known for "hskp13"!
+No polarity known for "hskp14"!
+No polarity known for "hskp15"!
+No polarity known for "hskp16"!
+No polarity known for "hskp17"!
+No polarity known for "hskp18"!
+No polarity known for "hskp19"!
+No polarity known for "hskp20"!
+No polarity known for "hskp21"!
+No polarity known for "hskp22"!
+No polarity known for "hskp23"!
+No polarity known for "hskp24"!
+No polarity known for "hskp25"!
+No polarity known for "hskp26"!
+No polarity known for "hskp27"!
+No polarity known for "hskp28"!
+No polarity known for "hskp29"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.007s
+user	0m59.559s
+sys	0m0.204s
+SYN455+1.p
+No polarity known for "hskp0"!
+No polarity known for "ndr1_0"!
+No polarity known for "c0_1"!
+No polarity known for "c1_1"!
+No polarity known for "c3_1"!
+No polarity known for "hskp1"!
+No polarity known for "c2_1"!
+No polarity known for "hskp2"!
+No polarity known for "hskp3"!
+No polarity known for "hskp4"!
+No polarity known for "hskp5"!
+No polarity known for "hskp6"!
+No polarity known for "hskp7"!
+No polarity known for "hskp8"!
+No polarity known for "hskp9"!
+No polarity known for "hskp10"!
+No polarity known for "hskp11"!
+No polarity known for "hskp12"!
+No polarity known for "hskp13"!
+No polarity known for "hskp14"!
+No polarity known for "hskp15"!
+No polarity known for "hskp16"!
+No polarity known for "hskp17"!
+No polarity known for "hskp18"!
+No polarity known for "hskp19"!
+No polarity known for "hskp20"!
+No polarity known for "hskp21"!
+No polarity known for "hskp22"!
+No polarity known for "hskp23"!
+No polarity known for "hskp24"!
+No polarity known for "hskp25"!
+No polarity known for "hskp26"!
+No polarity known for "hskp27"!
+No polarity known for "hskp28"!
+No polarity known for "hskp29"!
+No polarity known for "hskp30"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.012s
+user	0m59.738s
+sys	0m0.133s
+SYN457+1.p
+No polarity known for "hskp0"!
+No polarity known for "ndr1_0"!
+No polarity known for "c1_1"!
+No polarity known for "c0_1"!
+No polarity known for "c2_1"!
+No polarity known for "hskp1"!
+No polarity known for "c3_1"!
+No polarity known for "hskp2"!
+No polarity known for "hskp3"!
+No polarity known for "hskp4"!
+No polarity known for "hskp5"!
+No polarity known for "hskp6"!
+No polarity known for "hskp7"!
+No polarity known for "hskp8"!
+No polarity known for "hskp9"!
+No polarity known for "hskp10"!
+No polarity known for "hskp11"!
+No polarity known for "hskp12"!
+No polarity known for "hskp13"!
+No polarity known for "hskp14"!
+No polarity known for "hskp15"!
+No polarity known for "hskp16"!
+No polarity known for "hskp17"!
+No polarity known for "hskp18"!
+No polarity known for "hskp19"!
+No polarity known for "hskp20"!
+No polarity known for "hskp21"!
+No polarity known for "hskp22"!
+No polarity known for "hskp23"!
+No polarity known for "hskp24"!
+No polarity known for "hskp25"!
+No polarity known for "hskp26"!
+No polarity known for "hskp27"!
+No polarity known for "hskp28"!
+No polarity known for "hskp29"!
+No polarity known for "hskp30"!
+No polarity known for "hskp31"!
+No polarity known for "hskp32"!
+No polarity known for "hskp33"!
+No polarity known for "hskp34"!
+No polarity known for "hskp35"!
+No polarity known for "hskp36"!
+No polarity known for "hskp37"!
+No polarity known for "hskp38"!
+No polarity known for "hskp39"!
+No polarity known for "hskp40"!
+No polarity known for "hskp41"!
+No polarity known for "hskp42"!
+No polarity known for "hskp43"!
+No polarity known for "hskp44"!
+No polarity known for "hskp45"!
+No polarity known for "hskp46"!
+No polarity known for "hskp47"!
+No polarity known for "hskp48"!
+No polarity known for "hskp49"!
+No polarity known for "hskp50"!
+No polarity known for "hskp51"!
+No polarity known for "hskp52"!
+No polarity known for "hskp53"!
+No polarity known for "hskp54"!
+No polarity known for "hskp55"!
+No polarity known for "hskp56"!
+No polarity known for "hskp57"!
+No polarity known for "hskp58"!
+No polarity known for "hskp59"!
+No polarity known for "hskp60"!
+No polarity known for "hskp61"!
+No polarity known for "hskp62"!
+No polarity known for "hskp63"!
+No polarity known for "hskp64"!
+No polarity known for "hskp65"!
+No polarity known for "hskp66"!
+No polarity known for "hskp67"!
+No polarity known for "hskp68"!
+No polarity known for "hskp69"!
+No polarity known for "hskp70"!
+No polarity known for "hskp71"!
+No polarity known for "hskp72"!
+No polarity known for "hskp73"!
+No polarity known for "hskp74"!
+No polarity known for "hskp75"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.017s
+user	0m59.580s
+sys	0m0.201s
+SYN458+1.p
+No polarity known for "hskp0"!
+No polarity known for "ndr1_0"!
+No polarity known for "c1_1"!
+No polarity known for "c0_1"!
+No polarity known for "c2_1"!
+No polarity known for "hskp1"!
+No polarity known for "c3_1"!
+No polarity known for "hskp2"!
+No polarity known for "hskp3"!
+No polarity known for "hskp4"!
+No polarity known for "hskp5"!
+No polarity known for "hskp6"!
+No polarity known for "hskp7"!
+No polarity known for "hskp8"!
+No polarity known for "hskp9"!
+No polarity known for "hskp10"!
+No polarity known for "hskp11"!
+No polarity known for "hskp12"!
+No polarity known for "hskp13"!
+No polarity known for "hskp14"!
+No polarity known for "hskp15"!
+No polarity known for "hskp16"!
+No polarity known for "hskp17"!
+No polarity known for "hskp18"!
+No polarity known for "hskp19"!
+No polarity known for "hskp20"!
+No polarity known for "hskp21"!
+No polarity known for "hskp22"!
+No polarity known for "hskp23"!
+No polarity known for "hskp24"!
+No polarity known for "hskp25"!
+No polarity known for "hskp26"!
+No polarity known for "hskp27"!
+No polarity known for "hskp28"!
+No polarity known for "hskp29"!
+No polarity known for "hskp30"!
+No polarity known for "hskp31"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.030s
+user	0m59.797s
+sys	0m0.166s
+SYN459+1.p
+No polarity known for "hskp0"!
+No polarity known for "ndr1_0"!
+No polarity known for "c0_1"!
+No polarity known for "c1_1"!
+No polarity known for "c3_1"!
+No polarity known for "hskp1"!
+No polarity known for "c2_1"!
+No polarity known for "hskp2"!
+No polarity known for "hskp3"!
+No polarity known for "hskp4"!
+No polarity known for "hskp5"!
+No polarity known for "hskp6"!
+No polarity known for "hskp7"!
+No polarity known for "hskp8"!
+No polarity known for "hskp9"!
+No polarity known for "hskp10"!
+No polarity known for "hskp11"!
+No polarity known for "hskp12"!
+No polarity known for "hskp13"!
+No polarity known for "hskp14"!
+No polarity known for "hskp15"!
+No polarity known for "hskp16"!
+No polarity known for "hskp17"!
+No polarity known for "hskp18"!
+No polarity known for "hskp19"!
+No polarity known for "hskp20"!
+No polarity known for "hskp21"!
+No polarity known for "hskp22"!
+No polarity known for "hskp23"!
+No polarity known for "hskp24"!
+No polarity known for "hskp25"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.012s
+user	0m59.637s
+sys	0m0.160s
+SYN460+1.p
+No polarity known for "hskp0"!
+No polarity known for "ndr1_0"!
+No polarity known for "c0_1"!
+No polarity known for "c1_1"!
+No polarity known for "c2_1"!
+No polarity known for "hskp1"!
+No polarity known for "c3_1"!
+No polarity known for "hskp2"!
+No polarity known for "hskp3"!
+No polarity known for "hskp4"!
+No polarity known for "hskp5"!
+No polarity known for "hskp6"!
+No polarity known for "hskp7"!
+No polarity known for "hskp8"!
+No polarity known for "hskp9"!
+No polarity known for "hskp10"!
+No polarity known for "hskp11"!
+No polarity known for "hskp12"!
+No polarity known for "hskp13"!
+No polarity known for "hskp14"!
+No polarity known for "hskp15"!
+No polarity known for "hskp16"!
+No polarity known for "hskp17"!
+No polarity known for "hskp18"!
+No polarity known for "hskp19"!
+No polarity known for "hskp20"!
+No polarity known for "hskp21"!
+No polarity known for "hskp22"!
+No polarity known for "hskp23"!
+No polarity known for "hskp24"!
+No polarity known for "hskp25"!
+No polarity known for "hskp26"!
+No polarity known for "hskp27"!
+No polarity known for "hskp28"!
+No polarity known for "hskp29"!
+No polarity known for "hskp30"!
+No polarity known for "hskp31"!
+No polarity known for "hskp32"!
+No polarity known for "hskp33"!
+No polarity known for "hskp34"!
+No polarity known for "hskp35"!
+No polarity known for "hskp36"!
+No polarity known for "hskp37"!
+No polarity known for "hskp38"!
+No polarity known for "hskp39"!
+No polarity known for "hskp40"!
+No polarity known for "hskp41"!
+No polarity known for "hskp42"!
+No polarity known for "hskp43"!
+No polarity known for "hskp44"!
+No polarity known for "hskp45"!
+No polarity known for "hskp46"!
+No polarity known for "hskp47"!
+No polarity known for "hskp48"!
+No polarity known for "hskp49"!
+No polarity known for "hskp50"!
+No polarity known for "hskp51"!
+No polarity known for "hskp52"!
+No polarity known for "hskp53"!
+No polarity known for "hskp54"!
+No polarity known for "hskp55"!
+No polarity known for "hskp56"!
+No polarity known for "hskp57"!
+No polarity known for "hskp58"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.020s
+user	0m59.861s
+sys	0m0.109s
+SYN461+1.p
+No polarity known for "hskp0"!
+No polarity known for "ndr1_0"!
+No polarity known for "c0_1"!
+No polarity known for "c1_1"!
+No polarity known for "c2_1"!
+No polarity known for "hskp1"!
+No polarity known for "c3_1"!
+No polarity known for "hskp2"!
+No polarity known for "hskp3"!
+No polarity known for "hskp4"!
+No polarity known for "hskp5"!
+No polarity known for "hskp6"!
+No polarity known for "hskp7"!
+No polarity known for "hskp8"!
+No polarity known for "hskp9"!
+No polarity known for "hskp10"!
+No polarity known for "hskp11"!
+No polarity known for "hskp12"!
+No polarity known for "hskp13"!
+No polarity known for "hskp14"!
+No polarity known for "hskp15"!
+No polarity known for "hskp16"!
+No polarity known for "hskp17"!
+No polarity known for "hskp18"!
+No polarity known for "hskp19"!
+No polarity known for "hskp20"!
+No polarity known for "hskp21"!
+No polarity known for "hskp22"!
+No polarity known for "hskp23"!
+No polarity known for "hskp24"!
+No polarity known for "hskp25"!
+No polarity known for "hskp26"!
+No polarity known for "hskp27"!
+No polarity known for "hskp28"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.024s
+user	0m59.860s
+sys	0m0.106s
+SYN462+1.p
+No polarity known for "hskp0"!
+No polarity known for "ndr1_0"!
+No polarity known for "c0_1"!
+No polarity known for "c2_1"!
+No polarity known for "c3_1"!
+No polarity known for "hskp1"!
+No polarity known for "c1_1"!
+No polarity known for "hskp2"!
+No polarity known for "hskp3"!
+No polarity known for "hskp4"!
+No polarity known for "hskp5"!
+No polarity known for "hskp6"!
+No polarity known for "hskp7"!
+No polarity known for "hskp8"!
+No polarity known for "hskp9"!
+No polarity known for "hskp10"!
+No polarity known for "hskp11"!
+No polarity known for "hskp12"!
+No polarity known for "hskp13"!
+No polarity known for "hskp14"!
+No polarity known for "hskp15"!
+No polarity known for "hskp16"!
+No polarity known for "hskp17"!
+No polarity known for "hskp18"!
+No polarity known for "hskp19"!
+No polarity known for "hskp20"!
+No polarity known for "hskp21"!
+No polarity known for "hskp22"!
+No polarity known for "hskp23"!
+No polarity known for "hskp24"!
+No polarity known for "hskp25"!
+No polarity known for "hskp26"!
+No polarity known for "hskp27"!
+No polarity known for "hskp28"!
+No polarity known for "hskp29"!
+No polarity known for "hskp30"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.250s
+user	1m0.092s
+sys	0m0.105s
+SYN465+1.p
+No polarity known for "hskp0"!
+No polarity known for "ndr1_0"!
+No polarity known for "c0_1"!
+No polarity known for "c1_1"!
+No polarity known for "c2_1"!
+No polarity known for "hskp1"!
+No polarity known for "hskp2"!
+No polarity known for "hskp3"!
+No polarity known for "c3_1"!
+No polarity known for "hskp4"!
+No polarity known for "hskp5"!
+No polarity known for "hskp6"!
+No polarity known for "hskp7"!
+No polarity known for "hskp8"!
+No polarity known for "hskp9"!
+No polarity known for "hskp10"!
+No polarity known for "hskp11"!
+No polarity known for "hskp12"!
+No polarity known for "hskp13"!
+No polarity known for "hskp14"!
+No polarity known for "hskp15"!
+No polarity known for "hskp16"!
+No polarity known for "hskp17"!
+No polarity known for "hskp18"!
+No polarity known for "hskp19"!
+No polarity known for "hskp20"!
+No polarity known for "hskp21"!
+No polarity known for "hskp22"!
+No polarity known for "hskp23"!
+No polarity known for "hskp24"!
+No polarity known for "hskp25"!
+No polarity known for "hskp26"!
+No polarity known for "hskp27"!
+No polarity known for "hskp28"!
+No polarity known for "hskp29"!
+No polarity known for "hskp30"!
+No polarity known for "hskp31"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.017s
+user	0m59.870s
+sys	0m0.105s
+SYN466+1.p
+No polarity known for "hskp0"!
+No polarity known for "ndr1_0"!
+No polarity known for "c2_1"!
+No polarity known for "c3_1"!
+No polarity known for "c0_1"!
+No polarity known for "hskp1"!
+No polarity known for "c1_1"!
+No polarity known for "hskp2"!
+No polarity known for "hskp3"!
+No polarity known for "hskp4"!
+No polarity known for "hskp5"!
+No polarity known for "hskp6"!
+No polarity known for "hskp7"!
+No polarity known for "hskp8"!
+No polarity known for "hskp9"!
+No polarity known for "hskp10"!
+No polarity known for "hskp11"!
+No polarity known for "hskp12"!
+No polarity known for "hskp13"!
+No polarity known for "hskp14"!
+No polarity known for "hskp15"!
+No polarity known for "hskp16"!
+No polarity known for "hskp17"!
+No polarity known for "hskp18"!
+No polarity known for "hskp19"!
+No polarity known for "hskp20"!
+No polarity known for "hskp21"!
+No polarity known for "hskp22"!
+No polarity known for "hskp23"!
+No polarity known for "hskp24"!
+No polarity known for "hskp25"!
+No polarity known for "hskp26"!
+No polarity known for "hskp27"!
+No polarity known for "hskp28"!
+No polarity known for "hskp29"!
+No polarity known for "hskp30"!
+No polarity known for "hskp31"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.019s
+user	0m59.853s
+sys	0m0.109s
+SYN467+1.p
+No polarity known for "hskp0"!
+No polarity known for "ndr1_0"!
+No polarity known for "c3_1"!
+No polarity known for "c0_1"!
+No polarity known for "c1_1"!
+No polarity known for "hskp1"!
+No polarity known for "c2_1"!
+No polarity known for "hskp2"!
+No polarity known for "hskp3"!
+No polarity known for "hskp4"!
+No polarity known for "hskp5"!
+No polarity known for "hskp6"!
+No polarity known for "hskp7"!
+No polarity known for "hskp8"!
+No polarity known for "hskp9"!
+No polarity known for "hskp10"!
+No polarity known for "hskp11"!
+No polarity known for "hskp12"!
+No polarity known for "hskp13"!
+No polarity known for "hskp14"!
+No polarity known for "hskp15"!
+No polarity known for "hskp16"!
+No polarity known for "hskp17"!
+No polarity known for "hskp18"!
+No polarity known for "hskp19"!
+No polarity known for "hskp20"!
+No polarity known for "hskp21"!
+No polarity known for "hskp22"!
+No polarity known for "hskp23"!
+No polarity known for "hskp24"!
+No polarity known for "hskp25"!
+No polarity known for "hskp26"!
+No polarity known for "hskp27"!
+No polarity known for "hskp28"!
+No polarity known for "hskp29"!
+No polarity known for "hskp30"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.019s
+user	0m59.851s
+sys	0m0.113s
+SYN468+1.p
+No polarity known for "hskp0"!
+No polarity known for "ndr1_0"!
+No polarity known for "c1_1"!
+No polarity known for "c2_1"!
+No polarity known for "c3_1"!
+No polarity known for "hskp1"!
+No polarity known for "hskp2"!
+No polarity known for "hskp3"!
+No polarity known for "c0_1"!
+No polarity known for "hskp4"!
+No polarity known for "hskp5"!
+No polarity known for "hskp6"!
+No polarity known for "hskp7"!
+No polarity known for "hskp8"!
+No polarity known for "hskp9"!
+No polarity known for "hskp10"!
+No polarity known for "hskp11"!
+No polarity known for "hskp12"!
+No polarity known for "hskp13"!
+No polarity known for "hskp14"!
+No polarity known for "hskp15"!
+No polarity known for "hskp16"!
+No polarity known for "hskp17"!
+No polarity known for "hskp18"!
+No polarity known for "hskp19"!
+No polarity known for "hskp20"!
+No polarity known for "hskp21"!
+No polarity known for "hskp22"!
+No polarity known for "hskp23"!
+No polarity known for "hskp24"!
+No polarity known for "hskp25"!
+No polarity known for "hskp26"!
+No polarity known for "hskp27"!
+No polarity known for "hskp28"!
+No polarity known for "hskp29"!
+No polarity known for "hskp30"!
+No polarity known for "hskp31"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.015s
+user	0m59.850s
+sys	0m0.111s
+SYN469+1.p
+No polarity known for "hskp0"!
+No polarity known for "ndr1_0"!
+No polarity known for "c1_1"!
+No polarity known for "c2_1"!
+No polarity known for "c3_1"!
+No polarity known for "hskp1"!
+No polarity known for "c0_1"!
+No polarity known for "hskp2"!
+No polarity known for "hskp3"!
+No polarity known for "hskp4"!
+No polarity known for "hskp5"!
+No polarity known for "hskp6"!
+No polarity known for "hskp7"!
+No polarity known for "hskp8"!
+No polarity known for "hskp9"!
+No polarity known for "hskp10"!
+No polarity known for "hskp11"!
+No polarity known for "hskp12"!
+No polarity known for "hskp13"!
+No polarity known for "hskp14"!
+No polarity known for "hskp15"!
+No polarity known for "hskp16"!
+No polarity known for "hskp17"!
+No polarity known for "hskp18"!
+No polarity known for "hskp19"!
+No polarity known for "hskp20"!
+No polarity known for "hskp21"!
+No polarity known for "hskp22"!
+No polarity known for "hskp23"!
+No polarity known for "hskp24"!
+No polarity known for "hskp25"!
+No polarity known for "hskp26"!
+No polarity known for "hskp27"!
+No polarity known for "hskp28"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.015s
+user	0m59.814s
+sys	0m0.104s
+SYN470+1.p
+No polarity known for "hskp0"!
+No polarity known for "ndr1_0"!
+No polarity known for "c3_1"!
+No polarity known for "c0_1"!
+No polarity known for "c2_1"!
+No polarity known for "hskp1"!
+No polarity known for "c1_1"!
+No polarity known for "hskp2"!
+No polarity known for "hskp3"!
+No polarity known for "hskp4"!
+No polarity known for "hskp5"!
+No polarity known for "hskp6"!
+No polarity known for "hskp7"!
+No polarity known for "hskp8"!
+No polarity known for "hskp9"!
+No polarity known for "hskp10"!
+No polarity known for "hskp11"!
+No polarity known for "hskp12"!
+No polarity known for "hskp13"!
+No polarity known for "hskp14"!
+No polarity known for "hskp15"!
+No polarity known for "hskp16"!
+No polarity known for "hskp17"!
+No polarity known for "hskp18"!
+No polarity known for "hskp19"!
+No polarity known for "hskp20"!
+No polarity known for "hskp21"!
+No polarity known for "hskp22"!
+No polarity known for "hskp23"!
+No polarity known for "hskp24"!
+No polarity known for "hskp25"!
+No polarity known for "hskp26"!
+No polarity known for "hskp27"!
+No polarity known for "hskp28"!
+No polarity known for "hskp29"!
+No polarity known for "hskp30"!
+No polarity known for "hskp31"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.016s
+user	0m59.853s
+sys	0m0.114s
+SYN471+1.p
+No polarity known for "hskp0"!
+No polarity known for "ndr1_0"!
+No polarity known for "c2_1"!
+No polarity known for "c0_1"!
+No polarity known for "c3_1"!
+No polarity known for "hskp1"!
+No polarity known for "c1_1"!
+No polarity known for "hskp2"!
+No polarity known for "hskp3"!
+No polarity known for "hskp4"!
+No polarity known for "hskp5"!
+No polarity known for "hskp6"!
+No polarity known for "hskp7"!
+No polarity known for "hskp8"!
+No polarity known for "hskp9"!
+No polarity known for "hskp10"!
+No polarity known for "hskp11"!
+No polarity known for "hskp12"!
+No polarity known for "hskp13"!
+No polarity known for "hskp14"!
+No polarity known for "hskp15"!
+No polarity known for "hskp16"!
+No polarity known for "hskp17"!
+No polarity known for "hskp18"!
+No polarity known for "hskp19"!
+No polarity known for "hskp20"!
+No polarity known for "hskp21"!
+No polarity known for "hskp22"!
+No polarity known for "hskp23"!
+No polarity known for "hskp24"!
+No polarity known for "hskp25"!
+No polarity known for "hskp26"!
+No polarity known for "hskp27"!
+No polarity known for "hskp28"!
+No polarity known for "hskp29"!
+No polarity known for "hskp30"!
+No polarity known for "hskp31"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.008s
+user	0m59.622s
+sys	0m0.152s
+SYN472+1.p
+No polarity known for "hskp0"!
+No polarity known for "ndr1_0"!
+No polarity known for "c2_1"!
+No polarity known for "c0_1"!
+No polarity known for "c1_1"!
+No polarity known for "hskp1"!
+No polarity known for "c3_1"!
+No polarity known for "hskp2"!
+No polarity known for "hskp3"!
+No polarity known for "hskp4"!
+No polarity known for "hskp5"!
+No polarity known for "hskp6"!
+No polarity known for "hskp7"!
+No polarity known for "hskp8"!
+No polarity known for "hskp9"!
+No polarity known for "hskp10"!
+No polarity known for "hskp11"!
+No polarity known for "hskp12"!
+No polarity known for "hskp13"!
+No polarity known for "hskp14"!
+No polarity known for "hskp15"!
+No polarity known for "hskp16"!
+No polarity known for "hskp17"!
+No polarity known for "hskp18"!
+No polarity known for "hskp19"!
+No polarity known for "hskp20"!
+No polarity known for "hskp21"!
+No polarity known for "hskp22"!
+No polarity known for "hskp23"!
+No polarity known for "hskp24"!
+No polarity known for "hskp25"!
+No polarity known for "hskp26"!
+No polarity known for "hskp27"!
+No polarity known for "hskp28"!
+No polarity known for "hskp29"!
+No polarity known for "hskp30"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.007s
+user	0m59.864s
+sys	0m0.100s
+SYN473+1.p
+No polarity known for "hskp0"!
+No polarity known for "ndr1_0"!
+No polarity known for "c0_1"!
+No polarity known for "c2_1"!
+No polarity known for "c1_1"!
+No polarity known for "hskp1"!
+No polarity known for "c3_1"!
+No polarity known for "hskp2"!
+No polarity known for "hskp3"!
+No polarity known for "hskp4"!
+No polarity known for "hskp5"!
+No polarity known for "hskp6"!
+No polarity known for "hskp7"!
+No polarity known for "hskp8"!
+No polarity known for "hskp9"!
+No polarity known for "hskp10"!
+No polarity known for "hskp11"!
+No polarity known for "hskp12"!
+No polarity known for "hskp13"!
+No polarity known for "hskp14"!
+No polarity known for "hskp15"!
+No polarity known for "hskp16"!
+No polarity known for "hskp17"!
+No polarity known for "hskp18"!
+No polarity known for "hskp19"!
+No polarity known for "hskp20"!
+No polarity known for "hskp21"!
+No polarity known for "hskp22"!
+No polarity known for "hskp23"!
+No polarity known for "hskp24"!
+No polarity known for "hskp25"!
+No polarity known for "hskp26"!
+No polarity known for "hskp27"!
+No polarity known for "hskp28"!
+No polarity known for "hskp29"!
+No polarity known for "hskp30"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.022s
+user	0m59.877s
+sys	0m0.103s
+SYN474+1.p
+No polarity known for "hskp0"!
+No polarity known for "ndr1_0"!
+No polarity known for "c0_1"!
+No polarity known for "c1_1"!
+No polarity known for "c2_1"!
+No polarity known for "hskp1"!
+No polarity known for "hskp2"!
+No polarity known for "c3_1"!
+No polarity known for "hskp3"!
+No polarity known for "hskp4"!
+No polarity known for "hskp5"!
+No polarity known for "hskp6"!
+No polarity known for "hskp7"!
+No polarity known for "hskp8"!
+No polarity known for "hskp9"!
+No polarity known for "hskp10"!
+No polarity known for "hskp11"!
+No polarity known for "hskp12"!
+No polarity known for "hskp13"!
+No polarity known for "hskp14"!
+No polarity known for "hskp15"!
+No polarity known for "hskp16"!
+No polarity known for "hskp17"!
+No polarity known for "hskp18"!
+No polarity known for "hskp19"!
+No polarity known for "hskp20"!
+No polarity known for "hskp21"!
+No polarity known for "hskp22"!
+No polarity known for "hskp23"!
+No polarity known for "hskp24"!
+No polarity known for "hskp25"!
+No polarity known for "hskp26"!
+No polarity known for "hskp27"!
+No polarity known for "hskp28"!
+No polarity known for "hskp29"!
+No polarity known for "hskp30"!
+No polarity known for "hskp31"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.012s
+user	0m59.802s
+sys	0m0.122s
+SYN475+1.p
+No polarity known for "hskp0"!
+No polarity known for "ndr1_0"!
+No polarity known for "c0_1"!
+No polarity known for "c2_1"!
+No polarity known for "c3_1"!
+No polarity known for "hskp1"!
+No polarity known for "c1_1"!
+No polarity known for "hskp2"!
+No polarity known for "hskp3"!
+No polarity known for "hskp4"!
+No polarity known for "hskp5"!
+No polarity known for "hskp6"!
+No polarity known for "hskp7"!
+No polarity known for "hskp8"!
+No polarity known for "hskp9"!
+No polarity known for "hskp10"!
+No polarity known for "hskp11"!
+No polarity known for "hskp12"!
+No polarity known for "hskp13"!
+No polarity known for "hskp14"!
+No polarity known for "hskp15"!
+No polarity known for "hskp16"!
+No polarity known for "hskp17"!
+No polarity known for "hskp18"!
+No polarity known for "hskp19"!
+No polarity known for "hskp20"!
+No polarity known for "hskp21"!
+No polarity known for "hskp22"!
+No polarity known for "hskp23"!
+No polarity known for "hskp24"!
+No polarity known for "hskp25"!
+No polarity known for "hskp26"!
+No polarity known for "hskp27"!
+No polarity known for "hskp28"!
+No polarity known for "hskp29"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.023s
+user	0m59.811s
+sys	0m0.153s
+SYN476+1.p
+No polarity known for "hskp0"!
+No polarity known for "ndr1_0"!
+No polarity known for "c1_1"!
+No polarity known for "c2_1"!
+No polarity known for "c3_1"!
+No polarity known for "hskp1"!
+No polarity known for "c0_1"!
+No polarity known for "hskp2"!
+No polarity known for "hskp3"!
+No polarity known for "hskp4"!
+No polarity known for "hskp5"!
+No polarity known for "hskp6"!
+No polarity known for "hskp7"!
+No polarity known for "hskp8"!
+No polarity known for "hskp9"!
+No polarity known for "hskp10"!
+No polarity known for "hskp11"!
+No polarity known for "hskp12"!
+No polarity known for "hskp13"!
+No polarity known for "hskp14"!
+No polarity known for "hskp15"!
+No polarity known for "hskp16"!
+No polarity known for "hskp17"!
+No polarity known for "hskp18"!
+No polarity known for "hskp19"!
+No polarity known for "hskp20"!
+No polarity known for "hskp21"!
+No polarity known for "hskp22"!
+No polarity known for "hskp23"!
+No polarity known for "hskp24"!
+No polarity known for "hskp25"!
+No polarity known for "hskp26"!
+No polarity known for "hskp27"!
+No polarity known for "hskp28"!
+No polarity known for "hskp29"!
+No polarity known for "hskp30"!
+No polarity known for "hskp31"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.009s
+user	0m59.790s
+sys	0m0.159s
+SYN477+1.p
+No polarity known for "hskp0"!
+No polarity known for "ndr1_0"!
+No polarity known for "c2_1"!
+No polarity known for "c0_1"!
+No polarity known for "c1_1"!
+No polarity known for "hskp1"!
+No polarity known for "c3_1"!
+No polarity known for "hskp2"!
+No polarity known for "hskp3"!
+No polarity known for "hskp4"!
+No polarity known for "hskp5"!
+No polarity known for "hskp6"!
+No polarity known for "hskp7"!
+No polarity known for "hskp8"!
+No polarity known for "hskp9"!
+No polarity known for "hskp10"!
+No polarity known for "hskp11"!
+No polarity known for "hskp12"!
+No polarity known for "hskp13"!
+No polarity known for "hskp14"!
+No polarity known for "hskp15"!
+No polarity known for "hskp16"!
+No polarity known for "hskp17"!
+No polarity known for "hskp18"!
+No polarity known for "hskp19"!
+No polarity known for "hskp20"!
+No polarity known for "hskp21"!
+No polarity known for "hskp22"!
+No polarity known for "hskp23"!
+No polarity known for "hskp24"!
+No polarity known for "hskp25"!
+No polarity known for "hskp26"!
+No polarity known for "hskp27"!
+No polarity known for "hskp28"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.011s
+user	0m59.802s
+sys	0m0.152s
+SYN478+1.p
+No polarity known for "hskp0"!
+No polarity known for "ndr1_0"!
+No polarity known for "c0_1"!
+No polarity known for "c1_1"!
+No polarity known for "c2_1"!
+No polarity known for "hskp1"!
+No polarity known for "c3_1"!
+No polarity known for "hskp2"!
+No polarity known for "hskp3"!
+No polarity known for "hskp4"!
+No polarity known for "hskp5"!
+No polarity known for "hskp6"!
+No polarity known for "hskp7"!
+No polarity known for "hskp8"!
+No polarity known for "hskp9"!
+No polarity known for "hskp10"!
+No polarity known for "hskp11"!
+No polarity known for "hskp12"!
+No polarity known for "hskp13"!
+No polarity known for "hskp14"!
+No polarity known for "hskp15"!
+No polarity known for "hskp16"!
+No polarity known for "hskp17"!
+No polarity known for "hskp18"!
+No polarity known for "hskp19"!
+No polarity known for "hskp20"!
+No polarity known for "hskp21"!
+No polarity known for "hskp22"!
+No polarity known for "hskp23"!
+No polarity known for "hskp24"!
+No polarity known for "hskp25"!
+No polarity known for "hskp26"!
+No polarity known for "hskp27"!
+No polarity known for "hskp28"!
+No polarity known for "hskp29"!
+No polarity known for "hskp30"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.008s
+user	0m59.774s
+sys	0m0.168s
+SYN479+1.p
+No polarity known for "hskp0"!
+No polarity known for "ndr1_0"!
+No polarity known for "c0_1"!
+No polarity known for "c2_1"!
+No polarity known for "c3_1"!
+No polarity known for "hskp1"!
+No polarity known for "hskp2"!
+No polarity known for "hskp3"!
+No polarity known for "c1_1"!
+No polarity known for "hskp4"!
+No polarity known for "hskp5"!
+No polarity known for "hskp6"!
+No polarity known for "hskp7"!
+No polarity known for "hskp8"!
+No polarity known for "hskp9"!
+No polarity known for "hskp10"!
+No polarity known for "hskp11"!
+No polarity known for "hskp12"!
+No polarity known for "hskp13"!
+No polarity known for "hskp14"!
+No polarity known for "hskp15"!
+No polarity known for "hskp16"!
+No polarity known for "hskp17"!
+No polarity known for "hskp18"!
+No polarity known for "hskp19"!
+No polarity known for "hskp20"!
+No polarity known for "hskp21"!
+No polarity known for "hskp22"!
+No polarity known for "hskp23"!
+No polarity known for "hskp24"!
+No polarity known for "hskp25"!
+No polarity known for "hskp26"!
+No polarity known for "hskp27"!
+No polarity known for "hskp28"!
+No polarity known for "hskp29"!
+No polarity known for "hskp30"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.007s
+user	0m59.781s
+sys	0m0.159s
+SYN480+1.p
+No polarity known for "hskp0"!
+No polarity known for "ndr1_0"!
+No polarity known for "c1_1"!
+No polarity known for "c0_1"!
+No polarity known for "c3_1"!
+No polarity known for "hskp1"!
+No polarity known for "c2_1"!
+No polarity known for "hskp2"!
+No polarity known for "hskp3"!
+No polarity known for "hskp4"!
+No polarity known for "hskp5"!
+No polarity known for "hskp6"!
+No polarity known for "hskp7"!
+No polarity known for "hskp8"!
+No polarity known for "hskp9"!
+No polarity known for "hskp10"!
+No polarity known for "hskp11"!
+No polarity known for "hskp12"!
+No polarity known for "hskp13"!
+No polarity known for "hskp14"!
+No polarity known for "hskp15"!
+No polarity known for "hskp16"!
+No polarity known for "hskp17"!
+No polarity known for "hskp18"!
+No polarity known for "hskp19"!
+No polarity known for "hskp20"!
+No polarity known for "hskp21"!
+No polarity known for "hskp22"!
+No polarity known for "hskp23"!
+No polarity known for "hskp24"!
+No polarity known for "hskp25"!
+No polarity known for "hskp26"!
+No polarity known for "hskp27"!
+No polarity known for "hskp28"!
+No polarity known for "hskp29"!
+No polarity known for "hskp30"!
+No polarity known for "hskp31"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.023s
+user	0m59.796s
+sys	0m0.159s
+SYN481+1.p
+No polarity known for "hskp0"!
+No polarity known for "ndr1_0"!
+No polarity known for "c0_1"!
+No polarity known for "c3_1"!
+No polarity known for "c1_1"!
+No polarity known for "hskp1"!
+No polarity known for "c2_1"!
+No polarity known for "hskp2"!
+No polarity known for "hskp3"!
+No polarity known for "hskp4"!
+No polarity known for "hskp5"!
+No polarity known for "hskp6"!
+No polarity known for "hskp7"!
+No polarity known for "hskp8"!
+No polarity known for "hskp9"!
+No polarity known for "hskp10"!
+No polarity known for "hskp11"!
+No polarity known for "hskp12"!
+No polarity known for "hskp13"!
+No polarity known for "hskp14"!
+No polarity known for "hskp15"!
+No polarity known for "hskp16"!
+No polarity known for "hskp17"!
+No polarity known for "hskp18"!
+No polarity known for "hskp19"!
+No polarity known for "hskp20"!
+No polarity known for "hskp21"!
+No polarity known for "hskp22"!
+No polarity known for "hskp23"!
+No polarity known for "hskp24"!
+No polarity known for "hskp25"!
+No polarity known for "hskp26"!
+No polarity known for "hskp27"!
+No polarity known for "hskp28"!
+No polarity known for "hskp29"!
+No polarity known for "hskp30"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.025s
+user	0m59.804s
+sys	0m0.155s
+SYN482+1.p
+No polarity known for "hskp0"!
+No polarity known for "ndr1_0"!
+No polarity known for "c2_1"!
+No polarity known for "c0_1"!
+No polarity known for "c1_1"!
+No polarity known for "hskp1"!
+No polarity known for "hskp2"!
+No polarity known for "hskp3"!
+No polarity known for "c3_1"!
+No polarity known for "hskp4"!
+No polarity known for "hskp5"!
+No polarity known for "hskp6"!
+No polarity known for "hskp7"!
+No polarity known for "hskp8"!
+No polarity known for "hskp9"!
+No polarity known for "hskp10"!
+No polarity known for "hskp11"!
+No polarity known for "hskp12"!
+No polarity known for "hskp13"!
+No polarity known for "hskp14"!
+No polarity known for "hskp15"!
+No polarity known for "hskp16"!
+No polarity known for "hskp17"!
+No polarity known for "hskp18"!
+No polarity known for "hskp19"!
+No polarity known for "hskp20"!
+No polarity known for "hskp21"!
+No polarity known for "hskp22"!
+No polarity known for "hskp23"!
+No polarity known for "hskp24"!
+No polarity known for "hskp25"!
+No polarity known for "hskp26"!
+No polarity known for "hskp27"!
+No polarity known for "hskp28"!
+No polarity known for "hskp29"!
+No polarity known for "hskp30"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.022s
+user	0m59.789s
+sys	0m0.152s
+SYN483+1.p
+No polarity known for "hskp0"!
+No polarity known for "ndr1_0"!
+No polarity known for "c1_1"!
+No polarity known for "c3_1"!
+No polarity known for "c2_1"!
+No polarity known for "hskp1"!
+No polarity known for "c0_1"!
+No polarity known for "hskp2"!
+No polarity known for "hskp3"!
+No polarity known for "hskp4"!
+No polarity known for "hskp5"!
+No polarity known for "hskp6"!
+No polarity known for "hskp7"!
+No polarity known for "hskp8"!
+No polarity known for "hskp9"!
+No polarity known for "hskp10"!
+No polarity known for "hskp11"!
+No polarity known for "hskp12"!
+No polarity known for "hskp13"!
+No polarity known for "hskp14"!
+No polarity known for "hskp15"!
+No polarity known for "hskp16"!
+No polarity known for "hskp17"!
+No polarity known for "hskp18"!
+No polarity known for "hskp19"!
+No polarity known for "hskp20"!
+No polarity known for "hskp21"!
+No polarity known for "hskp22"!
+No polarity known for "hskp23"!
+No polarity known for "hskp24"!
+No polarity known for "hskp25"!
+No polarity known for "hskp26"!
+No polarity known for "hskp27"!
+No polarity known for "hskp28"!
+No polarity known for "hskp29"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.010s
+user	0m59.778s
+sys	0m0.156s
+SYN484+1.p
+No polarity known for "hskp0"!
+No polarity known for "ndr1_0"!
+No polarity known for "c1_1"!
+No polarity known for "c2_1"!
+No polarity known for "c3_1"!
+No polarity known for "hskp1"!
+No polarity known for "c0_1"!
+No polarity known for "hskp2"!
+No polarity known for "hskp3"!
+No polarity known for "hskp4"!
+No polarity known for "hskp5"!
+No polarity known for "hskp6"!
+No polarity known for "hskp7"!
+No polarity known for "hskp8"!
+No polarity known for "hskp9"!
+No polarity known for "hskp10"!
+No polarity known for "hskp11"!
+No polarity known for "hskp12"!
+No polarity known for "hskp13"!
+No polarity known for "hskp14"!
+No polarity known for "hskp15"!
+No polarity known for "hskp16"!
+No polarity known for "hskp17"!
+No polarity known for "hskp18"!
+No polarity known for "hskp19"!
+No polarity known for "hskp20"!
+No polarity known for "hskp21"!
+No polarity known for "hskp22"!
+No polarity known for "hskp23"!
+No polarity known for "hskp24"!
+No polarity known for "hskp25"!
+No polarity known for "hskp26"!
+No polarity known for "hskp27"!
+No polarity known for "hskp28"!
+No polarity known for "hskp29"!
+No polarity known for "hskp30"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.011s
+user	0m59.807s
+sys	0m0.141s
+SYN485+1.p
+No polarity known for "hskp0"!
+No polarity known for "ndr1_0"!
+No polarity known for "c3_1"!
+No polarity known for "c0_1"!
+No polarity known for "c2_1"!
+No polarity known for "hskp1"!
+No polarity known for "hskp2"!
+No polarity known for "hskp3"!
+No polarity known for "c1_1"!
+No polarity known for "hskp4"!
+No polarity known for "hskp5"!
+No polarity known for "hskp6"!
+No polarity known for "hskp7"!
+No polarity known for "hskp8"!
+No polarity known for "hskp9"!
+No polarity known for "hskp10"!
+No polarity known for "hskp11"!
+No polarity known for "hskp12"!
+No polarity known for "hskp13"!
+No polarity known for "hskp14"!
+No polarity known for "hskp15"!
+No polarity known for "hskp16"!
+No polarity known for "hskp17"!
+No polarity known for "hskp18"!
+No polarity known for "hskp19"!
+No polarity known for "hskp20"!
+No polarity known for "hskp21"!
+No polarity known for "hskp22"!
+No polarity known for "hskp23"!
+No polarity known for "hskp24"!
+No polarity known for "hskp25"!
+No polarity known for "hskp26"!
+No polarity known for "hskp27"!
+No polarity known for "hskp28"!
+No polarity known for "hskp29"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.022s
+user	0m59.877s
+sys	0m0.106s
+SYN486+1.p
+No polarity known for "hskp0"!
+No polarity known for "ndr1_0"!
+No polarity known for "c1_1"!
+No polarity known for "c2_1"!
+No polarity known for "c0_1"!
+No polarity known for "hskp1"!
+No polarity known for "c3_1"!
+No polarity known for "hskp2"!
+No polarity known for "hskp3"!
+No polarity known for "hskp4"!
+No polarity known for "hskp5"!
+No polarity known for "hskp6"!
+No polarity known for "hskp7"!
+No polarity known for "hskp8"!
+No polarity known for "hskp9"!
+No polarity known for "hskp10"!
+No polarity known for "hskp11"!
+No polarity known for "hskp12"!
+No polarity known for "hskp13"!
+No polarity known for "hskp14"!
+No polarity known for "hskp15"!
+No polarity known for "hskp16"!
+No polarity known for "hskp17"!
+No polarity known for "hskp18"!
+No polarity known for "hskp19"!
+No polarity known for "hskp20"!
+No polarity known for "hskp21"!
+No polarity known for "hskp22"!
+No polarity known for "hskp23"!
+No polarity known for "hskp24"!
+No polarity known for "hskp25"!
+No polarity known for "hskp26"!
+No polarity known for "hskp27"!
+No polarity known for "hskp28"!
+No polarity known for "hskp29"!
+No polarity known for "hskp30"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.012s
+user	0m59.878s
+sys	0m0.094s
+SYN487+1.p
+No polarity known for "hskp0"!
+No polarity known for "ndr1_0"!
+No polarity known for "c1_1"!
+No polarity known for "c3_1"!
+No polarity known for "c0_1"!
+No polarity known for "hskp1"!
+No polarity known for "c2_1"!
+No polarity known for "hskp2"!
+No polarity known for "hskp3"!
+No polarity known for "hskp4"!
+No polarity known for "hskp5"!
+No polarity known for "hskp6"!
+No polarity known for "hskp7"!
+No polarity known for "hskp8"!
+No polarity known for "hskp9"!
+No polarity known for "hskp10"!
+No polarity known for "hskp11"!
+No polarity known for "hskp12"!
+No polarity known for "hskp13"!
+No polarity known for "hskp14"!
+No polarity known for "hskp15"!
+No polarity known for "hskp16"!
+No polarity known for "hskp17"!
+No polarity known for "hskp18"!
+No polarity known for "hskp19"!
+No polarity known for "hskp20"!
+No polarity known for "hskp21"!
+No polarity known for "hskp22"!
+No polarity known for "hskp23"!
+No polarity known for "hskp24"!
+No polarity known for "hskp25"!
+No polarity known for "hskp26"!
+No polarity known for "hskp27"!
+No polarity known for "hskp28"!
+No polarity known for "hskp29"!
+No polarity known for "hskp30"!
+No polarity known for "hskp31"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.019s
+user	0m59.878s
+sys	0m0.102s
+SYN488+1.p
+No polarity known for "hskp0"!
+No polarity known for "ndr1_0"!
+No polarity known for "c0_1"!
+No polarity known for "c3_1"!
+No polarity known for "c1_1"!
+No polarity known for "hskp1"!
+No polarity known for "c2_1"!
+No polarity known for "hskp2"!
+No polarity known for "hskp3"!
+No polarity known for "hskp4"!
+No polarity known for "hskp5"!
+No polarity known for "hskp6"!
+No polarity known for "hskp7"!
+No polarity known for "hskp8"!
+No polarity known for "hskp9"!
+No polarity known for "hskp10"!
+No polarity known for "hskp11"!
+No polarity known for "hskp12"!
+No polarity known for "hskp13"!
+No polarity known for "hskp14"!
+No polarity known for "hskp15"!
+No polarity known for "hskp16"!
+No polarity known for "hskp17"!
+No polarity known for "hskp18"!
+No polarity known for "hskp19"!
+No polarity known for "hskp20"!
+No polarity known for "hskp21"!
+No polarity known for "hskp22"!
+No polarity known for "hskp23"!
+No polarity known for "hskp24"!
+No polarity known for "hskp25"!
+No polarity known for "hskp26"!
+No polarity known for "hskp27"!
+No polarity known for "hskp28"!
+No polarity known for "hskp29"!
+No polarity known for "hskp30"!
+No polarity known for "hskp31"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.008s
+user	0m59.866s
+sys	0m0.100s
+SYN489+1.p
+No polarity known for "hskp0"!
+No polarity known for "ndr1_0"!
+No polarity known for "c0_1"!
+No polarity known for "c1_1"!
+No polarity known for "c2_1"!
+No polarity known for "hskp1"!
+No polarity known for "c3_1"!
+No polarity known for "hskp2"!
+No polarity known for "hskp3"!
+No polarity known for "hskp4"!
+No polarity known for "hskp5"!
+No polarity known for "hskp6"!
+No polarity known for "hskp7"!
+No polarity known for "hskp8"!
+No polarity known for "hskp9"!
+No polarity known for "hskp10"!
+No polarity known for "hskp11"!
+No polarity known for "hskp12"!
+No polarity known for "hskp13"!
+No polarity known for "hskp14"!
+No polarity known for "hskp15"!
+No polarity known for "hskp16"!
+No polarity known for "hskp17"!
+No polarity known for "hskp18"!
+No polarity known for "hskp19"!
+No polarity known for "hskp20"!
+No polarity known for "hskp21"!
+No polarity known for "hskp22"!
+No polarity known for "hskp23"!
+No polarity known for "hskp24"!
+No polarity known for "hskp25"!
+No polarity known for "hskp26"!
+No polarity known for "hskp27"!
+No polarity known for "hskp28"!
+No polarity known for "hskp29"!
+No polarity known for "hskp30"!
+No polarity known for "hskp31"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.027s
+user	0m59.893s
+sys	0m0.096s
+SYN498+1.p
+No polarity known for "hskp0"!
+No polarity known for "ndr1_0"!
+No polarity known for "c1_1"!
+No polarity known for "c2_1"!
+No polarity known for "c3_1"!
+No polarity known for "hskp1"!
+No polarity known for "c0_1"!
+No polarity known for "hskp2"!
+No polarity known for "hskp3"!
+No polarity known for "hskp4"!
+No polarity known for "hskp5"!
+No polarity known for "hskp6"!
+No polarity known for "hskp7"!
+No polarity known for "hskp8"!
+No polarity known for "hskp9"!
+No polarity known for "hskp10"!
+No polarity known for "hskp11"!
+No polarity known for "hskp12"!
+No polarity known for "hskp13"!
+No polarity known for "hskp14"!
+No polarity known for "hskp15"!
+No polarity known for "hskp16"!
+No polarity known for "hskp17"!
+No polarity known for "hskp18"!
+No polarity known for "hskp19"!
+No polarity known for "hskp20"!
+No polarity known for "hskp21"!
+No polarity known for "hskp22"!
+No polarity known for "hskp23"!
+No polarity known for "hskp24"!
+No polarity known for "hskp25"!
+No polarity known for "hskp26"!
+No polarity known for "hskp27"!
+No polarity known for "hskp28"!
+No polarity known for "hskp29"!
+No polarity known for "hskp30"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.018s
+user	0m59.881s
+sys	0m0.098s
+SYN499+1.p
+No polarity known for "hskp0"!
+No polarity known for "ndr1_0"!
+No polarity known for "c2_1"!
+No polarity known for "c0_1"!
+No polarity known for "c1_1"!
+No polarity known for "hskp1"!
+No polarity known for "c3_1"!
+No polarity known for "hskp2"!
+No polarity known for "hskp3"!
+No polarity known for "hskp4"!
+No polarity known for "hskp5"!
+No polarity known for "hskp6"!
+No polarity known for "hskp7"!
+No polarity known for "hskp8"!
+No polarity known for "hskp9"!
+No polarity known for "hskp10"!
+No polarity known for "hskp11"!
+No polarity known for "hskp12"!
+No polarity known for "hskp13"!
+No polarity known for "hskp14"!
+No polarity known for "hskp15"!
+No polarity known for "hskp16"!
+No polarity known for "hskp17"!
+No polarity known for "hskp18"!
+No polarity known for "hskp19"!
+No polarity known for "hskp20"!
+No polarity known for "hskp21"!
+No polarity known for "hskp22"!
+No polarity known for "hskp23"!
+No polarity known for "hskp24"!
+No polarity known for "hskp25"!
+No polarity known for "hskp26"!
+No polarity known for "hskp27"!
+No polarity known for "hskp28"!
+No polarity known for "hskp29"!
+No polarity known for "hskp30"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.015s
+user	0m59.876s
+sys	0m0.101s
+SYN500+1.p
+No polarity known for "hskp0"!
+No polarity known for "ndr1_0"!
+No polarity known for "c1_1"!
+No polarity known for "c3_1"!
+No polarity known for "c2_1"!
+No polarity known for "hskp1"!
+No polarity known for "c0_1"!
+No polarity known for "hskp2"!
+No polarity known for "hskp3"!
+No polarity known for "hskp4"!
+No polarity known for "hskp5"!
+No polarity known for "hskp6"!
+No polarity known for "hskp7"!
+No polarity known for "hskp8"!
+No polarity known for "hskp9"!
+No polarity known for "hskp10"!
+No polarity known for "hskp11"!
+No polarity known for "hskp12"!
+No polarity known for "hskp13"!
+No polarity known for "hskp14"!
+No polarity known for "hskp15"!
+No polarity known for "hskp16"!
+No polarity known for "hskp17"!
+No polarity known for "hskp18"!
+No polarity known for "hskp19"!
+No polarity known for "hskp20"!
+No polarity known for "hskp21"!
+No polarity known for "hskp22"!
+No polarity known for "hskp23"!
+No polarity known for "hskp24"!
+No polarity known for "hskp25"!
+No polarity known for "hskp26"!
+No polarity known for "hskp27"!
+No polarity known for "hskp28"!
+No polarity known for "hskp29"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.012s
+user	0m59.873s
+sys	0m0.100s
+SYN501+1.p
+No polarity known for "hskp0"!
+No polarity known for "ndr1_0"!
+No polarity known for "c0_1"!
+No polarity known for "c2_1"!
+No polarity known for "c3_1"!
+No polarity known for "hskp1"!
+No polarity known for "c1_1"!
+No polarity known for "hskp2"!
+No polarity known for "hskp3"!
+No polarity known for "hskp4"!
+No polarity known for "hskp5"!
+No polarity known for "hskp6"!
+No polarity known for "hskp7"!
+No polarity known for "hskp8"!
+No polarity known for "hskp9"!
+No polarity known for "hskp10"!
+No polarity known for "hskp11"!
+No polarity known for "hskp12"!
+No polarity known for "hskp13"!
+No polarity known for "hskp14"!
+No polarity known for "hskp15"!
+No polarity known for "hskp16"!
+No polarity known for "hskp17"!
+No polarity known for "hskp18"!
+No polarity known for "hskp19"!
+No polarity known for "hskp20"!
+No polarity known for "hskp21"!
+No polarity known for "hskp22"!
+No polarity known for "hskp23"!
+No polarity known for "hskp24"!
+No polarity known for "hskp25"!
+No polarity known for "hskp26"!
+No polarity known for "hskp27"!
+No polarity known for "hskp28"!
+No polarity known for "hskp29"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.012s
+user	0m59.867s
+sys	0m0.106s
+SYN502+1.p
+No polarity known for "hskp0"!
+No polarity known for "ndr1_0"!
+No polarity known for "c1_1"!
+No polarity known for "c0_1"!
+No polarity known for "c2_1"!
+No polarity known for "hskp1"!
+No polarity known for "hskp2"!
+No polarity known for "c3_1"!
+No polarity known for "hskp3"!
+No polarity known for "hskp4"!
+No polarity known for "hskp5"!
+No polarity known for "hskp6"!
+No polarity known for "hskp7"!
+No polarity known for "hskp8"!
+No polarity known for "hskp9"!
+No polarity known for "hskp10"!
+No polarity known for "hskp11"!
+No polarity known for "hskp12"!
+No polarity known for "hskp13"!
+No polarity known for "hskp14"!
+No polarity known for "hskp15"!
+No polarity known for "hskp16"!
+No polarity known for "hskp17"!
+No polarity known for "hskp18"!
+No polarity known for "hskp19"!
+No polarity known for "hskp20"!
+No polarity known for "hskp21"!
+No polarity known for "hskp22"!
+No polarity known for "hskp23"!
+No polarity known for "hskp24"!
+No polarity known for "hskp25"!
+No polarity known for "hskp26"!
+No polarity known for "hskp27"!
+No polarity known for "hskp28"!
+No polarity known for "hskp29"!
+No polarity known for "hskp30"!
+No polarity known for "hskp31"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.010s
+user	0m59.870s
+sys	0m0.101s
+SYN503+1.p
+No polarity known for "hskp0"!
+No polarity known for "ndr1_0"!
+No polarity known for "c2_1"!
+No polarity known for "c1_1"!
+No polarity known for "c3_1"!
+No polarity known for "hskp1"!
+No polarity known for "c0_1"!
+No polarity known for "hskp2"!
+No polarity known for "hskp3"!
+No polarity known for "hskp4"!
+No polarity known for "hskp5"!
+No polarity known for "hskp6"!
+No polarity known for "hskp7"!
+No polarity known for "hskp8"!
+No polarity known for "hskp9"!
+No polarity known for "hskp10"!
+No polarity known for "hskp11"!
+No polarity known for "hskp12"!
+No polarity known for "hskp13"!
+No polarity known for "hskp14"!
+No polarity known for "hskp15"!
+No polarity known for "hskp16"!
+No polarity known for "hskp17"!
+No polarity known for "hskp18"!
+No polarity known for "hskp19"!
+No polarity known for "hskp20"!
+No polarity known for "hskp21"!
+No polarity known for "hskp22"!
+No polarity known for "hskp23"!
+No polarity known for "hskp24"!
+No polarity known for "hskp25"!
+No polarity known for "hskp26"!
+No polarity known for "hskp27"!
+No polarity known for "hskp28"!
+No polarity known for "hskp29"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.023s
+user	0m59.876s
+sys	0m0.108s
+SYN504+1.p
+No polarity known for "hskp0"!
+No polarity known for "ndr1_0"!
+No polarity known for "c0_1"!
+No polarity known for "c1_1"!
+No polarity known for "c2_1"!
+No polarity known for "hskp1"!
+No polarity known for "c3_1"!
+No polarity known for "hskp2"!
+No polarity known for "hskp3"!
+No polarity known for "hskp4"!
+No polarity known for "hskp5"!
+No polarity known for "hskp6"!
+No polarity known for "hskp7"!
+No polarity known for "hskp8"!
+No polarity known for "hskp9"!
+No polarity known for "hskp10"!
+No polarity known for "hskp11"!
+No polarity known for "hskp12"!
+No polarity known for "hskp13"!
+No polarity known for "hskp14"!
+No polarity known for "hskp15"!
+No polarity known for "hskp16"!
+No polarity known for "hskp17"!
+No polarity known for "hskp18"!
+No polarity known for "hskp19"!
+No polarity known for "hskp20"!
+No polarity known for "hskp21"!
+No polarity known for "hskp22"!
+No polarity known for "hskp23"!
+No polarity known for "hskp24"!
+No polarity known for "hskp25"!
+No polarity known for "hskp26"!
+No polarity known for "hskp27"!
+No polarity known for "hskp28"!
+No polarity known for "hskp29"!
+No polarity known for "hskp30"!
+No polarity known for "hskp31"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.012s
+user	0m59.872s
+sys	0m0.098s
+SYN505+1.p
+No polarity known for "hskp0"!
+No polarity known for "ndr1_0"!
+No polarity known for "c0_1"!
+No polarity known for "c2_1"!
+No polarity known for "c1_1"!
+No polarity known for "hskp1"!
+No polarity known for "c3_1"!
+No polarity known for "hskp2"!
+No polarity known for "hskp3"!
+No polarity known for "hskp4"!
+No polarity known for "hskp5"!
+No polarity known for "hskp6"!
+No polarity known for "hskp7"!
+No polarity known for "hskp8"!
+No polarity known for "hskp9"!
+No polarity known for "hskp10"!
+No polarity known for "hskp11"!
+No polarity known for "hskp12"!
+No polarity known for "hskp13"!
+No polarity known for "hskp14"!
+No polarity known for "hskp15"!
+No polarity known for "hskp16"!
+No polarity known for "hskp17"!
+No polarity known for "hskp18"!
+No polarity known for "hskp19"!
+No polarity known for "hskp20"!
+No polarity known for "hskp21"!
+No polarity known for "hskp22"!
+No polarity known for "hskp23"!
+No polarity known for "hskp24"!
+No polarity known for "hskp25"!
+No polarity known for "hskp26"!
+No polarity known for "hskp27"!
+No polarity known for "hskp28"!
+No polarity known for "hskp29"!
+No polarity known for "hskp30"!
+No polarity known for "hskp31"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.023s
+user	0m59.875s
+sys	0m0.102s
+SYN506+1.p
+No polarity known for "hskp0"!
+No polarity known for "ndr1_0"!
+No polarity known for "c2_1"!
+No polarity known for "c3_1"!
+No polarity known for "c0_1"!
+No polarity known for "hskp1"!
+No polarity known for "c1_1"!
+No polarity known for "hskp2"!
+No polarity known for "hskp3"!
+No polarity known for "hskp4"!
+No polarity known for "hskp5"!
+No polarity known for "hskp6"!
+No polarity known for "hskp7"!
+No polarity known for "hskp8"!
+No polarity known for "hskp9"!
+No polarity known for "hskp10"!
+No polarity known for "hskp11"!
+No polarity known for "hskp12"!
+No polarity known for "hskp13"!
+No polarity known for "hskp14"!
+No polarity known for "hskp15"!
+No polarity known for "hskp16"!
+No polarity known for "hskp17"!
+No polarity known for "hskp18"!
+No polarity known for "hskp19"!
+No polarity known for "hskp20"!
+No polarity known for "hskp21"!
+No polarity known for "hskp22"!
+No polarity known for "hskp23"!
+No polarity known for "hskp24"!
+No polarity known for "hskp25"!
+No polarity known for "hskp26"!
+No polarity known for "hskp27"!
+No polarity known for "hskp28"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.009s
+user	0m59.861s
+sys	0m0.106s
+SYN507+1.p
+No polarity known for "hskp0"!
+No polarity known for "ndr1_0"!
+No polarity known for "c1_1"!
+No polarity known for "c0_1"!
+No polarity known for "c2_1"!
+No polarity known for "hskp1"!
+No polarity known for "hskp2"!
+No polarity known for "c3_1"!
+No polarity known for "hskp3"!
+No polarity known for "hskp4"!
+No polarity known for "hskp5"!
+No polarity known for "hskp6"!
+No polarity known for "hskp7"!
+No polarity known for "hskp8"!
+No polarity known for "hskp9"!
+No polarity known for "hskp10"!
+No polarity known for "hskp11"!
+No polarity known for "hskp12"!
+No polarity known for "hskp13"!
+No polarity known for "hskp14"!
+No polarity known for "hskp15"!
+No polarity known for "hskp16"!
+No polarity known for "hskp17"!
+No polarity known for "hskp18"!
+No polarity known for "hskp19"!
+No polarity known for "hskp20"!
+No polarity known for "hskp21"!
+No polarity known for "hskp22"!
+No polarity known for "hskp23"!
+No polarity known for "hskp24"!
+No polarity known for "hskp25"!
+No polarity known for "hskp26"!
+No polarity known for "hskp27"!
+No polarity known for "hskp28"!
+No polarity known for "hskp29"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.018s
+user	0m59.877s
+sys	0m0.102s
+SYN508+1.p
+No polarity known for "hskp0"!
+No polarity known for "ndr1_0"!
+No polarity known for "c0_1"!
+No polarity known for "c1_1"!
+No polarity known for "c2_1"!
+No polarity known for "hskp1"!
+No polarity known for "hskp2"!
+No polarity known for "c3_1"!
+No polarity known for "hskp3"!
+No polarity known for "hskp4"!
+No polarity known for "hskp5"!
+No polarity known for "hskp6"!
+No polarity known for "hskp7"!
+No polarity known for "hskp8"!
+No polarity known for "hskp9"!
+No polarity known for "hskp10"!
+No polarity known for "hskp11"!
+No polarity known for "hskp12"!
+No polarity known for "hskp13"!
+No polarity known for "hskp14"!
+No polarity known for "hskp15"!
+No polarity known for "hskp16"!
+No polarity known for "hskp17"!
+No polarity known for "hskp18"!
+No polarity known for "hskp19"!
+No polarity known for "hskp20"!
+No polarity known for "hskp21"!
+No polarity known for "hskp22"!
+No polarity known for "hskp23"!
+No polarity known for "hskp24"!
+No polarity known for "hskp25"!
+No polarity known for "hskp26"!
+No polarity known for "hskp27"!
+No polarity known for "hskp28"!
+No polarity known for "hskp29"!
+No polarity known for "hskp30"!
+No polarity known for "hskp31"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.024s
+user	0m59.883s
+sys	0m0.102s
+SYN509+1.p
+No polarity known for "hskp0"!
+No polarity known for "ndr1_0"!
+No polarity known for "c3_1"!
+No polarity known for "c0_1"!
+No polarity known for "c2_1"!
+No polarity known for "hskp1"!
+No polarity known for "c1_1"!
+No polarity known for "hskp2"!
+No polarity known for "hskp3"!
+No polarity known for "hskp4"!
+No polarity known for "hskp5"!
+No polarity known for "hskp6"!
+No polarity known for "hskp7"!
+No polarity known for "hskp8"!
+No polarity known for "hskp9"!
+No polarity known for "hskp10"!
+No polarity known for "hskp11"!
+No polarity known for "hskp12"!
+No polarity known for "hskp13"!
+No polarity known for "hskp14"!
+No polarity known for "hskp15"!
+No polarity known for "hskp16"!
+No polarity known for "hskp17"!
+No polarity known for "hskp18"!
+No polarity known for "hskp19"!
+No polarity known for "hskp20"!
+No polarity known for "hskp21"!
+No polarity known for "hskp22"!
+No polarity known for "hskp23"!
+No polarity known for "hskp24"!
+No polarity known for "hskp25"!
+No polarity known for "hskp26"!
+No polarity known for "hskp27"!
+No polarity known for "hskp28"!
+No polarity known for "hskp29"!
+No polarity known for "hskp30"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.010s
+user	0m59.876s
+sys	0m0.095s
+SYN510+1.p
+No polarity known for "hskp0"!
+No polarity known for "ndr1_0"!
+No polarity known for "c0_1"!
+No polarity known for "c2_1"!
+No polarity known for "c3_1"!
+No polarity known for "hskp1"!
+No polarity known for "c1_1"!
+No polarity known for "hskp2"!
+No polarity known for "hskp3"!
+No polarity known for "hskp4"!
+No polarity known for "hskp5"!
+No polarity known for "hskp6"!
+No polarity known for "hskp7"!
+No polarity known for "hskp8"!
+No polarity known for "hskp9"!
+No polarity known for "hskp10"!
+No polarity known for "hskp11"!
+No polarity known for "hskp12"!
+No polarity known for "hskp13"!
+No polarity known for "hskp14"!
+No polarity known for "hskp15"!
+No polarity known for "hskp16"!
+No polarity known for "hskp17"!
+No polarity known for "hskp18"!
+No polarity known for "hskp19"!
+No polarity known for "hskp20"!
+No polarity known for "hskp21"!
+No polarity known for "hskp22"!
+No polarity known for "hskp23"!
+No polarity known for "hskp24"!
+No polarity known for "hskp25"!
+No polarity known for "hskp26"!
+No polarity known for "hskp27"!
+No polarity known for "hskp28"!
+No polarity known for "hskp29"!
+No polarity known for "hskp30"!
+No polarity known for "hskp31"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.014s
+user	0m59.871s
+sys	0m0.103s
+SYN511+1.p
+No polarity known for "hskp0"!
+No polarity known for "ndr1_0"!
+No polarity known for "c1_1"!
+No polarity known for "c2_1"!
+No polarity known for "c3_1"!
+No polarity known for "hskp1"!
+No polarity known for "c0_1"!
+No polarity known for "hskp2"!
+No polarity known for "hskp3"!
+No polarity known for "hskp4"!
+No polarity known for "hskp5"!
+No polarity known for "hskp6"!
+No polarity known for "hskp7"!
+No polarity known for "hskp8"!
+No polarity known for "hskp9"!
+No polarity known for "hskp10"!
+No polarity known for "hskp11"!
+No polarity known for "hskp12"!
+No polarity known for "hskp13"!
+No polarity known for "hskp14"!
+No polarity known for "hskp15"!
+No polarity known for "hskp16"!
+No polarity known for "hskp17"!
+No polarity known for "hskp18"!
+No polarity known for "hskp19"!
+No polarity known for "hskp20"!
+No polarity known for "hskp21"!
+No polarity known for "hskp22"!
+No polarity known for "hskp23"!
+No polarity known for "hskp24"!
+No polarity known for "hskp25"!
+No polarity known for "hskp26"!
+No polarity known for "hskp27"!
+No polarity known for "hskp28"!
+No polarity known for "hskp29"!
+No polarity known for "hskp30"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.009s
+user	0m59.871s
+sys	0m0.098s
+SYN512+1.p
+No polarity known for "hskp0"!
+No polarity known for "ndr1_0"!
+No polarity known for "c1_1"!
+No polarity known for "c2_1"!
+No polarity known for "c0_1"!
+No polarity known for "hskp1"!
+No polarity known for "c3_1"!
+No polarity known for "hskp2"!
+No polarity known for "hskp3"!
+No polarity known for "hskp4"!
+No polarity known for "hskp5"!
+No polarity known for "hskp6"!
+No polarity known for "hskp7"!
+No polarity known for "hskp8"!
+No polarity known for "hskp9"!
+No polarity known for "hskp10"!
+No polarity known for "hskp11"!
+No polarity known for "hskp12"!
+No polarity known for "hskp13"!
+No polarity known for "hskp14"!
+No polarity known for "hskp15"!
+No polarity known for "hskp16"!
+No polarity known for "hskp17"!
+No polarity known for "hskp18"!
+No polarity known for "hskp19"!
+No polarity known for "hskp20"!
+No polarity known for "hskp21"!
+No polarity known for "hskp22"!
+No polarity known for "hskp23"!
+No polarity known for "hskp24"!
+No polarity known for "hskp25"!
+No polarity known for "hskp26"!
+No polarity known for "hskp27"!
+No polarity known for "hskp28"!
+No polarity known for "hskp29"!
+No polarity known for "hskp30"!
+No polarity known for "hskp31"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.012s
+user	0m59.871s
+sys	0m0.101s
+SYN548+1.p
+No polarity known for "reachable"!
+No polarity known for "p"!
+No polarity known for "q"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.008s
+user	0m59.910s
+sys	0m0.059s
+SYN723+1.p
+No polarity known for "p"!
+No polarity known for "q"!
+No polarity known for "r"!
+No polarity known for "s"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.012s
+user	0m59.884s
+sys	0m0.085s
+SYN726+1.p
+No polarity known for "p"!
+No polarity known for "q"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	8m20.638s
+user	8m19.998s
+sys	0m0.314s
+SYN917+1.p
+No polarity known for "f"!
+No polarity known for "g"!
+No polarity known for "h"!
+No polarity known for "r"!
+No polarity known for "p"!
+No polarity known for "q"!
+No polarity known for "c"!
+Terminated: 15
+
+real	49m17.758s
+user	48m57.901s
+sys	0m10.772s
+SYN918+1.p
+No polarity known for "f"!
+No polarity known for "g"!
+No polarity known for "h"!
+
+real	0m0.017s
+user	0m0.007s
+sys	0m0.005s
+SYN920+1.p
+No polarity known for "f"!
+No polarity known for "g"!
+No polarity known for "h"!
+
+real	0m0.011s
+user	0m0.006s
+sys	0m0.003s
+SYN930+1.p
+No polarity known for "p"!
+No polarity known for "c"!
+
+real	0m0.013s
+user	0m0.004s
+sys	0m0.008s
+SYN934+1.p
+No polarity known for "c"!
+No polarity known for "p"!
+
+real	0m0.008s
+user	0m0.003s
+sys	0m0.003s
+SYN935+1.p
+No polarity known for "p"!
+No polarity known for "c"!
+
+real	0m0.007s
+user	0m0.003s
+sys	0m0.003s
+SYN938+1.p
+No polarity known for "q1"!
+No polarity known for "p1"!
+No polarity known for "r1"!
+No polarity known for "a1"!
+No polarity known for "b"!
+No polarity known for "c"!
+No polarity known for "e"!
+No polarity known for "g"!
+No polarity known for "s"!
+No polarity known for "s1"!
+No polarity known for "r"!
+No polarity known for "q"!
+No polarity known for "a"!
+No polarity known for "a0"!
+No polarity known for "b0"!
+No polarity known for "q0"!
+No polarity known for "p"!
+No polarity known for "eq"!
+No polarity known for "a_member_of"!
+No polarity known for "f0"!
+No polarity known for "g0"!
+Fatal error: exception Failure("Timeout exceeded")
+
+real	1m0.015s
+user	0m59.633s
+sys	0m0.126s
+SYN939+1.p
+No polarity known for "q"!
+No polarity known for "p"!
+No polarity known for "r"!
+
+real	0m0.007s
+user	0m0.003s
+sys	0m0.003s
+SYN950+1.p
+No polarity known for "q"!
+No polarity known for "p"!
+
+real	0m0.007s
+user	0m0.003s
+sys	0m0.003s
+SYN954+1.p
+No polarity known for "q"!
+No polarity known for "p"!
+
+real	0m0.006s
+user	0m0.002s
+sys	0m0.003s
+SYN967+1.p
+No polarity known for "q"!
+No polarity known for "p"!
+
+real	0m0.006s
+user	0m0.002s
+sys	0m0.003s
