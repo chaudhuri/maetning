@@ -275,6 +275,9 @@ let rec unite_arg_lists ~repl args =
       let (repl, arg1) = Unify.unite_lists repl arg1 arg2 in
       unite_arg_lists ~repl (arg1 :: args)
 
+let ignore_non_unifiable f x =
+  try f x with Unify.Unif _ -> ()
+
 let factor ~sc sq =
   let rec facts l =
     match l with
@@ -307,7 +310,7 @@ let factor ~sc sq =
   facts |>
   List.map (fun l -> (List.length l, l)) |>
   List.sort (fun (n, _) (m, _) -> Pervasives.compare n m) |>
-  List.iter process_cand
+  List.iter (ignore_non_unifiable process_cand)
 
 type t = sequent
 

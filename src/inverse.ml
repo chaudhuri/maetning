@@ -305,8 +305,6 @@ module Inv (D : Data) = struct
       let add_seq sq =
         D.register sq ;
         if Sequent.subsume sq goal_seq then begin
-          (* Sequent.Test.print sq ; *)
-          (* Format.printf "[%d] %a@." sq.sqid (Sequent.format_sequent ()) sq ; *)
           raise (Escape {lforms = lfs ;
                          goal = goal_lf ;
                          found = sq})
