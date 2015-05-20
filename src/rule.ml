@@ -21,11 +21,11 @@ type rule = {
   prems : (Sequent.t * right_mode) list ;
   concl : Sequent.t ;
   sats  : Sequent.t list ;
-  eigen : S.t ;
-  extra : term list M.t ;
+  eigen : VSet.t ;
+  extra : term list VMap.t ;
 }
 
-let canonize ?(repl=IdtMap.empty) rr =
+let canonize ?(repl=VMap.empty) rr =
   let (repl, prems) = List.fold_left begin
       fun (repl, prems) (prem, mode) ->
         let repl = Sequent.canonize ~repl prem in
@@ -41,24 +41,24 @@ let canonize ?(repl=IdtMap.empty) rr =
     end (repl, []) rr.sats in
   let sats = List.rev sats in
   let eigen = replace_eigen_set ~repl rr.eigen in
-  let extra = M.fold begin
+  let extra = VMap.fold begin
       fun u ts extra ->
         let v = replace_eigen ~repl u in
         let ts = List.map (Term.replace ~repl) ts in
-        M.add v ts extra
-    end rr.extra M.empty
+        VMap.add v ts extra
+    end rr.extra VMap.empty
   in
   { prems ; concl ; sats ; eigen ; extra }
 
 let format_eigen ff eigen =
-  match S.elements eigen with
+  match VSet.elements eigen with
   | [] -> ()
   | v :: vs ->
       Format.(
         pp_open_box ff 1 ; begin
           pp_print_string ff "{" ;
-          pp_print_string ff v.rep ;
-          List.iter (fun v -> fprintf ff ",@,%s" v.rep) vs ;
+          format_var ff v ;
+          List.iter (fun v -> fprintf ff ",@,%a" format_var v) vs ;
           pp_print_string ff "}" ;
         end ; pp_close_box ff ()
       )
@@ -73,13 +73,13 @@ let format_terms ff ts =
 let format_extra1 ff (x, ts) =
   let open Format in
   List.iter begin fun t ->
-    fprintf ff "%s#@[<b1>[%a]@]"
-      x.rep format_terms ts
+    fprintf ff "%a#@[<b1>[%a]@]"
+      format_var x format_terms ts
   end ts
 
 let format_extra ff extra =
   let open Format in
-  match M.bindings extra with
+  match VMap.bindings extra with
   | [] -> ()
   | xts :: bs ->
       pp_open_box ff 1 ; begin
@@ -120,7 +120,7 @@ let ec_viol eigen concl =
   let rec scan_term t =
     match t.term with
     | Var v ->
-        S.mem v eigen
+        VSet.mem v eigen
     | App (_, ts) -> scan_terms ts
     | _ -> false
 
@@ -151,7 +151,7 @@ let evc_ok eigen concl =
     dprintf "evc"
       "rejecting @[%a@] -- EVS = %s@."
       (format_sequent ()) concl
-      (String.concat "," @@ List.map (fun v -> v.rep) (IdtSet.elements eigen)) ;
+      (String.concat "," @@ List.map var_to_string (VSet.elements eigen)) ;
   not ret
 
 let rec occurs v t =
@@ -161,14 +161,14 @@ let rec occurs v t =
   | Idx _ -> false
 
 let extra_ok extra =
-  M.for_all begin fun v ts ->
+  VMap.for_all begin fun v ts ->
     List.for_all begin fun t ->
       not @@ occurs v t
     end ts
   end extra
 
 let rule_match_exn ~sc (prem, mode) cand =
-  let repl = M.empty in
+  let repl = VMap.empty in
   let (repl, right, strict) =
     match prem.right, cand.right with
     | None, _ ->
@@ -242,16 +242,16 @@ let specialize_one ~sc ~id ~sq ~concl ~sats ~eigen ~extra ((current_prem, curren
       let concl = override concl ~left:(Ft.append concl.left new_hyps) in
       let prems = List.map (distribute sq.right) prems in
       let concl = distribute sq.right (concl, `test) |> fst in
-      let extra = M.fold begin
+      let extra = VMap.fold begin
           fun v ts extra ->
             let newts = List.map (Term.replace ~repl) ts in
             let v = Term.replace_eigen ~repl v in
-            let ts = match M.find v extra with
+            let ts = match VMap.find v extra with
               | oldts -> oldts @ newts
               | exception Not_found -> newts
             in
-            M.add v (List.sort_uniq Pervasives.compare ts) extra
-        end extra M.empty
+            VMap.add v ((* List.sort_uniq Pervasives.compare *) ts) extra
+        end extra VMap.empty
       in
       let old_eigen = eigen in
       let eigen = replace_eigen_set ~repl eigen in
@@ -264,14 +264,14 @@ let specialize_one ~sc ~id ~sq ~concl ~sats ~eigen ~extra ((current_prem, curren
       (*                            List.map (fun x -> x.rep) |> *)
       (*                            String.concat ",") ; *)
       (*   ) ; *)
-      if S.cardinal old_eigen == S.cardinal eigen &&
+      if VSet.cardinal old_eigen == VSet.cardinal eigen &&
          evc_ok eigen concl && extra_ok extra
       then
         let prem_vars = List.fold_left begin
-            fun vars (sq, _) -> S.union vars sq.vars
-          end S.empty prems in
-        let eigen = S.inter eigen prem_vars in
-        let extra = M.filter (fun v _ -> S.mem v prem_vars) extra in
+            fun vars (sq, _) -> VSet.union vars sq.vars
+          end VSet.empty prems in
+        let eigen = VSet.inter eigen prem_vars in
+        let extra = VMap.filter (fun v _ -> VSet.mem v prem_vars) extra in
         let concl = override concl
             ~ancs:(ISet.add id (ISet.union sq.ancs concl.ancs))
             ~skel:(Skeleton.reduce [(concl.skel, -1) ; (sq.skel, current_premid)]) in
@@ -335,7 +335,7 @@ let specialize_default ~sc_rule ~sc_fact rr idsq =
   in
   specialize ~sc rr idsq
 
-let freshen ?(repl=IdtMap.empty) rr =
+let freshen ?(repl=VMap.empty) rr =
   let (repl, concl) = Sequent.freshen_ ~repl rr.concl in
   let concl = concl () in
   let (repl, prems) = List.fold_right begin
@@ -351,12 +351,12 @@ let freshen ?(repl=IdtMap.empty) rr =
     end rr.sats (repl, [])
   in
   let eigen = replace_eigen_set ~repl rr.eigen in
-  let extra = M.fold begin
+  let extra = VMap.fold begin
       fun u ts extra ->
         let v = replace_eigen ~repl u in
         let ts = List.map (Term.replace ~repl) ts in
-        M.add v ts extra
-    end rr.extra M.empty
+        VMap.add v ts extra
+    end rr.extra VMap.empty
   in
   { prems ; concl ; sats ; eigen ; extra }
 
@@ -382,19 +382,19 @@ module Test = struct
   let q = Idt.intern "q"
   let z = app (Idt.intern "z") []
   let s x = app (Idt.intern "s") [x]
-  let _X = vargen#next `evar
-  let _Y = vargen#next `evar
-  let _a = vargen#next `param
-  let _b = vargen#next `param
-  let _c = vargen#next `param
+  let _X = vargen#next E
+  let _Y = vargen#next E
+  let _a = vargen#next U
+  let _b = vargen#next U
+  let _c = vargen#next U
 
   let rule1 = {
     prems = [ mk_sequent ~left:Ft.empty ~right:(p, [_X ; _a]) (), `extract ] ;
     concl = mk_sequent ()
         ~left:(Ft.of_list [(q, [_X])])
         ~right:(q, [_X]) ;
-    eigen = S.singleton (unvar _a) ;
-    extra = M.empty ;
+    eigen = VSet.singleton (unvar _a) ;
+    extra = VMap.empty ;
     sats = [] ;
   }
 
@@ -409,8 +409,8 @@ module Test = struct
                 ~left:(Ft.of_list [(q, [s z])]), `extract ] ;
     concl = mk_sequent ()
         ~left:(Ft.singleton (q, [app (Idt.intern "nat") []])) ;
-    eigen = S.empty ;
-    extra = M.empty ;
+    eigen = VSet.empty ;
+    extra = VMap.empty ;
     sats = [] ;
   }
 

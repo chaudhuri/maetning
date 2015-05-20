@@ -103,7 +103,7 @@ struct
   let ex_AllL sq c =
     match sq.left_active with
     | (x, {form = Forall _ ; _}) :: _ ->
-        let t = Term.vargen#next `evar in
+        let t = Term.vargen#next E in
         Choices [(t, (fun xx -> c))]
     | _ -> Invalid "AllL"
 
@@ -121,7 +121,7 @@ struct
   let ex_ExR sq c =
     match sq.right.form with
     | Exists _ ->
-        let t = Term.vargen#next `evar in
+        let t = Term.vargen#next U in
         Choices [(t, c)]
     | _ -> Invalid "ExR"
 
@@ -259,7 +259,7 @@ module Rebuild : AGENCY with type cert = Skeleton.t = struct
   let ex_AllL sq cc =
     match sq.left_active, cc with
     | ((x, {form = Forall _ ; _}) :: _), AllL cc ->
-        let t = Term.vargen#next `evar in
+        let t = Term.vargen#next E in
         Choices [(t, (fun xx -> cc))]
     | _ -> Invalid "AllL"
 
@@ -278,7 +278,7 @@ module Rebuild : AGENCY with type cert = Skeleton.t = struct
   let ex_ExR sq cc =
     match sq.right.form, cc with
     | Exists _, ExR cc ->
-        let t = Term.vargen#next `evar in
+        let t = Term.vargen#next E in
         Choices [(t, cc)]
     | _ -> Invalid "ExR"
 

@@ -205,7 +205,7 @@ let get_polarity ~lforms p =
 
 let rec freeze_vars t =
   match t.term with
-  | Var v -> app (Idt.intern (v.Idt.rep ^ "¶")) []
+  | Var v -> app (Idt.intern (var_to_string v ^ "¶")) []
   | App (f, ts) -> app f (List.map freeze_vars ts)
   | Idx n -> t
 

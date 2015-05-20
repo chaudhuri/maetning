@@ -33,7 +33,7 @@ module Sq : sig
   type sequent = private {
     left : ctx ;
     right : latm option ;
-    vars : IdtSet.t ;
+    vars : VSet.t ;
     (** invariant: fvs(sq.left) \cup fvs(sq.right) \subseteq sq.vars *)
     skel : Skeleton.t ;
     ancs : ISet.t ;
@@ -44,7 +44,7 @@ end = struct
   type sequent = {
     left : ctx ;
     right : latm option ;
-    vars : IdtSet.t ;
+    vars : VSet.t ;
     skel : Skeleton.t ;
     ancs : ISet.t ;
   }
@@ -57,9 +57,9 @@ end = struct
     let vars = Ft.fold_left begin
         fun vars (_, ts) ->
           List.fold_left begin
-            fun vars t -> IdtSet.union vars t.Term.vars
+            fun vars t -> VSet.union vars t.Term.vars
           end vars ts
-      end IdtSet.empty terms in
+      end VSet.empty terms in
     {left ; right ; vars ; skel ; ancs}
 
   let override ?ancs ?skel ?right ?left sq =
@@ -142,7 +142,7 @@ let freshen_latm_option ~repl lopt =
       let (repl, l) = freshen_latm ~repl l in
       (repl, Some l)
 
-let freshen_ ?(repl=IdtMap.empty) s0 =
+let freshen_ ?(repl=VMap.empty) s0 =
   let (repl, right) = freshen_latm_option ~repl s0.right in
   let (repl, left) = Ft.fold_left begin
       fun (repl, left) elem ->
@@ -153,10 +153,10 @@ let freshen_ ?(repl=IdtMap.empty) s0 =
 
 let freshen ?repl s0 = snd (freshen_ ?repl s0)
 
-let canonize ?(repl=IdtMap.empty) sq =
-  IdtSet.fold begin fun v repl ->
-    if IdtMap.mem v repl then repl else
-      IdtMap.insert repl v (canonize_var v @@ 1 + IdtMap.cardinal repl)
+let canonize ?(repl=VMap.empty) sq =
+  VSet.fold begin fun v repl ->
+    if VMap.mem v repl then repl else
+      VMap.insert repl v (canonize_var v @@ 1 + VMap.cardinal repl)
   end sq.vars repl
 
 let subsume_one ~frz ~repl (p, pargs) cx =
@@ -210,7 +210,7 @@ let freeze_sequent sq =
 
 let subsume_full_exn ss0 tt0 =
   let frz = freeze_sequent tt0 in
-  let repl = IdtMap.empty in
+  let repl = VMap.empty in
   let repl =
     match ss0.right, tt0.right with
     | None, rt -> repl
@@ -298,7 +298,7 @@ let factor ~sc sq =
         fun (cx, repl) (p, pas) ->
           let (repl, pas) = unite_arg_lists ~repl pas in
           (Ft.snoc cx (p, pas), repl)
-      end (Ft.empty, IdtMap.empty) cand in
+      end (Ft.empty, VMap.empty) cand in
     let sq = override sq ~left in
     sc @@ replace_sequent ~repl sq
   in
@@ -316,9 +316,9 @@ module Test = struct
   let q = Idt.intern "q"
   let z = Idt.intern "z"
   let s = Idt.intern "s"
-  let _X = vargen#next `evar
-  let _a = vargen#next `param
-  let _b = vargen#next `param
+  let _X = vargen#next E
+  let _a = vargen#next U
+  let _b = vargen#next U
 
   let init0 =
     let left = Ft.of_list [(p, [_X]) ; (p, [_a]); (p, [_b])] in
@@ -358,9 +358,9 @@ module Test = struct
 
   let test_subsume_0 () =
     let open Format in
-    let v52 = var (intern "'52") in
-    let v86 = var (intern "'86") in
-    let v87 = var (intern "'88") in
+    let v52 = uvar 52 in
+    let v86 = uvar 86 in
+    let v87 = uvar 88 in
     let l1 = intern "#1" in
     let l4 = intern "#4" in
     let l5 = intern "#5" in
@@ -371,8 +371,8 @@ module Test = struct
     let repl = subsume_exn sq_old sq_new in
     printf "repl: %a@." format_repl repl
 
-  let p n = var (intern @@ "'" ^ string_of_int n)
-  let v n = var (intern @@ "?" ^ string_of_int n)
+  let p = uvar
+  let v = evar
   let l n = intern @@ "#" ^ string_of_int n
   let test_subsume () =
     let open Format in

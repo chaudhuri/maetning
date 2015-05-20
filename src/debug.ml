@@ -49,7 +49,13 @@ let dprintf dchan =
       fun fmt -> Format.fprintf fd.ff ("[%s] " ^^ fmt) uchan
   | exception Not_found -> Format.(ifprintf err_formatter)
 
-let failwithf fmt = Format.ksprintf failwith fmt
+let failwithf fmt =
+  let open Format in
+  let buf = Buffer.create 19 in
+  let ff = formatter_of_buffer buf in
+  kfprintf
+    (fun ff -> pp_print_flush ff () ; failwith @@ Buffer.contents buf)
+    ff fmt
 
 exception Bug
 let bugf fmt =

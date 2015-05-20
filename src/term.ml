@@ -5,36 +5,50 @@
  * See LICENSE for licensing details.
  *)
 
+open Batteries
+
 open Idt
+
+type vkind = U | E
+type var = vkind * int
+
+module VOrd = struct
+  type t = var
+  let compare ((_, u) : t) (_, v) =
+    if u < v then -1 else
+    if u > v then 1 else 0
+end
+module VSet = Set.Make(VOrd)
+module VMap = struct
+  include Map.Make(VOrd)
+  let digest bs : 'a t =
+    List.fold_left (fun repl (x, t) -> add x t repl) empty bs
+  let insert m x t = add x t m
+end
 
 type term = {
   term : term_ ;
-  vars : IdtSet.t ;
+  vars : VSet.t ;
   (** invariant: fvs(t) \subseteq t.vars   *)
   imax : int ;
   (** invariant: max(-1::fbs(t)) <= t.imax *)
 }
 and term_ =
-  | Var of Idt.t
+  | Var of var
   | Idx of int
   | App of idt * term list
 
-
 let idx n = {
   term = Idx n ;
-  vars = IdtSet.empty ;
+  vars = VSet.empty ;
   imax = max n @@ -1 ;
 }
 
-let evar_cookie = "?"
-let param_cookie = "\'"
+type repl = term VMap.t
 
-let var v =
-  if v.rep.[0] != evar_cookie.[0] && v.rep.[0] != param_cookie.[0] then
-    Debug.bugf "Term.var: invalid variable name %S" v.rep ;
-  { term = Var v ;
-    vars = IdtSet.singleton v ;
-    imax = -1 }
+let var ku = {term = Var ku ; vars = VSet.singleton ku ; imax = -1}
+let uvar u = var (U, u)
+let evar u = var (E, u)
 
 let unvar t =
   match t.term with
@@ -47,15 +61,10 @@ let app f ts = {
     List.fold_left (fun mx t -> max mx t.imax) (-1) ts ;
   vars =
     List.fold_left
-      (fun vs t -> IdtSet.union vs t.vars) IdtSet.empty ts ;
+      (fun vs t -> VSet.union vs t.vars) VSet.empty ts ;
 }
 
-let vargen = new Namegen.namegen1 begin
-  fun n (flav : [`evar | `param]) ->
-    match flav with
-    | `evar -> var @@ intern (evar_cookie ^ string_of_int n)
-    | `param -> var (intern (param_cookie ^ string_of_int n))
-end
+let vargen = new Namegen.namegen1 (fun u k -> var (k, u))
 
 type sub =
   | Shift of int
@@ -104,13 +113,13 @@ let rec seq ss1 ss2 =
   | _, Seq (ss21, ss22) -> Seq (seq ss1 ss21, ss22)
   | _ -> Seq (ss1, ss2)
 
-let rec freeze_term ?(frz=IdtSet.empty) t =
+let rec freeze_term ?(frz=VSet.empty) t =
   match t.term with
-  | Var v -> IdtSet.add v frz
+  | Var v -> VSet.add v frz
   | Idx _ -> frz
   | App (f, ts) -> freeze_terms ~frz ts
 
-and freeze_terms ?(frz=IdtSet.empty) ts =
+and freeze_terms ?(frz=VSet.empty) ts =
   match ts with
   | [] -> frz
   | t :: ts ->
@@ -118,19 +127,19 @@ and freeze_terms ?(frz=IdtSet.empty) ts =
       freeze_terms ~frz ts
 
 let rec replace ?(depth=0) ~repl t0 =
-  if IdtSet.for_all (fun v -> not @@ IdtMap.mem v repl) t0.vars
+  if VSet.for_all (fun v -> not @@ VMap.mem v repl) t0.vars
   then t0
   else match t0.term with
     | Var u -> begin
-        match IdtMap.find_opt u repl with
-        | Some t1 -> app_term (Shift depth) t1
-        | None -> t0
+        match VMap.find u repl with
+        | t1 -> app_term (Shift depth) t1
+        | exception Not_found -> t0
       end
     | Idx _ -> t0
     | App (f, ts) -> app f (List.map (replace ~depth ~repl) ts)
 
 let replace_eigen ~repl v =
-  match IdtMap.find v repl with
+  match VMap.find v repl with
   | t -> unvar t
   | exception Not_found -> v
 
@@ -141,40 +150,48 @@ let replace_eigen_list ~repl evs =
   end [] evs
 
 let replace_eigen_set ~repl evset =
-  IdtSet.fold begin
+  VSet.fold begin
     fun v evset ->
-      IdtSet.add (replace_eigen ~repl v) evset
-  end evset IdtSet.empty
+      VSet.add (replace_eigen ~repl v) evset
+  end evset VSet.empty
 
 let join ?depth ss v t =
-  let vtss = IdtMap.digest [v, t] in
-  let ss = IdtMap.map (replace ?depth ~repl:vtss) ss in
-  IdtMap.insert ss v t
+  let vtss = VMap.digest [v, t] in
+  let ss = VMap.map (replace ?depth ~repl:vtss) ss in
+  VMap.add v t ss
 
-let freshen_var v =
-  vargen#next (if v.rep.[0] == param_cookie.[0] then `param else `evar)
+let freshen_var (k, _) = vargen#next k
 
 let rec freshen ?depth ~repl t0 =
-  let repl = IdtSet.fold begin fun v repl ->
-      if IdtMap.mem v repl then repl else
+  let repl = VSet.fold begin fun v repl ->
+      if VMap.mem v repl then repl else
       join repl v @@ freshen_var v
     end t0.vars repl in
   (repl, replace ?depth ~repl t0)
 
-let canonize_var v n =
-  (String.sub v.rep 0 1 ^ string_of_int n)
-  |> intern |> var
+let canonize_var (k, _) n = var (k, n)
 
 let canonize ~repl t0 =
-  IdtSet.fold begin fun v repl ->
-    if IdtMap.mem v repl then repl else
-      IdtMap.insert repl v (canonize_var v @@ 1 + IdtMap.cardinal repl)
+  VSet.fold begin fun v repl ->
+    if VMap.mem v repl then repl else
+      VMap.insert repl v (canonize_var v @@ 1 + VMap.cardinal repl)
   end t0.vars repl
 
 let canonize_list ~repl ts =
   List.fold_left (fun repl t -> canonize ~repl t) repl ts
 
 let compact_print = ref true
+
+let format_var fmt (k, v) =
+  let cookie = match k with U ->  "'" | E ->  "?" in
+  Format.(
+    pp_print_string fmt cookie ;
+    pp_print_int fmt v
+  )
+
+let var_to_string (k, v) =
+  let cookie = match k with U ->  "'" | E ->  "?" in
+  cookie ^ string_of_int v
 
 let rec format_term ?(cx=[]) ?max_depth () fmt t =
   let open Format in
@@ -183,8 +200,7 @@ let rec format_term ?(cx=[]) ?max_depth () fmt t =
     | Some d -> d <= 0 in
   if ellipse then pp_print_string fmt "_" else
   match t.term with
-  | Var v ->
-      pp_print_string fmt v.rep
+  | Var v -> format_var fmt v
   | Idx n when n < List.length cx ->
       pp_print_string fmt (List.nth cx n).rep
   | Idx n ->
@@ -224,8 +240,8 @@ let format_repl fmt repl =
   let open Format in
   pp_open_hvbox fmt 1 ; begin
     pp_print_string fmt "{" ;
-    IdtMap.iter begin fun v t ->
-      pp_print_string fmt v.rep ;
+    VMap.iter begin fun v t ->
+      format_var fmt v ;
       pp_print_string fmt ":= " ;
       format_term () fmt t ;
       pp_print_string fmt ";" ;

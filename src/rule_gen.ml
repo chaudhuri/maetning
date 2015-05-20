@@ -15,8 +15,8 @@ open Skeleton
 open Sequent
 open Rule
 
-module S = IdtSet
-module M = IdtMap
+module S = VSet
+module M = VMap
 
 let skel_map skf rrs =
   List.map begin fun rr ->
@@ -54,7 +54,7 @@ let rec focus_right left right =
       skel_map (fun sk -> PlusR2 sk) (focus_right left f2)
   | False -> []
   | Exists (_, f) ->
-      let v = vargen#next `evar in
+      let v = vargen#next E in
       let f = app_form (Cons (Shift 0, v)) f in
       focus_right left f
       |> skel_map (fun sk -> ExR sk)
@@ -83,7 +83,7 @@ and focus_left left lfoc ratm =
       binary_join ~right_selector:`left left_rules right_rules
         (fun sk1 sk2 -> ImpL (sk2, sk1))
   | Forall (_, f) ->
-      let v = vargen#next `evar in
+      let v = vargen#next E in
       let f = app_form (Cons (Shift 0, v)) f in
       focus_left left f ratm
       |> skel_map (fun sk -> AllL sk)
@@ -117,7 +117,7 @@ and active_right left_passive left_active right =
       skel_map (fun sk -> ImpR sk)
         (active_right left_passive (f :: left_active) g)
   | Forall (_, f) ->
-      let vt = vargen#next `param in
+      let vt = vargen#next U in
       let v = unvar vt in
       let f = app_form (Cons (Shift 0, vt)) f in
       active_right left_passive left_active f
@@ -171,7 +171,7 @@ and active_left_one left_passive left_active la ratm =
       [{prems = [] ; concl = mk_sequent () ~skel:ZeroL ;
         eigen = S.empty ; extra = M.empty ; sats = []}]
   | Exists (_, f) ->
-      let vt = vargen#next `param in
+      let vt = vargen#next U in
       let v = unvar vt in
       let f = app_form (Cons (Shift 0, vt)) f in
       active_left left_passive (f :: left_active) ratm
@@ -219,7 +219,7 @@ and binary_join ?(right_selector=`none) left_rules right_rules mk_skel =
               eigen = S.union left_rule.eigen right_rule.eigen ;
               extra = M.merge
                   (fun _ ts1 ts2 -> Some (Option.default [] ts1 @ Option.default [] ts2
-                                          |> List.sort_unique Pervasives.compare))
+                                          (* |> List.sort_unique Pervasives.compare *)))
                   left_rule.extra
                   right_rule.extra ;
               sats = left_rule.sats @ right_rule.sats }

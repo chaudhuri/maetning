@@ -13,7 +13,7 @@ let dual_polarity = function POS -> NEG | NEG -> POS
 
 type form = {
   form : form_ ;
-  vars : IdtSet.t ;
+  vars : VSet.t ;
   (** invariant: fvs(f) \subseteq f.vars   *)
   imax : int ;
   (** invariant: max(-1::fbs(f)) <= f.imax *)
@@ -63,29 +63,29 @@ let shift f = { f with form = Shift f }
 let atom pol pred ts = {
   form = Atom (pol, pred, ts) ;
   imax = List.fold_left Term.(fun mx t -> max mx t.imax) (-1) ts ;
-  vars = List.fold_left Term.(fun vs t -> IdtSet.union vs t.vars) IdtSet.empty ts ;
+  vars = List.fold_left Term.(fun vs t -> VSet.union vs t.vars) VSet.empty ts ;
 }
 
 let conj ?(pol=POS) fs =
   match fs with
-  | [] -> { form = True pol ; imax = -1 ; vars = IdtSet.empty }
+  | [] -> { form = True pol ; imax = -1 ; vars = VSet.empty }
   | f :: fs ->
       List.fold_left begin fun g f ->
         let f = force pol f in
         { form = And (pol, g, f) ;
           imax = max g.imax f.imax ;
-          vars = IdtSet.union g.vars f.vars }
+          vars = VSet.union g.vars f.vars }
       end (force pol f) fs
 
 let disj fs =
   match fs with
-  | [] -> { form = False ; imax = -1 ; vars = IdtSet.empty }
+  | [] -> { form = False ; imax = -1 ; vars = VSet.empty }
   | f :: fs ->
       List.fold_left begin fun g f ->
         let f = force POS f in
         { form = Or (g, f) ;
           imax = max g.imax f.imax ;
-          vars = IdtSet.union g.vars f.vars }
+          vars = VSet.union g.vars f.vars }
       end (force POS f) fs
 
 let rec implies fs g =
@@ -95,7 +95,7 @@ let rec implies fs g =
       let f = force POS f in
       let g = implies fs g in
       { form = Implies (f, g) ;
-        vars = IdtSet.union f.vars g.vars ;
+        vars = VSet.union f.vars g.vars ;
         imax = max f.imax g.imax }
 
 let forall x f =
@@ -145,7 +145,7 @@ let abstract v f =
   spin 0 f
 
 let rec replace ?(depth=0) ~repl f0 =
-  if IdtSet.for_all (fun v -> not @@ IdtMap.mem v repl) f0.vars then f0
+  if VSet.for_all (fun v -> not @@ VMap.mem v repl) f0.vars then f0
   else match f0.form with
     | Shift f              -> shift @@ replace ~depth ~repl f
     | Atom (pol, pred, ts) -> atom pol pred @@ List.map (Term.replace ~depth ~repl) ts
@@ -328,7 +328,7 @@ let relabel ?(place=Right) ?top f =
         (* Format.(fprintf std_formatter "  labelled %s@." lab.rep) ; *)
         let f = spin place args f in
         let args = List.filter begin
-            fun arg -> IdtSet.mem (unvar arg) f0.vars
+            fun arg -> VSet.mem (unvar arg) f0.vars
           end args in
         emit_lform { place ; label = lab ; args ; skel = f } ;
         shift @@ atom (polarity f) lab args
@@ -344,21 +344,21 @@ let relabel ?(place=Right) ?top f =
         disj [spin place args pf1 ; spin place args pf2]
     | (True _ | False) -> f0
     | Exists (x, pf) -> begin
-        let v = vargen#next (match place with Right -> `evar | Left _ -> `param) in
+        let v = vargen#next (match place with Right -> E | Left _ -> U) in
         let pf = app_form (Cons (Shift 0, v)) pf in
         let pf = spin place (v :: args) pf in
         let pf = app_form (Shift 1) pf in
-        let pf = replace ~depth:0 ~repl:(IdtMap.digest [unvar v, idx 0]) pf in
+        let pf = replace ~depth:0 ~repl:(VMap.digest [unvar v, idx 0]) pf in
         exists x pf
       end
     | Implies (pf, nf) ->
          implies [spin (change place) args pf] @@ spin place args nf
     | Forall (x, nf) -> begin
-        let v = vargen#next (match place with Left _ -> `evar | Right -> `param) in
+        let v = vargen#next (match place with Left _ -> E | Right -> U) in
         let nf = app_form (Cons (Shift 0, v)) nf in
         let nf = spin place (v :: args) nf in
         let nf = app_form (Shift 1) nf in
-        let nf = replace ~depth:0 ~repl:(IdtMap.digest [unvar v, idx 0]) nf in
+        let nf = replace ~depth:0 ~repl:(VMap.digest [unvar v, idx 0]) nf in
         forall x nf
       end
   in

@@ -13,7 +13,7 @@ open Term
 open Form
 open Seqproof
 
-module M = IdtMap
+module M = VMap
 
 type 'a result =
   | Choices of 'a list
@@ -110,7 +110,7 @@ let repl_join repl_left repl_right =
   M.merge begin fun k ts1 ts2 ->
     match ts1, ts2 with
     | Some ts1, Some ts2 ->
-        failwith ("repl_join: overlap on " ^ k.rep)
+        Debug.failwithf "repl_join: overlap on %a" format_var k
     | Some ts, None -> Some (Term.replace ~repl:repl_right ts)
     | None, Some ts -> Some ts
     | None, None -> None
@@ -127,12 +127,12 @@ let reconstruct (type cert)
 
   let lf_dict = List.fold_left begin
       fun dict lf ->
-        M.add lf.label lf dict
-    end M.empty lforms in
+        IdtMap.add lf.label lf dict
+    end IdtMap.empty lforms in
 
   let expand_lf f = match f.form with
     | Atom (pol, p, ts) -> begin
-        match M.find p lf_dict with
+        match IdtMap.find p lf_dict with
         | lf ->
             let ts = List.take (List.length lf.args) ts in
             let repl = List.fold_left2 begin

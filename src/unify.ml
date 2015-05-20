@@ -11,23 +11,22 @@ open Term
 exception Unif of string
 let unif_fail fmt = Printf.ksprintf (fun s -> raise @@ Unif s) fmt
 
-let compatible v t =
-  match v.rep.[0] with
-  | '?' -> true
-  | '\'' -> begin
+let compatible (k, v) t =
+  match k with
+  | E -> true
+  | U -> begin
       match t.term with
-      | Var w when w.rep.[0] == '\'' -> true
+      | Var (U, _) -> true
       | _ -> false
     end
-  | _ -> failwith "bad variable"
 
-let is_evar v = v.rep.[0] == Term.evar_cookie.[0]
+let is_evar (k, v) = k = E
 let is_evar_term t =
   match t.term with
   | Var v -> is_evar v
   | _ -> false
 
-let is_param v = v.rep.[0] == Term.param_cookie.[0]
+let is_param (k, v) = k = U
 let is_param_term t =
   match t.term with
   | Var v -> is_param v
@@ -35,8 +34,8 @@ let is_param_term t =
 
 let rec vnorm ss t =
   match t.term with
-  | Var v when IdtMap.mem v ss ->
-      vnorm ss (IdtMap.find v ss)
+  | Var v when VMap.mem v ss ->
+      vnorm ss (VMap.find v ss)
   | _ -> t
 
 (* let join ?depth ss v t = *)
@@ -45,7 +44,7 @@ let rec vnorm ss t =
 (*   ) ; *)
 (*   Term.join ?depth ss v t *)
 
-let rec unite ?depth ?(frz=IdtSet.empty) ss t1 t2 =
+let rec unite ?depth ?(frz=VSet.empty) ss t1 t2 =
   let t1 = vnorm ss t1 in
   let t2 = vnorm ss t2 in
   (* Format.( *)
@@ -60,9 +59,9 @@ let rec unite ?depth ?(frz=IdtSet.empty) ss t1 t2 =
       unite ?depth ~frz ss t2 t1
   | Var v1, _ ->
       if not @@ compatible v1 t2 then unif_fail "variable incompatibility" ;
-      if IdtSet.mem v1 frz then unif_fail "frozen variable" ;
+      if VSet.mem v1 frz then unif_fail "frozen variable" ;
       let t = replace ?depth ~repl:ss t2 in
-      if IdtSet.mem v1 t.vars then unif_fail "occur check" ;
+      if VSet.mem v1 t.vars then unif_fail "occur check" ;
       (join ?depth ss v1 t, t)
   | _, Var v2 ->
       unite ?depth ~frz ss t2 t1
@@ -93,8 +92,8 @@ module Test = struct
   let f x = app (intern "f") [x]
   let g x = app (intern "g") [x]
 
-  let v1 = Term.vargen#next `evar
-  let v2 = Term.vargen#next `evar
+  let v1 = Term.vargen#next E
+  let v2 = Term.vargen#next E
 
   let t1 = eq v1 v1
   let t2 = eq v2 (f v2)
@@ -105,6 +104,6 @@ module Test = struct
         (format_term ()) t1
         (format_term ()) t2
     ) ;
-    unite IdtMap.empty t1 t2
+    unite VMap.empty t1 t2
 
 end

@@ -12,7 +12,7 @@ open Term
 open Form
 open Seqproof
 
-module M = Idt.IdtMap
+module M = VMap
 
 let pprintf = Config.pprintf
 
@@ -20,7 +20,7 @@ let expand_fully ~dict f0 =
   let rec spin f =
     match f.form with
     | Atom (pol, p, ts) -> begin
-        match M.find p dict with
+        match IdtMap.find p dict with
         | lf ->
             let repl = List.fold_left2 begin
                 fun repl lfarg arg ->
@@ -99,12 +99,12 @@ let format_neutral ~sel ~dict ff sq =
 
 let renumber pf0 =
   let next ?(prefix=">") hmap h =
-    let hr = intern (prefix ^ string_of_int (M.cardinal hmap + 1)) in
-    let hmap = M.add h hr hmap in
+    let hr = intern (prefix ^ string_of_int (IdtMap.cardinal hmap + 1)) in
+    let hmap = IdtMap.add h hr hmap in
     (hr, hmap)
   in
   let find_default h hmap =
-    match M.find h hmap with
+    match IdtMap.find h hmap with
     | hr -> hr
     | exception Not_found -> h
   in
@@ -166,17 +166,17 @@ let renumber pf0 =
         let (hr, hmap) = next ~prefix:"u" hmap h in
         Store (hr, spin hmap pf)
   in
-  spin M.empty pf0
+  spin IdtMap.empty pf0
 
 let print ~lforms ~goal proof =
   let dict = List.fold_left begin
       fun dict lf ->
-        M.add lf.label lf dict
-    end M.empty lforms in
+        IdtMap.add lf.label lf dict
+    end IdtMap.empty lforms in
 
   let expand_lf f = match f.form with
     | Atom (pol, p, ts) -> begin
-        match M.find p dict with
+        match IdtMap.find p dict with
         | lf ->
             let ts = List.take (List.length lf.args) ts in
             let repl = List.fold_left2 begin

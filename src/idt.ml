@@ -29,7 +29,9 @@ let intern : string -> idt =
 module IdtOrdered = struct
   type t = idt
   let compare (id1 : idt) id2 =
-    Pervasives.compare id1.idx id2.idx
+    if id1.idx < id2.idx then -1
+    else if id1.idx > id2.idx then 1
+    else 0
 end
 
 module IdtSet = struct
