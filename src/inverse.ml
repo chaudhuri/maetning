@@ -31,17 +31,19 @@ module type Data = sig
 end
 
 module Trivial : Data = struct
+  module Ints = Set.Make(Int)
+
   let sos : Sequent.t ts Deque.t ref = ref Deque.empty
-  let active : Sequent.t ts list ref = ref []
+  let active : (int, Sequent.t ts) Hashtbl.t = Hashtbl.create 19
   let db : (int, Sequent.t ts) Hashtbl.t = Hashtbl.create 19
-  let concs : (int, ISet.t) Hashtbl.t = Hashtbl.create 19
+  let concs : (int, Ints.t) Hashtbl.t = Hashtbl.create 19
   let kills : (int, unit) Hashtbl.t = Hashtbl.create 19
 
   let sqidgen = new Namegen.namegen (fun n -> n)
 
   let reset () =
     sos := Deque.empty ;
-    active := [] ;
+    Hashtbl.clear active ;
     Hashtbl.clear db ;
     Hashtbl.clear concs ;
     Hashtbl.clear kills ;
@@ -65,16 +67,16 @@ module Trivial : Data = struct
 
   let index sq =
     let id = sqidgen#next in
-    dprintf "index" "[%d] @[%a@]@." id (format_sequent ())
-      (Sequent.replace_sequent ~repl:(Sequent.canonize sq) sq) ;
+    dprintf "index" "[%d] @[%t@]@." id
+      (fun ff -> format_sequent () ff (Sequent.replace_sequent ~repl:(Sequent.canonize sq) sq)) ;
     dprintf "skeleton" "%a@." Skeleton.format_skeleton sq.skel ;
     let sq = Sequent.freshen sq () in
     let sqt = {id ; th = sq} in
     Hashtbl.replace db id sqt ;
     ISet.iter begin fun ancid ->
       match Hashtbl.find concs ancid with
-      | cs -> Hashtbl.replace concs ancid (ISet.add id cs)
-      | exception Not_found -> Hashtbl.add concs ancid (ISet.singleton id)
+      | cs -> Hashtbl.replace concs ancid (Ints.add id cs)
+      | exception Not_found -> Hashtbl.add concs ancid (Ints.singleton id)
     end sq.ancs ;
     sos := Deque.snoc !sos sqt ;
     sqt
@@ -84,27 +86,29 @@ module Trivial : Data = struct
     let sqt = index sq in
     let tokill = Hashtbl.fold begin
       fun _ old tokill ->
-        if sqt.id <> old.id &&
-           not (Hashtbl.mem kills old.id) &&
-           Sequent.subsume sqt.th old.th
-        then old.id :: tokill
+        if sqt.id <> old.id && Sequent.subsume sqt.th old.th
+        then Ints.add old.id tokill
         else tokill
-    end db [] in
+    end db Ints.empty in
     let rec spin wl =
-      match wl with
-      | [] -> ()
-      | ksqid :: wl ->
-          if ksqid == sqt.id || Hashtbl.mem kills ksqid then spin wl else begin
+      match Ints.pop wl with
+      | (ksqid, wl) ->
+          if ksqid == sqt.id then spin wl else begin
             Hashtbl.replace kills ksqid () ;
             Hashtbl.remove db ksqid ;
+            Hashtbl.remove active ksqid ;
             dprintf "backsub" "Killed %d@." ksqid ;
             let wl =
               match Hashtbl.find concs ksqid with
-              | ksqcons -> ISet.elements ksqcons @ wl
+              | ksqcons ->
+                  let ksqcons = Ints.filter (fun id -> not @@ Hashtbl.mem kills id) ksqcons in
+                  Hashtbl.replace concs ksqid ksqcons ;
+                  Ints.union ksqcons wl
               | exception Not_found -> wl
             in
             spin wl
           end
+      | exception Not_found -> ()
     in
     spin tokill
 
@@ -115,7 +119,7 @@ module Trivial : Data = struct
         if Hashtbl.mem kills sel.id then (dprintf "backsub" "DEAD: %d@." sel.id ; select ()) else
         let rsel = {sel with th = Sequent.freshen sel.th ()} in
         if sos_subsumes rsel.th then select () else begin
-          active := sel :: !active ;
+          Hashtbl.add active sel.id sel ;
           dprintf "select" "[%d] @[%a@]@." sel.id (format_sequent ()) sel.th ;
           dprintf "rename" "@[%a@]@." (format_sequent ()) rsel.th ;
           Some rsel
@@ -123,14 +127,14 @@ module Trivial : Data = struct
     | None -> None
 
   let iter_active doit =
-    List.iter begin fun act ->
-      if Hashtbl.mem kills act.id then () else
+    Hashtbl.iter begin fun id act ->
+      if Hashtbl.mem kills id then () else
       let act = {act with th = Sequent.freshen act.th ()} in
       doit act |> ignore
-    end !active
+    end active(*  ; *)
 
   let print_statistics () =
-    dprintf "stats" "@[<v0>#active = %d@,#db = %d@]@." (List.length !active) (Hashtbl.length db)
+    dprintf "stats" "@[<v0>#active = %d@,#db = %d@]@." (Hashtbl.length active) (Hashtbl.length db)
 end
 
 let rec spin_until_none get op =
