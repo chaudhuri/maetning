@@ -210,6 +210,22 @@ let rec format_term ?(cx=[]) ?max_depth () fmt t =
   | App (f, _) when max_depth = Some 1 ->
       pp_print_string fmt f.rep ;
       pp_print_string fmt "(...)"
+  | App (f, [t]) -> begin
+      let (n, t) = collect f t in
+      let max_depth = match max_depth with
+        | None -> None
+        | Some d -> Some (d - 1) in
+      pp_open_hvbox fmt 2 ; begin
+        pp_print_string fmt f.rep ;
+        if n > 1 then begin
+          let s = string_of_int n in
+          pp_print_as fmt (String.length s) (make_superscript s) ;
+        end ;
+        pp_print_string fmt "(" ;
+        format_term ~cx ?max_depth () fmt t ;
+        pp_print_string fmt ")" ;
+      end ; pp_close_box fmt () ;
+    end
   | App (f, t0 :: ts) -> begin
       let max_depth = match max_depth with
         | None -> None
@@ -228,6 +244,19 @@ let rec format_term ?(cx=[]) ?max_depth () fmt t =
         pp_print_string fmt ")" ;
       end ; pp_close_box fmt () ;
     end
+
+and collect f ?(n = 1) t =
+  match t.term with
+  | App (g, [t]) when f == g -> collect f ~n:(n + 1) t
+  | _ -> (n, t)
+
+and make_superscript s =
+  String.replace_chars begin fun c ->
+    match c with
+    | '0' -> "⁰" | '1' -> "¹" | '2' -> "²" | '3' -> "³" | '4' -> "⁴"
+    | '5' -> "⁵" | '6' -> "⁶" | '7' -> "⁷" | '8' -> "⁸" | '9' -> "⁹"
+    | _ -> String.of_char c
+  end s
 
 let term_to_string ?(cx=[]) ?max_depth t =
   let buf = Buffer.create 19 in
