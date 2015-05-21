@@ -249,6 +249,7 @@ let subsume_exn ss0 tt0 =
   else Unify.unif_fail "subsume_tests"
 
 let subsume ss0 tt0 =
+  Config.maybe_timeout () ;
   let tt0 = freshen tt0 () in
   try
     ignore (subsume_exn ss0 tt0) ;
