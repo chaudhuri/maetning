@@ -33,4 +33,6 @@ module IdtMap : sig
   val find_opt : key -> 'v t -> 'v option
 end with type key := idt
 
+module IdHash : Hashtbl.S with type key = idt
+
 type t = idt

@@ -9,7 +9,14 @@ open Idt
 open Term
 
 exception Unif of string
-let unif_fail fmt = Printf.ksprintf (fun s -> raise @@ Unif s) fmt
+
+let unif_fail fmt =
+  let open Format in
+  let buf = Buffer.create 19 in
+  let ff = formatter_of_buffer buf in
+  kfprintf
+    (fun ff -> pp_print_flush ff () ; raise @@ Unif (Buffer.contents buf))
+    ff fmt
 
 let compatible (k, v) t =
   match k with

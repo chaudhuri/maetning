@@ -15,6 +15,7 @@ module IdtHash = struct
   let hash (id : idt) = Hashtbl.hash id.rep
 end
 module IdTab = Weak.Make (IdtHash)
+module IdHash = Hashtbl.Make (IdtHash)
 
 let intern : string -> idt =
   let idtab = IdTab.create 109 in
