@@ -159,6 +159,19 @@ let canonize ?(repl=VMap.empty) sq =
       VMap.insert repl v (canonize_var v @@ 1 + VMap.cardinal repl)
   end sq.vars repl
 
+let replace_latm ~repl (p, args) =
+  (p, List.map (Term.replace ~repl) args)
+
+let replace_sequent ~repl sq =
+  let left = Ft.map (replace_latm ~repl) sq.left in
+  let right = Option.map (replace_latm ~repl) sq.right in
+  override sq ~left ~right
+
+let format_canonical ff sq =
+  let repl = canonize sq in
+  let sq = replace_sequent ~repl sq in
+  format_sequent () ff sq
+
 let subsume_one ~frz ~repl (p, pargs) cx =
   (* Format.( *)
   (*   printf "subsume_one: @[%a@] @[%a@] @." *)
@@ -255,18 +268,10 @@ let subsume ss0 tt0 =
     ignore (subsume_exn ss0 tt0) ;
     dprintf "subsumption"
       "@[<v0>[SUBS]@,++ @[%a@]@,-- @[%a@]@]@."
-      (format_sequent ()) ss0
-      (format_sequent ()) tt0 ;
+      format_canonical ss0
+      format_canonical tt0 ;
     true
   with Unify.Unif _ -> false
-
-let replace_latm ~repl (p, args) =
-  (p, List.map (Term.replace ~repl) args)
-
-let replace_sequent ~repl sq =
-  let left = Ft.map (replace_latm ~repl) sq.left in
-  let right = Option.map (replace_latm ~repl) sq.right in
-  override sq ~left ~right
 
 let rec unite_arg_lists ~repl args =
   match args with
