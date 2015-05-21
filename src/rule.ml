@@ -183,30 +183,29 @@ let rule_match_exn ~sc (prem, mode) cand =
         (repl, None, mode = `extract)
       end
   in
-  let rec gen ~repl ~strict left hyps =
-    match Ft.front hyps with
-    | Some (hyps, (p, pargs)) ->
-        (* weaken *)
-        gen ~repl ~strict left hyps ;
-        (* non-weaken *)
-        test left p pargs ~repl ~strict
-          ~cont:(fun ~repl ~strict left -> gen ~repl ~strict left hyps)
+  let rec gen ~repl ~strict cleft pleft =
+    match Ft.front pleft with
+    | Some (pleft, (p, pargs)) ->
+        test ~repl ~strict cleft pleft p pargs
     | None ->
-        let sq = override cand ~left:left ~right:right
-                 |> replace_sequent ~repl in
+        let sq = override cand ~left:cleft ~right |>
+                 replace_sequent ~repl in
         if strict then sc repl sq
-        else ((* Format.(eprintf "non-strict discard: %a@." (format_sequent ()) sq) *))
-  and test ~repl ~strict ~cont ?(discard=Ft.empty) left p pargs =
-    match Ft.front left with
-    | Some (left, ((q, qargs) as l)) ->
+        else ()
+  and test ~repl ~strict ?(did=false) ?(discard=Ft.empty) cleft pleft p pargs =
+    match Ft.front cleft with
+    | None ->
+        if not did then gen ~repl ~strict discard pleft
+    | Some (cleft, ((q, qargs) as l)) ->
         if p == q then begin
-          try
-            let (repl, _) = Unify.unite_lists repl pargs qargs in
-            cont ~repl ~strict:true (Ft.append discard left)
-          with Unify.Unif _ -> ()
-        end ;
-        test ~repl ~strict ~cont ~discard:(Ft.snoc discard l) left p pargs
-    | None -> ()
+          match Unify.unite_lists repl pargs qargs with
+          | (repl_succ, _) ->
+              gen ~repl:repl_succ ~strict:true (Ft.append discard cleft) pleft ;
+              test ~repl ~strict ~did:true ~discard:(Ft.snoc discard l) cleft pleft p pargs
+          | exception Unify.Unif _ ->
+              test ~repl ~strict ~did ~discard:(Ft.snoc discard l) cleft pleft p pargs
+        end else
+          test ~repl ~strict ~did ~discard:(Ft.snoc discard l) cleft pleft p pargs
   in
   gen ~repl ~strict cand.left prem.left
 
