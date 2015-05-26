@@ -305,30 +305,11 @@ let specialize_left ~sc rr (id, sq) =
 
 let specialize ~sc rr (id, sq) = specialize_left ~sc rr (id, sq)
 
-let factor_loop ~sc sq =
-  let seen = ref [] in
-  dprintf "factor"
-    "Trying to factor: @[%a@]@."
-    (format_sequent ()) sq ;
-  let doit sq =
-    dprintf "factor"
-      "Here's a factor: @[%a@]@."
-      (format_sequent ()) sq ;
-    match List.find (fun seensq -> Sequent.subsume seensq sq) !seen with
-    | seensq ->
-        dprintf "factor" "factor_loop: killed @[%a@]@."
-          (format_sequent ()) sq
-    | exception Not_found ->
-        sc sq ;
-        seen := sq :: !seen
-  in
-  Sequent.factor sq ~sc:doit
-
 let specialize_default ~sc_rule ~sc_fact rr idsq =
   let sc rule =
     match rule.prems with
     | [] ->
-        factor_loop ~sc:sc_fact rule.concl
+        Sequent.factor ~sc:sc_fact rule.concl
     | _ ->
         sc_rule rule
   in

@@ -7,6 +7,19 @@
 
 open Batteries
 
+let listify fn ff l =
+  let open Format in
+  match l with
+  | [] -> ()
+  | [x] -> fn ff x
+  | x :: xs ->
+      fn ff x ;
+      List.iter begin fun x ->
+        pp_print_string ff " |" ;
+        pp_print_space ff () ;
+        fn ff x ;
+      end xs
+
 type dest =
   | Stderr
   | Stdout

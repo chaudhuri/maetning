@@ -18,11 +18,11 @@ type ctx = (latm, int) Ft.fg
 
 let ctx_splits ~sc ctx =
   let rec spin left right =
-  match Ft.front right with
-  | Some (right, x) ->
-      sc x (Ft.append left right) ;
-      spin (Ft.snoc left x) right
-  | None -> ()
+    match Ft.front right with
+    | Some (right, x) ->
+        sc x (Ft.append left right) ;
+        spin (Ft.snoc left x) right
+    | None -> ()
   in
   spin Ft.empty ctx
 
@@ -173,31 +173,24 @@ let format_canonical ff sq =
   format_sequent () ff sq
 
 let subsume_one ~frz ~repl (p, pargs) cx =
-  (* Format.( *)
-  (*   printf "subsume_one: @[%a@] @[%a@] @." *)
-  (*     format_repl repl *)
-  (*     (format_term ()) (app p pargs) ; *)
-  (*   Ft.iter begin fun (q, qargs) -> *)
-  (*     printf "  @[%a@]@." (format_term ()) (app q qargs) *)
-  (*   end cx ; *)
-  (* ) ; *)
-  let rec spin repls cx =
+  let rec spin repls front cx =
     match Ft.front cx with
-    | Some (cx, (q, qargs)) when p == q ->
+    | Some (cx, ((q, qargs) as l)) when p == q ->
         let repls =
-          try fst (Unify.unite_lists ~frz repl pargs qargs) :: repls
-          with Unify.Unif _ -> repls
+          match Unify.unite_lists ~frz repl pargs qargs with
+          | (repl, _) -> (repl, Ft.append front cx) :: repls
+          | exception Unify.Unif _ -> repls
         in
-        spin repls cx
-    | Some (cx, _) ->
-        spin repls cx
+        spin repls (Ft.snoc front l) cx
+    | Some (cx, l) ->
+        spin repls (Ft.snoc front l) cx
     | None -> repls
   in
-  if Form.is_pseudo p then [repl]
-  else spin [] cx
+  if Form.is_pseudo p then [repl, cx]
+  else spin [] Ft.empty cx
 
 let subsume_all_exn ~frz ~repl scx tcx =
-  let rec gen repl scx =
+  let rec gen repl scx tcx =
     match Ft.front scx with
     | Some (scx, l) ->
         let repls = subsume_one ~frz ~repl l tcx in
@@ -206,12 +199,12 @@ let subsume_all_exn ~frz ~repl scx tcx =
   and test repls scx =
     match repls with
     | [] -> Unify.unif_fail "all"
-    | repl :: repls -> begin
-        try gen repl scx
+    | (repl, tcx) :: repls -> begin
+        try gen repl scx tcx
         with Unify.Unif _ -> test repls scx
       end
   in
-  gen repl scx
+  gen repl scx tcx
 
 let freeze_sequent sq =
   let ts = List.map snd (Ft.to_list sq.left) |> List.concat in
