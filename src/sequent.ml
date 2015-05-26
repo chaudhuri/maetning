@@ -277,7 +277,7 @@ let rec unite_arg_lists ~repl args =
 let ignore_non_unifiable f x =
   try f x with Unify.Unif _ -> ()
 
-let factor ~sc sq =
+let factor_ ~sc sq =
   let rec facts l =
     match l with
     | [] -> [[]]
@@ -346,7 +346,7 @@ module Test = struct
       | None ->
           seen := sq :: !seen
     in
-    factor sq ~sc:doit ;
+    factor_ sq ~sc:doit ;
     Format.(fprintf std_formatter "Here's what remains after factoring:@.") ;
     List.iter print (List.rev !seen)
 
@@ -381,7 +381,7 @@ module Test = struct
     let sq_old = mk_sequent ~left:(Ft.of_list [(l 1, [p 84]) ; (l 6, [p 84]) ;
                                                (l 1, [p 95]) ; (l 1, [p 95])]) () in
     printf "sq_old: @[%a@]@." (format_sequent ()) sq_old ;
-    factor ~sc:(printf "sq_new: @[%a@]@." (format_sequent ())) sq_old ;
+    factor_ ~sc:(printf "sq_new: @[%a@]@." (format_sequent ())) sq_old ;
     ()
 
 end

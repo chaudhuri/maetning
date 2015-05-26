@@ -309,7 +309,7 @@ let specialize_default ~sc_rule ~sc_fact rr idsq =
   let sc rule =
     match rule.prems with
     | [] ->
-        Sequent.factor ~sc:sc_fact rule.concl
+        Factree.factor ~sc:sc_fact rule.concl
     | _ ->
         sc_rule rule
   in
