@@ -10,13 +10,11 @@ open Batteries
 open Idt
 
 type vkind = U | E
-type var = vkind * int
+type var = int
 
 module VOrd = struct
   type t = var
-  let compare ((_, u) : t) (_, v) =
-    if u < v then -1 else
-    if u > v then 1 else 0
+  let compare u v = u - v
 end
 module VSet = Set.Make(VOrd)
 module VMap = struct
@@ -46,9 +44,10 @@ let idx n = {
 
 type repl = term VMap.t
 
-let var ku = {term = Var ku ; vars = VSet.singleton ku ; imax = -1}
-let uvar u = var (U, u)
-let evar u = var (E, u)
+let var u = {term = Var u ; vars = VSet.singleton u ; imax = -1}
+let vtag u = if u > 0 then U else E
+let uvar u = var u
+let evar u = var (- u)
 
 let unvar t =
   match t.term with
@@ -64,7 +63,8 @@ let app f ts = {
       (fun vs t -> VSet.union vs t.vars) VSet.empty ts ;
 }
 
-let vargen = new Namegen.namegen1 (fun u k -> var (k, u))
+let vargen = new Namegen.namegen1
+  (fun u k -> if k = U then uvar u else evar u)
 
 type sub =
   | Shift of int
@@ -160,7 +160,7 @@ let join ?depth ss v t =
   let ss = VMap.map (replace ?depth ~repl:vtss) ss in
   VMap.add v t ss
 
-let freshen_var (k, _) = vargen#next k
+let freshen_var u = vargen#next (vtag u)
 
 let rec freshen ?depth ~repl t0 =
   let repl = VSet.fold begin fun v repl ->
@@ -169,7 +169,8 @@ let rec freshen ?depth ~repl t0 =
     end t0.vars repl in
   (repl, replace ?depth ~repl t0)
 
-let canonize_var (k, _) n = var (k, n)
+let canonize_var u n =
+  if u > 0 then uvar n else evar n
 
 let canonize ~repl t0 =
   VSet.fold begin fun v repl ->
@@ -182,15 +183,15 @@ let canonize_list ~repl ts =
 
 let compact_print = ref true
 
-let format_var fmt (k, v) =
-  let cookie = match k with U ->  "'" | E ->  "?" in
+let format_var fmt v =
+  let cookie = match vtag v with U ->  "'" | E ->  "?" in
   Format.(
     pp_print_string fmt cookie ;
-    pp_print_int fmt v
+    pp_print_int fmt (abs v)
   )
 
-let var_to_string (k, v) =
-  let cookie = match k with U ->  "'" | E ->  "?" in
+let var_to_string v =
+  let cookie = match vtag v with U ->  "'" | E ->  "?" in
   cookie ^ string_of_int v
 
 let rec format_term ?(cx=[]) ?max_depth () fmt t =

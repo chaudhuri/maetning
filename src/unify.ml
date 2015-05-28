@@ -18,22 +18,22 @@ let unif_fail fmt =
     (fun ff -> pp_print_flush ff () ; raise @@ Unif (Buffer.contents buf))
     ff fmt
 
-let compatible (k, v) t =
-  match k with
+let compatible v t =
+  match vtag v with
   | E -> true
   | U -> begin
       match t.term with
-      | Var (U, _) -> true
+      | Var u when vtag u = U -> true
       | _ -> false
     end
 
-let is_evar (k, v) = k = E
+let is_evar v = vtag v = E
 let is_evar_term t =
   match t.term with
   | Var v -> is_evar v
   | _ -> false
 
-let is_param (k, v) = k = U
+let is_param v = vtag v = U
 let is_param_term t =
   match t.term with
   | Var v -> is_param v
