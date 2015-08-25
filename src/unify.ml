@@ -94,7 +94,7 @@ and unite_lists ?depth ?frz ss ts1 ts2 =
       (ss, replace ~repl:ss t :: ts)
   | _ -> unif_fail "argument lists not the same length"
 
-module Test = struct
+module Test () = struct
   let eq x y = app (intern "eq") [x ; y]
   let f x = app (intern "f") [x]
   let g x = app (intern "g") [x]

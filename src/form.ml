@@ -434,7 +434,7 @@ let lp_lform fmt lf =
     end ; pp_close_box fmt () ;
   end ; pp_close_box fmt ()
 
-module Test = struct
+module Test () = struct
   let (x, y, z) = (intern "x", intern "y", intern "z")
   let a = forall x @@ atom POS (intern "a") [idx 0]
   let b = exists x @@ forall y @@ forall z @@

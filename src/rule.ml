@@ -357,7 +357,7 @@ let rule_subsumes r1 r2 =
   && List.length r1.prems = List.length r2.prems
   && (try rule_subsumes_exn r1 r2 with Unify.Unif _ -> false)
 
-module Test = struct
+module Test () = struct
   let p = Idt.intern "p"
   let q = Idt.intern "q"
   let z = app (Idt.intern "z") []
@@ -400,10 +400,12 @@ module Test = struct
     let open Format in
     fprintf std_formatter "rule @[<h>%a@]@." (format_rule ()) rr
 
+  module STest = Sequent.Test ()
+
   let test rule sq =
-    let sc_fact = Sequent.Test.print in
+    let sc_fact = STest.print in
     let sc_rule = print in
-    Sequent.Test.print sq ;
+    STest.print sq ;
     print rule ;
     specialize_default ~sc_rule ~sc_fact rule (0, sq)
 

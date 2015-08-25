@@ -45,9 +45,9 @@ let idx n = {
 type repl = term VMap.t
 
 let var u = {term = Var u ; vars = VSet.singleton u ; imax = -1}
-let vtag u = if u > 0 then U else E
-let uvar u = var u
-let evar u = var (- u)
+let vtag u = if u mod 2 = 0 then U else E
+let uvar u = var (- 2 * u)
+let evar u = var (- 2 * u - 1)
 
 let unvar t =
   match t.term with

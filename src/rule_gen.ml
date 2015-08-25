@@ -303,7 +303,7 @@ let generate0 left pseudo right =
     goal_lform.label.rep ;
   (!lforms, goal_lform, generate_rules !lforms)
 
-module Test = struct
+module Test () = struct
 
   let p x y = Form.atom POS (intern "p") [x ; y]
   let q x = Form.atom POS (intern "q") [x]
@@ -318,7 +318,9 @@ module Test = struct
   let f1 = conj ~pol:NEG [implies [a] c ; implies [b] c]
 
   let test f =
-    let lforms = Form.Test.test f in
-    generate_rules lforms ~sc:Rule.Test.print
+    let module FTest = Form.Test () in
+    let module RTest = Rule.Test () in
+    let lforms = FTest.test f in
+    generate_rules lforms ~sc:RTest.print
 
 end

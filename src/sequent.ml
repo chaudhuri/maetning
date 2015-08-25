@@ -313,7 +313,7 @@ let factor_ ~sc sq =
 
 type t = sequent
 
-module Test = struct
+module Test () = struct
   let p = Idt.intern "p"
   let q = Idt.intern "q"
   let z = Idt.intern "z"

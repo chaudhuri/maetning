@@ -69,7 +69,7 @@ module Trivial : Data = struct
     let id = sqidgen#next in
     dprintf "index" "[%d] @[%a@]@." id Sequent.format_canonical sq ;
     dprintf "skeleton" "%a@." Skeleton.format_skeleton sq.skel ;
-    let sq = Sequent.freshen sq () in
+    (* let sq = Sequent.freshen sq () in *)
     let sqt = {id ; th = sq} in
     Hashtbl.replace db id sqt ;
     ISet.iter begin fun ancid ->
@@ -335,9 +335,11 @@ end
 
 include Inv(Trivial)
 
-module Test = struct
+module Test () = struct
   open Idt
-  open Rule_gen.Test
+  module T = Rule_gen.Test ()
+  open T
+
 
   let sleep n () =
     Format.printf "One loop done@." ;
