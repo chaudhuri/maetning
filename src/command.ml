@@ -11,8 +11,33 @@ open Idt
 open Term
 open Form
 
+let basics     : IdtSet.t ref = ref IdtSet.empty
+let consts     : Ty.ty IdtMap.t ref = ref IdtMap.empty
 let global_map : Form.form IdtMap.t ref = ref IdtMap.empty
 let pseudo_map : Form.form IdtMap.t ref = ref IdtMap.empty
+
+let add_basic b =
+  if IdtSet.mem b !basics then begin
+    Format.eprintf "Diplicate basic type %S.@." b.rep ;
+    failwith "add_basic" ;
+  end ;
+  Format.printf "%s : type.@." b.rep ;
+  basics := IdtSet.add b !basics
+
+let rec check_well_formed_ty a =
+  List.iter check_well_formed_ty a.Ty.argtys ;
+  if not @@ IdtSet.mem a.Ty.target !basics then begin
+    Format.eprintf "Unknown basic type %S.@." a.Ty.target.rep ;
+    failwith "check_well_formed_ty"
+  end
+
+let add_const a c =
+  if IdtMap.mem c !consts then begin
+    Format.eprintf "Diplicate constant %S.@." c.rep ;
+    failwith "add_const" ;
+  end ;
+  Format.printf "%s : %a.@." c.rep Ty.format_ty a ;
+  consts := IdtMap.add c a !consts
 
 let ensure_new x =
   if IdtMap.mem x !global_map ||

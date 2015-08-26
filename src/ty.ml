@@ -21,7 +21,7 @@ let rec pretty_ty ty =
   let open Pretty in
   List.fold_right begin fun ta tb ->
     let ta = pretty_ty ta in
-    Opapp (1, Infix (RIGHT, ta, FMT "->@ ", tb))
+    Opapp (1, Infix (RIGHT, ta, FMT " ->@ ", tb))
   end ty.argtys (Atom (STR ty.target.rep))
 
 let format_ty ff ty = Pretty.print ff (pretty_ty ty)

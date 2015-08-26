@@ -16,6 +16,7 @@
 %}
 
 %token  POSITIVE NEGATIVE ASSUME PSEUDO RETRACT PROVE REFUTE COLON DOT
+%token  KIND TYPE ARROW
 %token  EOS PREC_QUANTIFIER
 %token  <Idt.t> IDENT
 %token  LPAREN COMMA RPAREN
@@ -37,6 +38,7 @@
 %start  <Form.form> one_form
 %start  <unit> command
 %start  <unit> file
+%start  <Ty.ty> one_ty
 
 %%
 
@@ -48,6 +50,11 @@ banner:
 |                            { Format.printf "-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-@." }
 
 command:
+| KIND ids=vars DOT          { List.iter Command.add_basic ids }
+| TYPE ids=vars COLON a=ty DOT {
+    Command.check_well_formed_ty a ;
+    List.iter (Command.add_const a) ids ;
+  }
 | POSITIVE h=IDENT DOT       { Form.register_polarity h Form.POS }
 | NEGATIVE h=IDENT DOT       { Form.register_polarity h Form.NEG }
 | ASSUME x=IDENT COLON f=form DOT
@@ -57,6 +64,18 @@ command:
 | RETRACT x=IDENT DOT        { Command.retract x }
 | PROVE f=form DOT           { Command.prove f }
 | REFUTE f=form DOT          { Command.refute f }
+
+ty:
+| atys=separated_nonempty_list(ARROW, atomic_ty) {
+    match List.rev atys with
+    | targ :: rest ->
+        List.fold_left (fun b a -> Ty.arrow a b) targ rest
+    | _ -> assert false
+  }
+
+atomic_ty:
+| a=IDENT                    { Ty.basic a }
+| LPAREN a=ty RPAREN         { a }
 
 term:
 | head=IDENT args=terms      { Term.(app head args) }
@@ -89,13 +108,16 @@ one_term:
 one_form:
 | f=form EOS                 { f }
 
+one_ty:
+| a=ty EOS                   { a }
+
 %inline terms:
 | ts = plist(term)           { ts }
 
 (* combinators *)
 
 %inline plist(X):
-| xs = loption (delimited (LPAREN, separated_nonempty_list (COMMA, X), RPAREN)) { xs }
+| xs=loption (delimited (LPAREN, separated_nonempty_list (COMMA, X), RPAREN)) { xs }
 
 %inline vars:
-| vs = separated_nonempty_list (COMMA, IDENT) { vs }
+| vs=separated_nonempty_list (COMMA, IDENT) { vs }

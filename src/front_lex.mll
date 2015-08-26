@@ -25,6 +25,8 @@ let space         = ' ' | '\t'
 let newline       = '\r''\n' | '\n'
 
 rule token = parse
+| "%kind"          { P.KIND }
+| "%type"          { P.TYPE }
 | "%positive"      { P.POSITIVE }
 | "%negative"      { P.NEGATIVE }
 | "%assume"        { P.ASSUME }
@@ -54,6 +56,8 @@ rule token = parse
 | "=>"             { P.IMP }
 | "<=>"            { P.IFF }
 | "<="             { P.IF }
+
+| "->"             { P.ARROW }
 
 | "~" | "\\lnot"   { P.NEGATE }
 
