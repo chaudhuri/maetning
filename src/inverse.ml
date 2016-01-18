@@ -26,6 +26,7 @@ module type Data = sig
   val select : unit -> Sequent.t ts option
   val subsumes : Sequent.t -> bool
   val iter_active : (Sequent.t ts -> 'a) -> unit
+  val iter_known : (Sequent.t ts -> 'a) -> unit
   val print_statistics : unit -> unit
   val finish_initial : unit -> unit
 end
@@ -130,7 +131,12 @@ module Trivial : Data = struct
       if Hashtbl.mem kills id then () else
       let act = {act with th = Sequent.freshen act.th ()} in
       doit act |> ignore
-    end active(*  ; *)
+    end active
+
+  let iter_known doit =
+    let doit sqt = ignore (doit sqt) in
+    iter_active doit ;
+    Deque.iter doit !sos
 
   let print_statistics () =
     dprintf "stats" "@[<v0>#active = %d@,#db = %d@]@." (Hashtbl.length active) (Hashtbl.length db)
@@ -158,9 +164,9 @@ let rec percolate0 (module D : Data) ~sc_fact ~sc_rule ~sel ~iter rules =
   if new_rules <> [] then percolate1 (module D : Data) ~sc_fact ~sc_rule ~iter new_rules
 
 and percolate1 (module D : Data) ~sc_fact ~sc_rule ~iter rules =
-  let new_rules = percolate_once (module D) ~sc_fact ~iter rules in
+  let new_rules = percolate_once (module D : Data) ~sc_fact ~iter rules in
   (* List.iter sc_rule new_rules ; *)
-  if new_rules <> [] then percolate1 (module D) ~sc_fact ~sc_rule ~iter new_rules
+  if new_rules <> [] then percolate1 (module D : Data) ~sc_fact ~sc_rule ~iter new_rules
 
 and percolate_once (module D : Data) ~sc_fact ~iter rules =
   let new_rules : rule ts list ref = ref [] in
@@ -202,7 +208,7 @@ and percolate_once (module D : Data) ~sc_fact ~iter rules =
 
 let get_polarity ~lforms p =
   match List.find (fun lf -> lf.label == p) lforms with
-  | lf -> polarity lf.skel
+  | lf -> polarity lf.Form.skel
   | exception Not_found ->
       lookup_polarity p
 
@@ -240,9 +246,9 @@ let paranoid_check ~lforms sq =
                 | Atom (pol, p, _) -> atom pol p []
                 | _ ->
                     Format.(
-                      eprintf "[WEIRD] %a = %s@." (format_form ()) lf.skel lf.label.Idt.rep
+                      eprintf "[WEIRD] %a = %s@." (format_form ()) lf.Form.skel lf.label.Idt.rep
                     ) ;
-                    lf.skel
+                    lf.Form.skel
               in
               Some (lf.Form.label, (lf.label, freeze_vars_form skel))
             end
@@ -258,7 +264,7 @@ let paranoid_check ~lforms sq =
         left_active = [] ;
         left_passive = ctx_particular @ ctx_ambient ;
         right = begin
-          match sq.right with
+          match sq.Sequent.right with
           | None -> disj []
           | Some (p, ts) -> atom (get_polarity ~lforms p) p (List.map freeze_vars ts)
         end
@@ -333,7 +339,8 @@ module Inv (D : Data) = struct
       Some res
 end
 
-include Inv(Trivial)
+module Data = Trivial
+include Inv(Data)
 
 module Test () = struct
   open Idt

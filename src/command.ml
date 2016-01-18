@@ -57,18 +57,30 @@ let setup f =
   (* Format.printf "Goal: %a.@." (Form.format_form ()) f ; *)
   (* let globals = values !global_map in *)
   (* let pseudo = values !pseudo_map in *)
-  match Inverse.inverse_method f
-          ~left:(IdtMap.bindings !global_map)
-          ~pseudo:(IdtMap.bindings !pseudo_map) with
-  | None -> Refuted
-  | Some res -> begin
-      match
-        Ft.to_list res.Inverse.found.left |>
-        List.Exceptionless.find (fun (p, _) -> Form.is_pseudo p)
-      with
-      | None -> Proved res
-      | Some (p, _) -> Unsound (p, res)
-    end
+  let prover_result =
+    match Inverse.inverse_method f
+            ~left:(IdtMap.bindings !global_map)
+            ~pseudo:(IdtMap.bindings !pseudo_map) with
+    | None -> Refuted
+    | Some res -> begin
+        match
+          Ft.to_list res.Inverse.found.left |>
+          List.Exceptionless.find (fun (p, _) -> Form.is_pseudo p)
+        with
+        | None -> Proved res
+        | Some (p, _) -> Unsound (p, res)
+      end
+  in
+  begin match !Config.dump_database with
+  | Some ff ->
+      Format.fprintf ff "---- BEGIN DATABASE ----@." ;
+      Inverse.Data.iter_known begin fun sq ->
+        Format.fprintf ff "[%d] %a@." sq.Inverse.id Sequent.format_canonical sq.Inverse.th
+      end ;
+      Format.fprintf ff "---- END DATABASE ----@." ;
+  | None -> ()
+  end ;
+  prover_result
 
 let dump_proof ?(pseudos=false) f res =
   Seqproof.hypgen#reset ;

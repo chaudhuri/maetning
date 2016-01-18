@@ -11,6 +11,13 @@ let set_input file =
   let disch = Config.set_proof_channel file in
   at_exit disch
 
+let set_dump file =
+  match file with
+  | "-" | "'-'" ->
+      Config.dump_database := Some Format.std_formatter
+  | _ ->
+      Config.dump_database := Some (Format.formatter_of_output (open_out file))
+
 let options = Arg.(align [
     "", Unit (fun () -> ()), " \n\t*** INPUT ***\n" ;
     "-tptp", Set Config.tptp, " Assume input files are in TPTP/ILTP format (only supports FOF)" ;
@@ -19,6 +26,7 @@ let options = Arg.(align [
     "-shifts", Set Config.show_shifts, " Show polarity shifts" ;
     "-nobias", Set Config.hide_bias, " Hide predicate biases" ;
     "-noshrink", Clear Config.shrink, " Do not shrink proofs down to relevant details" ;
+    "-dump", String set_dump, "<file> Dump the final sequent database to <file> (use - for stdout)" ;
     "", Unit (fun () -> ()), " \n\t*** CONSISTENCY ***\n" ;
     "-check", Set Config.do_check, " Reconstruct a full proof from the skeleton and check it" ;
     "-paranoia", Set Config.paranoia, " Check every indexed sequent" ;
