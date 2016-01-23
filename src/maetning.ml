@@ -34,8 +34,9 @@ let options = Arg.(align [
     "", Unit (fun () -> ()), " \n\t*** DEBUG ***\n" ;
     "-timeout", Int Config.set_timeout, "<millis> Set a (soft) timeout in milliseconds" ;
     "-debug", String Config.set_debug_flags, "<flags> Enable debug flags <flags>, comma-separated" ;
-    "-XX:EVCPseudos", Set Config.evc_pseudos, " Perform EVC on pseudos as well (default: false)" ;
     "", Unit (fun () -> ()), " \t(A flag is an identifier prefixed by + or -.)" ;
+    "-XX:EVCPseudos", Set Config.evc_pseudos, " Perform EVC on pseudos as well (default: false)" ;
+    "-XX:RecursiveBacksub", Set Config.recursive_backsub, " Backsubsumption recursively kills consequences (default: false)" ;
     "", Unit (fun () -> ()), " \n\t*** MISCELLANEOUS ***\n" ;
     "-version", Unit (fun () ->
         Printf.printf "Maetning version %s\n" Version.version ;

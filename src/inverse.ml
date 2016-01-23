@@ -95,14 +95,18 @@ module Trivial : Data = struct
       | (ksqid, wl) ->
           if ksqid == sqt.id then spin wl else begin
             Hashtbl.replace kills ksqid () ;
+            let oldsq = Hashtbl.find db ksqid in
             Hashtbl.remove db ksqid ;
             Hashtbl.remove active ksqid ;
-            dprintf "backsub" "Killed %d@." ksqid ;
+            dprintf "backsub" "Killed [%d] @[%a@]@." ksqid (format_sequent ()) oldsq.th ;
             let wl =
+              if not !Config.recursive_backsub then wl else
               match Hashtbl.find concs ksqid with
               | ksqcons ->
                   let ksqcons = Ints.filter (fun id -> not @@ Hashtbl.mem kills id) ksqcons in
                   Hashtbl.replace concs ksqid ksqcons ;
+                  dprintf "backsub" "Will also kill: [%s]@."
+                    (Ints.to_list ksqcons |> List.map string_of_int |> String.concat ",") ;
                   Ints.union ksqcons wl
               | exception Not_found -> wl
             in

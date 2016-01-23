@@ -51,6 +51,7 @@ let dump_database : Format.formatter option ref = ref None
 let tptp = ref false
 
 let rule_sub = ref false
+let recursive_backsub = ref false
 
 let paranoia = ref false
 let print_paranoia = false
