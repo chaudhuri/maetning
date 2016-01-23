@@ -19,7 +19,10 @@ let set_dump file =
       Config.dump_database := Some (Format.formatter_of_output (open_out file))
 
 let set_dependency_dag file =
-  Config.dependency_dag := Some (Format.formatter_of_output (open_out file))
+  let ff = Format.formatter_of_output (open_out file) in
+  Format.fprintf ff "digraph sequents {@." ;
+  at_exit (fun () -> Format.fprintf ff "}@.") ;
+  Config.dependency_dag := Some ff
 
 let options = Arg.(align [
     "", Unit (fun () -> ()), " \n\t*** INPUT ***\n" ;

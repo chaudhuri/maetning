@@ -51,6 +51,8 @@ type result = Proved of Inverse.result
             | Refuted
             | Unsound of Idt.t * Inverse.result
 
+let dep_salt = new Namegen.namegen (fun n -> n)
+
 let setup f =
   let open Sequent in
   let f = force POS f in
@@ -88,16 +90,16 @@ let setup f =
       Inverse.Data.iter_known begin fun sq ->
         known_ids := ISet.add sq.Inverse.id !known_ids
       end ;
-      fprintf ff "digraph sequents {@." ;
+      let salt = dep_salt#next in
       Inverse.Data.iter_known begin fun sq ->
-        fprintf ff "s%d [label=\"[%d] %s\"];@."
-          sq.Inverse.id sq.Inverse.id (Sequent.sequent_to_string sq.Inverse.th) ;
+        fprintf ff "s_%d_%d [label=\"[%d] %s\"];@."
+          salt sq.Inverse.id
+          sq.Inverse.id (Sequent.sequent_to_string sq.Inverse.th) ;
         ISet.iter begin fun anc ->
           if ISet.mem anc !known_ids then
-            fprintf ff "s%d -> s%d;@." anc sq.Inverse.id
+            fprintf ff "s_%d_%d -> s_%d_%d;@." salt anc salt sq.Inverse.id
         end sq.Inverse.th.ancs
       end ;
-      fprintf ff "}@." ;
   end ;
   prover_result
 
