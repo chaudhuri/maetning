@@ -72,13 +72,32 @@ let setup f =
       end
   in
   begin match !Config.dump_database with
+  | None -> ()
   | Some ff ->
       Format.fprintf ff "---- BEGIN DATABASE ----@." ;
       Inverse.Data.iter_known begin fun sq ->
         Format.fprintf ff "[%d] %a@." sq.Inverse.id Sequent.format_canonical sq.Inverse.th
       end ;
       Format.fprintf ff "---- END DATABASE ----@." ;
-  | None -> ()
+  end ;
+  begin match !Config.dependency_dag with
+  | None ->  ()
+  | Some ff ->
+      let open Format in
+      let known_ids = ref ISet.empty in
+      Inverse.Data.iter_known begin fun sq ->
+        known_ids := ISet.add sq.Inverse.id !known_ids
+      end ;
+      fprintf ff "digraph sequents {@." ;
+      Inverse.Data.iter_known begin fun sq ->
+        fprintf ff "s%d [label=\"[%d] %s\"];@."
+          sq.Inverse.id sq.Inverse.id (Sequent.sequent_to_string sq.Inverse.th) ;
+        ISet.iter begin fun anc ->
+          if ISet.mem anc !known_ids then
+            fprintf ff "s%d -> s%d;@." anc sq.Inverse.id
+        end sq.Inverse.th.ancs
+      end ;
+      fprintf ff "}@." ;
   end ;
   prover_result
 

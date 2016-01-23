@@ -98,15 +98,14 @@ module Trivial : Data = struct
             let oldsq = Hashtbl.find db ksqid in
             Hashtbl.remove db ksqid ;
             Hashtbl.remove active ksqid ;
-            dprintf "backsub" "Killed [%d] @[%a@]@." ksqid (format_sequent ()) oldsq.th ;
+            dprintf "backsub" "[%d] @[%a@]@." ksqid (format_sequent ()) oldsq.th ;
             let wl =
-              if not !Config.recursive_backsub then wl else
               match Hashtbl.find concs ksqid with
               | ksqcons ->
                   let ksqcons = Ints.filter (fun id -> not @@ Hashtbl.mem kills id) ksqcons in
                   Hashtbl.replace concs ksqid ksqcons ;
-                  dprintf "backsub" "Will also kill: [%s]@."
-                    (Ints.to_list ksqcons |> List.map string_of_int |> String.concat ",") ;
+                  (* dprintf "backsub" "Will also kill: [%s]@." *)
+                  (*   (Ints.to_list ksqcons |> List.map string_of_int |> String.concat ",") ; *)
                   Ints.union ksqcons wl
               | exception Not_found -> wl
             in
@@ -120,7 +119,8 @@ module Trivial : Data = struct
     match Deque.front !sos with
     | Some (sel, rest) ->
         sos := rest ;
-        if Hashtbl.mem kills sel.id then (dprintf "backsub" "DEAD: %d@." sel.id ; select ()) else
+        (* Jeez Rick, backsubbed sequents in the SOS are still alive! You can't just kill them! *)
+        (* Y-y-y-y-you may cease to exist! *)
         let rsel = {sel with th = Sequent.freshen sel.th ()} in
         if sos_subsumes rsel.th then select () else begin
           Hashtbl.add active sel.id sel ;
@@ -194,6 +194,9 @@ and percolate_once (module D : Data) ~sc_fact ~iter rules =
       (*     sq.id sq.ts (format_sequent ()) sq0.th *)
       (*     rr.ts (format_rule ()) rr0.th *)
       (* else *)
+      (* dprintf "percolate" "@[<v0>Trying [%d] @[%a@]@,With [%d] @[%a@]@." *)
+      (*   sq0.id (format_sequent ()) sq0.th *)
+      (*   rr0.id (format_rule ()) rr0.th ; *)
       Rule.specialize_default rr.th (sq.id, sq.th)
         ~sc_fact:(fun sq ->
             dprintf "factgen" "@[<v0>Trying [%d] @[%a@]@,With [%d] @[%a@]@,Produced @[%a@]@]@."

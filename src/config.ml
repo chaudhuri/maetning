@@ -48,10 +48,11 @@ let pseudo_proofs = ref true
 
 let dump_database : Format.formatter option ref = ref None
 
+let dependency_dag : Format.formatter option ref = ref None
+
 let tptp = ref false
 
 let rule_sub = ref false
-let recursive_backsub = ref false
 
 let paranoia = ref false
 let print_paranoia = false

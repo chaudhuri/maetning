@@ -18,6 +18,9 @@ let set_dump file =
   | _ ->
       Config.dump_database := Some (Format.formatter_of_output (open_out file))
 
+let set_dependency_dag file =
+  Config.dependency_dag := Some (Format.formatter_of_output (open_out file))
+
 let options = Arg.(align [
     "", Unit (fun () -> ()), " \n\t*** INPUT ***\n" ;
     "-tptp", Set Config.tptp, " Assume input files are in TPTP/ILTP format (only supports FOF)" ;
@@ -27,6 +30,7 @@ let options = Arg.(align [
     "-nobias", Set Config.hide_bias, " Hide predicate biases" ;
     "-noshrink", Clear Config.shrink, " Do not shrink proofs down to relevant details" ;
     "-dump", String set_dump, "<file> Dump the final sequent database to <file> (use - for stdout)" ;
+    "-dep", String set_dependency_dag, "<file> Dump the sequent dependency graph to <file>" ;
     "", Unit (fun () -> ()), " \n\t*** CONSISTENCY ***\n" ;
     "-check", Set Config.do_check, " Reconstruct a full proof from the skeleton and check it" ;
     "-paranoia", Set Config.paranoia, " Check every indexed sequent" ;
@@ -36,7 +40,6 @@ let options = Arg.(align [
     "-debug", String Config.set_debug_flags, "<flags> Enable debug flags <flags>, comma-separated" ;
     "", Unit (fun () -> ()), " \t(A flag is an identifier prefixed by + or -.)" ;
     "-XX:EVCPseudos", Set Config.evc_pseudos, " Perform EVC on pseudos as well (default: false)" ;
-    "-XX:RecursiveBacksub", Set Config.recursive_backsub, " Backsubsumption recursively kills consequences (default: false)" ;
     "", Unit (fun () -> ()), " \n\t*** MISCELLANEOUS ***\n" ;
     "-version", Unit (fun () ->
         Printf.printf "Maetning version %s\n" Version.version ;
