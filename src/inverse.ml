@@ -165,7 +165,7 @@ let rec percolate0 (module D : Data) ~sc_fact ~sc_rule ~sel ~iter rules =
 
 and percolate1 (module D : Data) ~sc_fact ~sc_rule ~iter rules =
   let new_rules = percolate_once (module D : Data) ~sc_fact ~iter rules in
-  (* List.iter sc_rule new_rules ; *)
+  List.iter sc_rule new_rules ;
   if new_rules <> [] then percolate1 (module D : Data) ~sc_fact ~sc_rule ~iter new_rules
 
 and percolate_once (module D : Data) ~sc_fact ~iter rules =
@@ -175,8 +175,11 @@ and percolate_once (module D : Data) ~sc_fact ~iter rules =
     | [] -> sc_fact rr.concl
     | _ ->
         let rr = Rule.freshen rr in
-        if is_new_rule (module D) rr then
-          new_rules := {id = ruleidgen#next ; th = rr} :: !new_rules
+        if is_new_rule (module D) rr then begin
+          let id = ruleidgen#next in
+          dprintf "rulegen" "It was given number [%d]@." id ;
+          new_rules := {id ; th = rr} :: !new_rules
+        end
   in
   List.iter begin fun rr ->
     iter begin fun sq ->
@@ -319,12 +322,16 @@ module Inv (D : Data) = struct
       let add_rule rr =
         match rr.th.prems with
         | [] ->  add_seq rr.th.concl
-        | _ ->
+        | _ -> begin
             let rr = {rr with th = Rule.freshen rr.th} in
-            if not @@ List.exists (fun oldrr -> Rule.rule_subsumes oldrr.th rr.th) !rules then begin
-              dprintf "rule" "[%d] @[%a@]@." rr.id (format_rule ()) rr.th ;
-              rules := rr :: !rules
-            end
+            match List.find (fun oldrr -> Rule.rule_subsumes oldrr.th rr.th) !rules with
+            | oldrr ->
+                dprintf "rulegen" "But it was subsumed by: [%d] @[%a@]@."
+                  oldrr.id (format_rule ()) oldrr.th
+            | exception Not_found ->
+                dprintf "rule" "[%d] @[%a@]@." rr.id (format_rule ()) rr.th ;
+                rules := rr :: !rules
+          end
       in
       gen ~sc:(fun rr -> add_rule {id = ruleidgen#next ; th = rr}) ;
       D.finish_initial () ;
