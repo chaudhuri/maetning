@@ -303,9 +303,7 @@ let specialize_left ~sc rr (id, sq) =
       specialize_one prem prems
         ~sc ~id ~sq ~concl:rr.concl ~eigen:rr.eigen ~extra:rr.extra ~sats:rr.sats
 
-let specialize ~sc rr (id, sq) = specialize_left ~sc rr (id, sq)
-
-let specialize_default ~sc_rule ~sc_fact rr idsq =
+let specialize_default ?(spec=specialize_left) ~sc_rule ~sc_fact rr idsq =
   let sc rule =
     match rule.prems with
     | [] ->
@@ -313,7 +311,7 @@ let specialize_default ~sc_rule ~sc_fact rr idsq =
     | _ ->
         sc_rule rule
   in
-  specialize ~sc rr idsq
+  spec ~sc rr idsq
 
 let freshen ?(repl=VMap.empty) rr =
   let (repl, concl) = Sequent.freshen_ ~repl rr.concl in

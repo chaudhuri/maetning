@@ -163,16 +163,22 @@ let is_new_rule (module D : Data) rr =
 let ruleidgen = new Namegen.namegen (fun n -> n)
 
 let rec percolate0 (module D : Data) ~sc_fact ~sc_rule ~sel ~iter rules =
-  let new_rules = percolate_once (module D : Data) ~sc_fact ~iter:(fun doit -> doit sel) rules in
+  let new_rules = percolate_once ~spec:Rule.specialize_any (module D : Data) ~sc_fact ~iter:(fun doit -> doit sel) rules in
   List.iter sc_rule new_rules ;
   if new_rules <> [] then percolate1 (module D : Data) ~sc_fact ~sc_rule ~iter new_rules
 
 and percolate1 (module D : Data) ~sc_fact ~sc_rule ~iter rules =
   let new_rules = percolate_once (module D : Data) ~sc_fact ~iter rules in
-  List.iter sc_rule new_rules ;
+  (******************************************************************************)
+  (*                                                                            *)
+  (*                   List.iter sc_rule new_rules ;                            *)
+  (*                                                                            *)
+  (* No point remembering these rules as they will never be constructed again.  *)
+  (* Each percolate0 constructs a globally new family of percolating rules      *)
+  (******************************************************************************)
   if new_rules <> [] then percolate1 (module D : Data) ~sc_fact ~sc_rule ~iter new_rules
 
-and percolate_once (module D : Data) ~sc_fact ~iter rules =
+and percolate_once (module D : Data) ?spec ~sc_fact ~iter rules =
   let new_rules : rule ts list ref = ref [] in
   let add_rule rr =
     match rr.prems with
@@ -197,7 +203,7 @@ and percolate_once (module D : Data) ~sc_fact ~iter rules =
       (* dprintf "percolate" "@[<v0>Trying [%d] @[%a@]@,With [%d] @[%a@]@." *)
       (*   sq0.id (format_sequent ()) sq0.th *)
       (*   rr0.id (format_rule ()) rr0.th ; *)
-      Rule.specialize_default rr.th (sq.id, sq.th)
+      Rule.specialize_default ?spec rr.th (sq.id, sq.th)
         ~sc_fact:(fun sq ->
             dprintf "factgen" "@[<v0>Trying [%d] @[%a@]@,With [%d] @[%a@]@,Produced @[%a@]@]@."
               sq0.id (format_sequent ()) sq0.th

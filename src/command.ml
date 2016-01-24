@@ -92,7 +92,7 @@ let setup f =
       end ;
       let salt = dep_salt#next in
       Inverse.Data.iter_known begin fun sq ->
-        fprintf ff "s_%d_%d [label=\"[%d] %s\"];@."
+        fprintf ff "s_%d_%d [shape=box,label=\"[%d] %s\"];@."
           salt sq.Inverse.id
           sq.Inverse.id (Sequent.sequent_to_string sq.Inverse.th) ;
         ISet.iter begin fun anc ->
