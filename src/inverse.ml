@@ -305,15 +305,15 @@ let paranoid_check ~lforms sq =
 
 let noop () = ()
 
-type result = {
+type 'a result = {
   lforms  : lform list ;
   goal    : lform ;
-  found   : Sequent.t ;
+  status  : 'a ;
 }
 
 module Inv (D : Data) = struct
 
-  exception Escape of result
+  exception Escape of Sequent.t option result
 
   let inverse_method ?(left=[]) ?(pseudo=[]) ?(per_loop=noop) right =
     try
@@ -328,7 +328,7 @@ module Inv (D : Data) = struct
         if Sequent.subsume sq goal_seq then begin
           raise (Escape {lforms = lfs ;
                          goal = goal_lf ;
-                         found = sq})
+                         status = Some sq})
         end ;
         paranoid_check ~lforms:lfs sq
       in
@@ -354,9 +354,8 @@ module Inv (D : Data) = struct
         D.print_statistics () ;
         per_loop () ;
       end ;
-      None
-    with Escape res ->
-      Some res
+      {lforms = lfs ; goal = goal_lf ; status = None}
+    with Escape res -> res
 end
 
 module Data = Trivial
@@ -373,12 +372,13 @@ module Test () = struct
     Unix.sleep n
 
   let inverse_test ~theory ~pseudo ~goal ?(per_loop=noop) n =
-    match inverse_method ~left:theory ~pseudo:(pseudo n) ~per_loop goal with
+    let res = inverse_method ~left:theory ~pseudo:(pseudo n) ~per_loop goal in
+    match res.status with
     | None ->
         Format.printf "Not provable@."
-    | Some res -> begin
+    | Some resq -> begin
         match
-          Ft.to_list res.found.left |>
+          Ft.to_list resq.left |>
           List.Exceptionless.find (fun (p, _) -> Form.is_pseudo p)
         with
         | None -> Format.printf "Proved!@."

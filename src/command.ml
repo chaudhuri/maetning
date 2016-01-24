@@ -47,9 +47,10 @@ let retract x =
 let values map =
   IdtMap.fold (fun _ v l -> v :: l) map []
 
-type result = Proved of Inverse.result
-            | Refuted
-            | Unsound of Idt.t * Inverse.result
+type outcome =
+  | Proved of Sequent.t
+  | Refuted
+  | Unsound of Idt.t * Sequent.t
 
 let dep_salt = new Namegen.namegen (fun n -> n)
 
@@ -60,17 +61,19 @@ let setup f =
   (* let globals = values !global_map in *)
   (* let pseudo = values !pseudo_map in *)
   let prover_result =
-    match Inverse.inverse_method f
-            ~left:(IdtMap.bindings !global_map)
-            ~pseudo:(IdtMap.bindings !pseudo_map) with
-    | None -> Refuted
-    | Some res -> begin
+    let res = Inverse.inverse_method f
+        ~left:(IdtMap.bindings !global_map)
+        ~pseudo:(IdtMap.bindings !pseudo_map)
+    in
+    match res.Inverse.status with
+    | None -> {res with Inverse.status = Refuted}
+    | Some resq -> begin
         match
-          Ft.to_list res.Inverse.found.left |>
+          Ft.to_list resq.left |>
           List.Exceptionless.find (fun (p, _) -> Form.is_pseudo p)
         with
-        | None -> Proved res
-        | Some (p, _) -> Unsound (p, res)
+        | None -> {res with Inverse.status = Proved resq}
+        | Some (p, _) -> {res with Inverse.status = Unsound (p, resq)}
       end
   in
   begin match !Config.dump_database with
@@ -122,7 +125,7 @@ let dump_proof ?(pseudos=false) f res =
           ~max:1
           ~lforms:res.Inverse.lforms
           ~goal
-          ~cert:res.Inverse.found.Sequent.skel
+          ~cert:res.Inverse.status.Sequent.skel
   with
   | Some prf ->
       if pseudos then Config.pprintf "<p class='pseudo'>THIS IS A PSEUDO PROOF</p>@." ;
@@ -132,19 +135,21 @@ let dump_proof ?(pseudos=false) f res =
   | None -> failwith "Reconstruction failed"
 
 let prove f =
-  match setup f with
-  | Proved res ->
-      if !Config.do_check then dump_proof f res ;
+  let res = setup f in
+  match res.Inverse.status with
+  | Proved sq ->
+      if !Config.do_check then dump_proof f {res with Inverse.status = sq} ;
       Format.printf "Proved.@."
   | Refuted -> failwith "Not provable"
-  | Unsound (p, res) ->
-      if !Config.pseudo_proofs then dump_proof ~pseudos:true f res ;
+  | Unsound (p, sq) ->
+      if !Config.pseudo_proofs then dump_proof ~pseudos:true f {res with Inverse.status = sq} ;
       Format.printf "UNKNOWN: pseudo %s was used.@." p.rep
 
 let refute f =
-  match setup f with
+  let res = setup f in
+  match res.Inverse.status with
   | Proved _ -> failwith "Not refuted"
   | Refuted -> Format.printf "Refuted.@."
-  | Unsound (p, res) ->
-      if !Config.pseudo_proofs then dump_proof ~pseudos:true f res ;
+  | Unsound (p, sq) ->
+      if !Config.pseudo_proofs then dump_proof ~pseudos:true f {res with Inverse.status = sq} ;
       Format.printf "UNKNOWN: pseudo %s was used.@." p.rep
