@@ -125,10 +125,10 @@ let dump_proof ?(pseudos=false) f res =
           ~cert:res.Inverse.found.Sequent.skel
   with
   | Some prf ->
-      if pseudos then Config.pprintf "<p class='pseudo'>THIS IS A PSEUDO PROOF</p>@." ;
+      if pseudos then Config.prfout#printf "<p class='pseudo'>THIS IS A PSEUDO PROOF</p>@." ;
       Seqproof_print.print prf
         ~lforms:res.Inverse.lforms ~goal ;
-      Config.pprintf "<hr>@."
+      Config.prfout#printf "<hr>@."
   | None -> failwith "Reconstruction failed"
 
 let prove f =

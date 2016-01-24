@@ -7,8 +7,8 @@
 
 open Batteries
 
-let set_input file =
-  let disch = Config.set_proof_channel file in
+let set_models_output file =
+  let disch = Config.set_model_channel file in
   at_exit disch
 
 let set_dump file =
@@ -28,7 +28,8 @@ let options = Arg.(align [
     "", Unit (fun () -> ()), " \n\t*** INPUT ***\n" ;
     "-tptp", Set Config.tptp, " Assume input files are in TPTP/ILTP format (only supports FOF)" ;
     "", Unit (fun () -> ()), " \n\t*** OUTPUT ***\n" ;
-    "-proofs", String set_input, "<file> Output proofs to <file> (in HTML format)" ;
+    "-proofs", String Config.prfout#connect, "<file> Output proofs to <file> (in HTML format)" ;
+    "-models", String set_models_output, "<file> Output models to <file>" ;
     "-shifts", Set Config.show_shifts, " Show polarity shifts" ;
     "-nobias", Set Config.hide_bias, " Hide predicate biases" ;
     "-noshrink", Clear Config.shrink, " Do not shrink proofs down to relevant details" ;
@@ -58,14 +59,14 @@ let parse_options () =
   Arg.parse options Config.add_input_file umsg
 
 let process_file_native file =
-  Config.pprintf "<h3>Proofs from <code>%s</code></h3>@.<hr>@." file ;
+  Config.prfout#printf "<h3>Proofs from <code>%s</code></h3>@.<hr>@." file ;
   let ch = open_in_bin file in
   let lb = Lexing.from_channel ch in
   Front_parse.file Front_lex.token lb ;
   close_in ch
 
 let rec process_file_tptp file =
-  Config.pprintf "<h3>Proofs from <code>%s</code></h3>@.<hr>@." file ;
+  Config.prfout#printf "<h3>Proofs from <code>%s</code></h3>@.<hr>@." file ;
   let ch = open_in_bin file in
   let lb = Lexing.from_channel ch in
   let rec spin () =

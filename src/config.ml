@@ -66,13 +66,10 @@ let maybe_timeout () =
   if Unix.gettimeofday () > !timeout then
     Debug.failwithf "Timeout exceeded"
 
-let proof_formatter : Format.formatter option ref = ref None
-let set_proof_channel filename =
-  let oc = open_out_bin filename in
-  let fmt = Format.formatter_of_out_channel oc in
-  Format.pp_set_margin fmt max_int ;
-  Format.pp_set_max_indent fmt max_int ;
-  Format.fprintf fmt "%s@." {html|<!DOCTYPE html>
+let prfout = new Fout.fout ()
+  ~preamble:begin fun ff ->
+    Format.fprintf ff
+      {html|<!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8">
@@ -91,15 +88,23 @@ let set_proof_channel filename =
 <title>Proofs!</title>
 </head>
 <body>
-|html} ;
-  proof_formatter := Some fmt ;
-  begin fun () ->
-    Format.fprintf fmt "</body></html>@." ;
-    close_out oc ;
-    Printf.printf "Proofs are now available in %S.\n%!" filename ;
+@.|html} ;
+  end
+  ~postamble:begin fun ff ->
+    Format.fprintf ff "</body></html>@."
   end
 
-let pprintf fmt =
-  match !proof_formatter with
+let model_formatter : Format.formatter option ref = ref None
+let set_model_channel filename =
+  let oc = open_out_bin filename in
+  let fmt = Format.formatter_of_out_channel oc in
+  model_formatter := Some fmt ;
+  begin fun () ->
+    close_out oc ;
+    Printf.printf "Models are now available in %S.\n%!" filename ;
+  end
+
+let mprintf fmt =
+  match !model_formatter with
   | None -> Format.(ifprintf err_formatter fmt)
   | Some ff -> Format.(fprintf ff fmt)

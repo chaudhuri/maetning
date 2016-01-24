@@ -291,12 +291,12 @@ let paranoid_check ~lforms sq =
             ~cert:sq.skel
     with
     | Some prf ->
-        Config.pprintf "<p>Paranoia for <code>%a</code></p>@." (format_sequent ()) sq ;
-        Config.pprintf "<p>Found: <code>%a</code></p>@."
+        Config.prfout#printf "<p>Paranoia for <code>%a</code></p>@." (format_sequent ()) sq ;
+        Config.prfout#printf "<p>Found: <code>%a</code></p>@."
           Seqproof.format_seqproof prf ;
         if Config.print_paranoia then begin
           Seqproof_print.print prf ~lforms ~goal ;
-          Config.pprintf "<hr>@."
+          Config.prfout#printf "<hr>@."
         end
     | None ->
         Format.(eprintf "Could not reconstruct@.@[<v0>%a@]@." Seqproof.format_sequent goal) ;

@@ -14,8 +14,6 @@ open Seqproof
 
 module M = VMap
 
-let pprintf = Config.pprintf
-
 let expand_fully ~dict f0 =
   let rec spin f =
     match f.form with
@@ -197,7 +195,8 @@ let print ~lforms ~goal proof =
         match (snd @@ List.assoc h sq.left_passive).form with
         | Atom (POS, q, qts) when p == q && pts = qts ->
             let sel (h', _) = h == h' in
-            pprintf "<ul><li>@.%a [right-init with <code>%s</code>]</li></ul>@."
+            Config.prfout#printf
+              "<ul><li>@.%a [right-init with <code>%s</code>]</li></ul>@."
               (format_neutral ~sel ~dict) sq h.rep
         | _ -> failwith "InitR/match"
         | exception Not_found -> failwith "InitR/badindex"
@@ -228,7 +227,8 @@ let print ~lforms ~goal proof =
         | Atom (NEG, p, pts), InitL -> begin
             match sq.right.form with
             | Atom (NEG, q, qts) when p == q && pts = qts ->
-                pprintf "<ul><li>@.%a [left-init]</li></ul>@."
+                Config.prfout#printf
+                  "<ul><li>@.%a [left-init]</li></ul>@."
                   (format_neutral ~sel:(fun _ -> false) ~dict) sq
             (* | Atom (NEG, q, qts) when p == q -> *)
             (*     pprintf "<ul><li>@.%a [BAD left-init: <code>%a ≠ %a</code>]<br><code>%a</code></li></ul>@." *)
@@ -331,33 +331,33 @@ let print ~lforms ~goal proof =
       | FocL (h', _) -> h == h'
       | _ -> false
     in
-    pprintf "<ul><li>@.%a@." (format_neutral ~sel ~dict) sq ; begin
+    Config.prfout#printf "<ul><li>@.%a@." (format_neutral ~sel ~dict) sq ; begin
       match pf with
       | FocR pf ->
-          pprintf "right-focus@." ;
+          Config.prfout#printf "right-focus@." ;
           right_focus0 sq pf
       | FocL (h, (x, pf)) -> begin
           match snd @@ List.assoc h sq.left_passive with
           | a ->
               let sq = {sq with left_active = [(x, a)]} in
-              pprintf "left-focus on <code>%s</code>@." h.rep ;
+              Config.prfout#printf "left-focus on <code>%s</code>@." h.rep ;
               left_focus0 sq pf
           | exception Not_found -> failwith "FocL/badindex"
         end
       | _ -> failwith "Invalid: frontier"
-    end ; pprintf "</li>@.</ul>@."
+    end ; Config.prfout#printf "</li>@.</ul>@."
 
   and right_focus0 sq pf =
-    (* pprintf "<ul><li>@.%a [right-focus]@." format_neutral sq ; *)
+    (* Config.prfout#printf "<ul><li>@.%a [right-focus]@." format_neutral sq ; *)
     right_focus [] sq pf ;
-    (* pprintf "</li>@.</ul>@." *)
+    (* Config.prfout#printf "</li>@.</ul>@." *)
 
   and left_focus0 sq pf =
-    (* pprintf "<ul><li><code>%a</code> [left-focus]@." format_neutral sq ; *)
-    (* pprintf "<ul><li><code>%a</code>@." format_neutral sq ; *)
-    (* pprintf "<em>i.e.</em>, <code>%a</code>@." format_neutral sq ; *)
+    (* Config.prfout#printf "<ul><li><code>%a</code> [left-focus]@." format_neutral sq ; *)
+    (* Config.prfout#printf "<ul><li><code>%a</code>@." format_neutral sq ; *)
+    (* Config.prfout#printf "<em>i.e.</em>, <code>%a</code>@." format_neutral sq ; *)
     left_focus [] sq pf ;
-    (* pprintf "</li>@.</ul>@." *)
+    (* Config.prfout#printf "</li>@.</ul>@." *)
 
   in
 
