@@ -7,6 +7,8 @@
 
 open Batteries
 
+module M = Model
+
 let set_input file =
   let disch = Config.set_proof_channel file in
   at_exit disch
