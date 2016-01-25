@@ -200,7 +200,7 @@ let query lforms constr =
         (*       (format_form ()) lf *)
       end
   in
-  dprintf "modelquery" "Querying @[%a@]@." (format_constr lforms) constr ;
+  dprintf "modelquery" "Querying @[%a@]@." (format_constr []) constr ;
   right_active ~left:(constr.live @ constr.dead) constr.fals
 
 let rec simplify_right ~succ ~lforms constr =
