@@ -272,11 +272,11 @@ and simplify_left ~succ ~lforms constr =
       | True _ ->
           simplify_left ~succ ~lforms {constr with live}
       | Or (lf1, lf2) ->
-          simplify_left ~lforms {constr with live = lf1 :: live}
-            ~succ:(fun m1 ->
-                simplify_left ~lforms {constr with live = lf2 :: live}
-                  ~succ:(fun m2 ->
-                      succ (Fork (constr, [m1 ; m2]))))
+          let constr1 = {constr with live = lf1 :: live} in
+          if query lforms constr1 then
+            simplify_left ~lforms {constr with live = lf2 :: live} ~succ
+          else
+            simplify_left ~lforms constr1 ~succ
       | False ->
           succ (Leaf constr)
       | Implies (lf1, lf2) ->
