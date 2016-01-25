@@ -5,6 +5,10 @@
  * See LICENSE for licensing details.
  *)
 
+let elide_true_nonatoms  = true (* omit T A when A is a non-atom *)
+let elide_dead           = true (* omit T* A when A is a non-atom *)
+let elide_false_nonatoms = true (* omit F A when A is a non-atom *)
+
 (* Model reconstruction based on the algorithm described in:
 
    Taus Brock-Nannestad and Kaustuv Chaudhuri, "Saturation-based
@@ -68,17 +72,19 @@ let compound lforms f =
 let format_constr lforms ff constr =
   let open Format in
   pp_open_box ff 2 ; begin
-    let live = List.map begin fun f () ->
-        fprintf ff "T @[%a@]" (format_form_expanded lforms) f
+    let live = List.filter_map begin fun f ->
+        if elide_true_nonatoms && compound lforms f then None
+        else Some (fun () -> fprintf ff "T @[%a@]" (format_form_expanded lforms) f)
       end constr.live in
     let dead = List.filter_map begin fun f ->
-        if compound lforms f then None else
-        Some (fun () -> fprintf ff "T* @[%a@]" (format_form ()) f)
+        if elide_dead && compound lforms f then None
+        else Some (fun () -> fprintf ff "T* @[%a@]" (format_form ()) f)
       end constr.dead in
     let fals =
       match constr.fals with
       | Some f ->
-          [fun () -> fprintf ff "F @[%a@]" (format_form_expanded lforms) f]
+          if elide_false_nonatoms && compound lforms f then []
+          else [fun () -> fprintf ff "F @[%a@]" (format_form_expanded lforms) f]
       | None -> []
     in
     (live @ dead @ fals) |>
@@ -115,11 +121,11 @@ let dot_format_model lforms modl =
     let w = next_world () in
     begin match modl with
     | Leaf constr ->
-        fprintf dotff "w%d [shape=box,fontname=\"monospace\",label=\"@[%a@]\"];@."
+        fprintf dotff "w%d [shape=box,fontname=\"monospace\",fontsize=10,label=\"@[%a@]\"];@."
           w (format_constr lforms) constr
     | Fork (constr, kids) ->
         let ws = List.map spin_lines kids in
-        fprintf dotff "w%d [shape=box,fontname=\"monospace\",label=\"@[%a@]\"];@."
+        fprintf dotff "w%d [shape=box,fontname=\"monospace\",fontsize=10,label=\"@[%a@]\"];@."
           w (format_constr lforms) constr ;
         List.iter (fun u -> fprintf dotff "w%d -> w%d;" w u) ws
     end ; w
