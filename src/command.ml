@@ -134,13 +134,20 @@ let dump_proof ?(pseudos=false) f res =
       Config.pprintf "<hr>@."
   | None -> failwith "Reconstruction failed"
 
+let dump_model f res =
+  let modl = Model.create_model res in
+  Config.pprintf "<p>Countermodel for <code>%a</code></p>@." (Form.format_form ()) f ;
+  Config.pprintf "<pre>@.%a</pre>@." (Model.format_model res.Inverse.lforms) modl
+
 let prove f =
   let res = setup f in
   match res.Inverse.status with
   | Proved sq ->
       if !Config.do_check then dump_proof f {res with Inverse.status = sq} ;
       Format.printf "Proved.@."
-  | Refuted -> failwith "Not provable"
+  | Refuted ->
+      if !Config.do_check then dump_model f res ;
+      failwith "Not provable"
   | Unsound (p, sq) ->
       if !Config.pseudo_proofs then dump_proof ~pseudos:true f {res with Inverse.status = sq} ;
       Format.printf "UNKNOWN: pseudo %s was used.@." p.rep
@@ -149,7 +156,9 @@ let refute f =
   let res = setup f in
   match res.Inverse.status with
   | Proved _ -> failwith "Not refuted"
-  | Refuted -> Format.printf "Refuted.@."
+  | Refuted ->
+      if !Config.do_check then dump_model f res ;
+      Format.printf "Refuted.@."
   | Unsound (p, sq) ->
       if !Config.pseudo_proofs then dump_proof ~pseudos:true f {res with Inverse.status = sq} ;
       Format.printf "UNKNOWN: pseudo %s was used.@." p.rep

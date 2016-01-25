@@ -29,6 +29,8 @@ let () = set_debug_flags @@ String.concat "," [
     (* "stats" ; *)
     (* "skeleton" ; *)
     (* "reconstruct" ; *)
+    (* "model" ; *)
+    (* "modelquery" ; *)
   ]
 
 let input_files : string list ref = ref []
@@ -88,7 +90,7 @@ let set_proof_channel filename =
   td.concl { border-top: 2px solid #000080; }
   p.pseudo { margin-left: 1em; color: red; font-weight: bold; }
 </style>
-<title>Proofs!</title>
+<title>Proofs and Models!</title>
 </head>
 <body>
 |html} ;
@@ -96,7 +98,7 @@ let set_proof_channel filename =
   begin fun () ->
     Format.fprintf fmt "</body></html>@." ;
     close_out oc ;
-    Printf.printf "Proofs are now available in %S.\n%!" filename ;
+    Printf.printf "Proofs/models are now available in %S.\n%!" filename ;
   end
 
 let pprintf fmt =
