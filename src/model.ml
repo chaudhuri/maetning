@@ -5,8 +5,10 @@
  * See LICENSE for licensing details.
  *)
 
+let collapse_steps       = true (* collapse steps that have the same constraints *)
 let elide_true_nonatoms  = true (* omit T A when A is a non-atom *)
 let elide_dead           = true (* omit T* A when A is a non-atom *)
+let elide_false          = true (* omit F A *)
 let elide_false_nonatoms = true (* omit F A when A is a non-atom *)
 
 (* Model reconstruction based on the algorithm described in:
@@ -27,15 +29,52 @@ open Inverse
 
 open Debug
 
-type model =
-  | Leaf of constr
-  | Fork of constr * model list
+type model = {
+  constr : constr ;
+  kids   : model list ;
+}
 
 and constr = {
   live : form list ;            (* all T *)
   dead : form list ;            (* all T *)
   fals : form option ;          (* all F *)
 }
+
+(******************************************************************************)
+
+let model_kids modl = modl.kids
+
+exception Nonatomic
+
+let form_id lforms f =
+  match f.form with
+  | Atom (_, l, []) -> begin
+      match List.find (fun lf -> lf.label == l) lforms with
+      | _ -> raise Nonatomic
+      | exception Not_found -> l
+    end
+  | _ -> raise Nonatomic
+
+let true_ids lforms constr =
+  List.fold_left begin fun set f ->
+    match form_id lforms f with
+    | id -> IdtSet.add id set
+    | exception Nonatomic -> set
+  end IdtSet.empty (constr.live @ constr.dead)
+
+let model_compatible lforms constr modl =
+  IdtSet.equal
+    (true_ids lforms constr)
+    (true_ids lforms modl.constr)
+
+let fork lforms constr kids =
+  if collapse_steps && List.for_all (model_compatible lforms constr) kids then
+    let kids = kids |> List.map model_kids |> List.concat in
+    { constr ; kids }
+  else
+    { constr ; kids }
+
+(******************************************************************************)
 
 exception Model
 
@@ -81,6 +120,7 @@ let format_constr lforms ff constr =
         else Some (fun () -> fprintf ff "T* @[%a@]" (format_form ()) f)
       end constr.dead in
     let fals =
+      if elide_false then [] else
       match constr.fals with
       | Some f ->
           if elide_false_nonatoms && compound lforms f then []
@@ -99,12 +139,8 @@ let pp_indent ff n =
 
 let rec format_model_lines lforms indent ff modl =
   let open Format in
-  match modl with
-  | Leaf constr ->
-      fprintf ff "%a* @[%a@]@," pp_indent indent (format_constr lforms) constr
-  | Fork (constr, kids) ->
-      List.iter (format_model_lines lforms (indent + 1) ff) kids ;
-      fprintf ff "%a* @[%a@]@," pp_indent indent (format_constr lforms) constr
+  List.iter (format_model_lines lforms (indent + 1) ff) modl.kids ;
+  fprintf ff "%a* @[%a@]@," pp_indent indent (format_constr lforms) modl.constr
 
 let format_model lforms ff modl =
   Format.fprintf ff "@[<v0>%a@]" (format_model_lines lforms 0) modl
@@ -119,17 +155,11 @@ let dot_format_model lforms modl =
   let next_world () = incr cur_world ; !cur_world in
   let rec spin_lines modl =
     let w = next_world () in
-    begin match modl with
-    | Leaf constr ->
-        fprintf dotff "w%d [shape=box,fontname=\"monospace\",fontsize=10,label=\"@[%a@]\"];@."
-          w (format_constr lforms) constr
-    | Fork (constr, kids) ->
-        let ws = List.map spin_lines kids in
-        fprintf dotff "w%d [shape=box,fontname=\"monospace\",fontsize=10,label=\"@[%a@]\"];@."
-          w (format_constr lforms) constr ;
-        List.iter (fun u -> fprintf dotff "w%d -> w%d;" w u) ws
-    end ; w
-  in
+    let ws = List.map spin_lines modl.kids in
+    fprintf dotff "w%d [shape=box,fontname=\"monospace\",fontsize=10,label=\"@[%a@]\"];@."
+      w (format_constr lforms) modl.constr ;
+    List.iter (fun u -> fprintf dotff "w%d -> w%d;" w u) ws ;
+    w in
   ignore (spin_lines modl) ;
   fprintf dotff "}@." ;
   close_out oc ;
@@ -230,13 +260,13 @@ let rec simplify_right ~succ ~lforms constr =
           else
             simplify_right ~succ ~lforms constr1
       | True _ ->
-          succ (Leaf constr)
+          succ { constr ; kids = [] }
       | Or (rt1, rt2) ->
           simplify_right ~lforms {constr with fals = Some rt1}
             ~succ:(fun m1 ->
                 simplify_right ~lforms {constr with fals = Some rt2}
                   ~succ:(fun m2 ->
-                      succ (Fork (constr, [m1 ; m2]))))
+                      succ (fork lforms constr [m1 ; m2])))
       | False ->
           simplify_left ~succ ~lforms {constr with fals = None}
       | Implies (rt1, rt2) ->
@@ -257,7 +287,7 @@ and simplify_left ~succ ~lforms constr =
       if query lforms constr then
         Debug.bugf "Simplified to true constraint: @[%a@]"
           (format_constr lforms) constr ;
-      succ (Leaf constr)
+      succ { constr ; kids = [] }
   | lf :: live -> begin
       match lf.form with
       | Atom (_, l, []) -> begin
@@ -284,7 +314,7 @@ and simplify_left ~succ ~lforms constr =
           else
             simplify_left ~lforms constr1 ~succ
       | False ->
-          succ (Leaf constr)
+          succ { constr ; kids = [] }
       | Implies (lf1, lf2) ->
           let constr1 = {live ; dead = lf :: constr.dead ; fals = Some lf1} in
           if query lforms constr1 then
@@ -294,7 +324,7 @@ and simplify_left ~succ ~lforms constr =
                 live = lf2 :: live }
           else
             simplify_right ~lforms constr1
-              ~succ:(fun m1 -> succ (Fork (constr, [m1])))
+              ~succ:(fun m1 -> succ (fork lforms constr [m1]))
       | Shift lf ->
           simplify_left ~lforms ~succ {constr with live = lf :: live}
       | Forall _ | Exists _ | Atom _ -> first_order ()
