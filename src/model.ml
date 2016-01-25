@@ -133,48 +133,49 @@ let dot_format_model lforms modl =
   ignore (Unix.close_process (ic, oc)) ;
   result
 
-(* query the oracle *)
 let query lforms constr =
-  let rec right_active ~left right =
+  let base ~stored right =
+    let sq = mk_sequent ()
+        ~left:(stored |>
+               List.map (fun l -> (l, [])) |>
+               Ft.of_list)
+        ?right:(right |> Option.map (fun l -> (l, [])))
+    in
+    dprintf "modelquery" "Need to check: @[%a@]@." (format_sequent ()) sq ;
+    let subs = Inverse.Data.subsumes sq in
+    dprintf "modelquery" "Was %ssubsumed@." (if subs then "" else "NOT ") ;
+    subs
+  in
+  let rec right_active ~stored right =
     match right with
-    | None -> left_active ~left None
+    | None -> base ~stored None
     | Some rf -> begin
         match rf.form with
         | Atom (_, l, [])
         | Shift {form = Atom (_, l, []) ; _} ->
-            left_active ~left (Some l)
+            base ~stored (Some l)
         | And (_, rf1, rf2) ->
-            right_active ~left (Some rf1) &&
-            right_active ~left (Some rf2)
+            right_active ~stored (Some rf1) &&
+            right_active ~stored (Some rf2)
         | True _ ->
             true
         | Or (rf1, rf2) ->
-            right_active ~left (Some rf1) ||
-            right_active ~left (Some rf2)
+            right_active ~stored (Some rf1) ||
+            right_active ~stored (Some rf2)
         | False ->
             false
         | Implies (rf1, rf2) ->
-            right_active ~left:(rf1 :: left) (Some rf2)
+            left_active ~stored ~left:[rf1] (Some rf2)
         | Forall _ | Exists _ | Atom _ -> first_order ()
         | Shift rf ->
-            right_active ~left (Some rf)
+            right_active ~stored (Some rf)
         (* | Shift _ -> *)
         (*     Debug.bugf "Model.query(right_active}: Impossible @[%a@]" *)
         (*       (format_form ()) rf *)
       end
-  and left_active ?(stored = []) ~left right =
+  and left_active ~stored ~left right =
     match left with
-    | [] ->
-        let sq = mk_sequent ()
-            ~left:(stored |>
-                   List.map (fun l -> (l, [])) |>
-                   Ft.of_list)
-            ?right:(right |> Option.map (fun l -> (l, [])))
-        in
-        dprintf "modelquery" "Need to check: @[%a@]@." (format_sequent ()) sq ;
-        let subs = Inverse.Data.subsumes sq in
-        dprintf "modelquery" "Was %ssubsumed@." (if subs then "" else "NOT ") ;
-        subs
+    | [] -> right_active ~stored right
     | lf :: left -> begin
         match lf.form with
         | Atom (_, l, [])
@@ -201,7 +202,9 @@ let query lforms constr =
       end
   in
   dprintf "modelquery" "Querying @[%a@]@." (format_constr []) constr ;
-  right_active ~left:(constr.live @ constr.dead) constr.fals
+  let res = left_active ~stored:[] ~left:(constr.live @ constr.dead) constr.fals in
+  dprintf "modelquery" "Query was a %s@." (if res then "success" else "failure") ;
+  res
 
 let rec simplify_right ~succ ~lforms constr =
   dprintf "model" "simplify_right: @[%a@]@." (format_constr lforms) constr ;
