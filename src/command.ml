@@ -137,7 +137,10 @@ let dump_proof ?(pseudos=false) f res =
 let dump_model f res =
   let modl = Model.create_model res in
   Config.pprintf "<p>Countermodel for <code>%a</code></p>@." (Form.format_form ()) f ;
-  Config.pprintf "<pre>@.%a</pre>@." (Model.format_model res.Inverse.lforms) modl
+  if !Config.dot_models then
+    Config.pprintf "%s@." (Model.dot_format_model res.Inverse.lforms modl)
+  else
+    Config.pprintf "<pre>@.%a</pre>@." (Model.format_model res.Inverse.lforms) modl
 
 let prove f =
   let res = setup f in

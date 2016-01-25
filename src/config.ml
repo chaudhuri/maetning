@@ -42,6 +42,8 @@ let do_check = ref false
 
 let show_shifts = ref false
 
+let dot_models = ref false
+
 let hide_bias = ref false
 
 let shrink = ref true

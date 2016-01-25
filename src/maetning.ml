@@ -31,6 +31,7 @@ let options = Arg.(align [
     "-tptp", Set Config.tptp, " Assume input files are in TPTP/ILTP format (only supports FOF)" ;
     "", Unit (fun () -> ()), " \n\t*** OUTPUT ***\n" ;
     "-proofs", String set_input, "<file> Output proofs to <file> (in HTML format)" ;
+    "-dotmodels", Set Config.dot_models, " Use dot(1) to prettify countermodels" ;
     "-shifts", Set Config.show_shifts, " Show polarity shifts" ;
     "-nobias", Set Config.hide_bias, " Hide predicate biases" ;
     "-noshrink", Clear Config.shrink, " Do not shrink proofs down to relevant details" ;

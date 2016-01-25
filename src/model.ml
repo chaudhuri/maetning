@@ -60,19 +60,21 @@ let format_form_expanded lforms ff f =
 let format_constr lforms ff constr =
   let open Format in
   pp_open_box ff 2 ; begin
-    pp_print_string ff "[ " ;
-    List.iter begin fun f ->
-      fprintf ff "T(@[%a@])@ " (format_form_expanded lforms) f
-    end constr.live ;
-    List.iter begin fun f ->
-      fprintf ff "T*(@[%a@])@ " (format_form_expanded lforms) f
-    end constr.dead ;
-    begin match constr.fals with
-    | Some f ->
-        fprintf ff "F(%a)@ " (format_form_expanded lforms) f
-    | None -> ()
-    end ;
-    pp_print_string ff "]" ;
+    let live = List.map begin fun f () ->
+        fprintf ff "T @[%a@]" (format_form_expanded lforms) f
+      end constr.live in
+    let dead = List.map begin fun f () ->
+        fprintf ff "T* @[%a@]" (format_form_expanded lforms) f
+      end constr.dead in
+    let fals =
+      match constr.fals with
+      | Some f ->
+          [fun () -> fprintf ff "F @[%a@]" (format_form_expanded lforms) f]
+      | None -> []
+    in
+    (live @ dead @ fals) |>
+    List.interleave (fun () -> fprintf ff ",@ ") |>
+    List.iter (fun doit -> doit ())
   end ; pp_close_box ff ()
 
 let pp_indent ff n =
@@ -91,6 +93,36 @@ let rec format_model_lines lforms indent ff modl =
 
 let format_model lforms ff modl =
   Format.fprintf ff "@[<v0>%a@]" (format_model_lines lforms 0) modl
+
+let dot_format_model lforms modl =
+  let open Format in
+  let (ic, oc) = Unix.open_process "dot -Tsvg" in
+  let dotff = formatter_of_output oc in
+  Format.pp_set_margin dotff max_int ;
+  fprintf dotff "digraph countermodel {@.rankdir=BT;@." ;
+  let cur_world = ref (-1) in
+  let next_world () = incr cur_world ; !cur_world in
+  let rec spin_lines modl =
+    let w = next_world () in
+    begin match modl with
+    | Leaf constr ->
+        fprintf dotff "w%d [shape=box,fontname=\"monospace\",label=\"@[%a@]\"];@."
+          w (format_constr lforms) constr
+    | Fork (constr, kids) ->
+        let ws = List.map spin_lines kids in
+        fprintf dotff "w%d [shape=box,fontname=\"monospace\",label=\"@[%a@]\"];@."
+          w (format_constr lforms) constr ;
+        List.iter (fun u -> fprintf dotff "w%d -> w%d;" w u) ws
+    end ; w
+  in
+  ignore (spin_lines modl) ;
+  fprintf dotff "}@." ;
+  close_out oc ;
+  let result = BatIO.read_all ic in
+  let start = String.find result "<svg " in
+  let result = String.sub result start (String.length result - start) in
+  ignore (Unix.close_process (ic, oc)) ;
+  result
 
 (* query the oracle *)
 let query lforms constr =
