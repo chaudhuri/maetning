@@ -67,12 +67,25 @@ let model_compatible lforms constr modl =
     (true_ids lforms constr)
     (true_ids lforms modl.constr)
 
-let fork lforms constr kids =
-  if collapse_steps && List.for_all (model_compatible lforms constr) kids then
-    let kids = kids |> List.map model_kids |> List.concat in
-    { constr ; kids }
-  else
-    { constr ; kids }
+let rec fork lforms constr kids =
+  if not collapse_steps || kids = [] then { constr ; kids } else
+  let rec add_one_kid oldkids newkids modl =
+    match newkids with
+    | [] -> List.rev_append oldkids [modl]
+    | newkid :: newkids ->
+        if model_compatible lforms modl.constr newkid then
+          List.rev_append oldkids
+            (fork lforms newkid.constr (newkid.kids @ modl.kids) :: newkids)
+        else add_one_kid (newkid :: oldkids) newkids modl
+  in
+  let add_one_kid kids modl = add_one_kid [] kids modl in
+  let kids = List.fold_left add_one_kid [List.hd kids] (List.tl kids) in
+  match kids with
+  | [kid] ->
+      if model_compatible lforms constr kid
+      then { kid with constr }
+      else { constr ; kids }
+  | _ -> { constr ; kids }
 
 (******************************************************************************)
 
