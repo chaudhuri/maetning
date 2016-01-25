@@ -57,14 +57,23 @@ let format_form_expanded lforms ff f =
   in
   format_form () ff (expand f)
 
+(* let format_form_expanded lforms ff f = format_form () ff f *)
+
+let compound lforms f =
+  match f.form with
+  | Atom (_, l, _) ->
+      List.exists (fun lf -> lf.label == l) lforms
+  | _ -> true
+
 let format_constr lforms ff constr =
   let open Format in
   pp_open_box ff 2 ; begin
     let live = List.map begin fun f () ->
         fprintf ff "T @[%a@]" (format_form_expanded lforms) f
       end constr.live in
-    let dead = List.map begin fun f () ->
-        fprintf ff "T* @[%a@]" (format_form_expanded lforms) f
+    let dead = List.filter_map begin fun f ->
+        if compound lforms f then None else
+        Some (fun () -> fprintf ff "T* @[%a@]" (format_form ()) f)
       end constr.dead in
     let fals =
       match constr.fals with
@@ -244,7 +253,9 @@ and simplify_left ~succ ~lforms constr =
       match lf.form with
       | Atom (_, l, []) -> begin
           match (List.find (fun lf -> lf.label == l) lforms).Form.skel with
-          | lf -> simplify_left ~succ ~lforms {constr with live = lf :: live}
+          | newlf -> simplify_left ~succ ~lforms {constr with
+                                                  dead = lf :: constr.dead ;
+                                                  live = newlf :: live}
           | exception Not_found ->
               simplify_left ~succ ~lforms {
                 constr with
@@ -273,11 +284,8 @@ and simplify_left ~succ ~lforms constr =
                 dead = lf :: constr.dead ;
                 live = lf2 :: live }
           else
-            simplify_right ~lforms
+            simplify_right ~lforms constr1
               ~succ:(fun m1 -> succ (Fork (constr, [m1])))
-              { dead = lf :: constr.dead ;
-                live = live ;
-                fals = Some lf1 }
       | Shift lf ->
           simplify_left ~lforms ~succ {constr with live = lf :: live}
       | Forall _ | Exists _ | Atom _ -> first_order ()
