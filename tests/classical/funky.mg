@@ -5,6 +5,10 @@
 %refute (~ a => b) => (~ a => ~ b) => a.
 %refute (a + ~ a => c) => c.
 %refute ~ ~ (a + b) => a + b.
+%refute (a => (b + c)) => (a => b) + (a => c).
+%refute (~ a => (b + c)) => (~ a => b) + (~ a => c).
+%refute ~ a + ~ ~ a.
+%refute ~ (~ ~ a + ~ a).
 
 %%% The following are also classically false, which you can tell
 %%% because their countermodels have only one world.

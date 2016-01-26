@@ -130,7 +130,7 @@ let format_constr lforms ff constr =
       end constr.live in
     let dead = List.filter_map begin fun f ->
         if elide_dead && compound lforms f then None
-        else Some (fun () -> fprintf ff "T* @[%a@]" (format_form ()) f)
+        else Some (fun () -> fprintf ff "T* @[%a@]" (format_form_expanded lforms) f)
       end constr.dead in
     let fals =
       if elide_false then [] else
@@ -255,6 +255,8 @@ let query lforms constr =
   dprintf "modelquery" "Query was a %s@." (if res then "success" else "failure") ;
   res
 
+let ucons x l = x :: List.filter (fun y -> x <> y) l
+
 let rec simplify_right ~succ ~lforms constr =
   dprintf "model" "simplify_right: @[%a@]@." (format_constr lforms) constr ;
   match constr.fals with
@@ -283,11 +285,12 @@ let rec simplify_right ~succ ~lforms constr =
       | False ->
           simplify_left ~succ ~lforms {constr with fals = None}
       | Implies (rt1, rt2) ->
-          simplify_right ~succ ~lforms {
-            constr with
-            live = rt1 :: constr.live ;
-            fals = Some rt2
-          }
+          simplify_right ~lforms
+            (* ~succ:(fun m -> succ (fork lforms constr [m])) *)
+            ~succ
+            { constr with
+              live = ucons rt1 constr.live ;
+              fals = Some rt2 }
       | Shift rt ->
           simplify_right ~succ ~lforms {constr with fals = Some rt}
       | Atom _ | Forall _ | Exists _ -> first_order ()
@@ -306,40 +309,40 @@ and simplify_left ~succ ~lforms constr =
       | Atom (_, l, []) -> begin
           match (List.find (fun lf -> lf.label == l) lforms).Form.skel with
           | newlf -> simplify_left ~succ ~lforms {constr with
-                                                  dead = lf :: constr.dead ;
-                                                  live = newlf :: live}
+                                                  dead = ucons lf constr.dead ;
+                                                  live = ucons newlf live}
           | exception Not_found ->
               simplify_left ~succ ~lforms {
                 constr with
                 live ;
-                dead = lf :: constr.dead ;
+                dead = ucons lf constr.dead ;
               }
         end
       | And (_, lf1, lf2) ->
           simplify_left ~succ ~lforms
-            {constr with live = lf1 :: lf2 :: live}
+            {constr with live = ucons lf1 (ucons lf2 live)}
       | True _ ->
           simplify_left ~succ ~lforms {constr with live}
       | Or (lf1, lf2) ->
-          let constr1 = {constr with live = lf1 :: live} in
+          let constr1 = {constr with live = ucons lf1 live} in
           if query lforms constr1 then
-            simplify_left ~lforms {constr with live = lf2 :: live} ~succ
+            simplify_left ~lforms {constr with live = ucons lf2 live} ~succ
           else
             simplify_left ~lforms constr1 ~succ
       | False ->
           succ { constr ; kids = [] }
       | Implies (lf1, lf2) ->
-          let constr1 = {live ; dead = lf :: constr.dead ; fals = Some lf1} in
+          let constr1 = {live ; dead = ucons lf constr.dead ; fals = Some lf1} in
           if query lforms constr1 then
             simplify_left ~lforms ~succ
               { constr with
-                dead = lf :: constr.dead ;
-                live = lf2 :: live }
+                dead = ucons lf constr.dead ;
+                live = ucons lf2 live }
           else
             simplify_right ~lforms constr1
               ~succ:(fun m1 -> succ (fork lforms constr [m1]))
       | Shift lf ->
-          simplify_left ~lforms ~succ {constr with live = lf :: live}
+          simplify_left ~lforms ~succ {constr with live = ucons lf live}
       | Forall _ | Exists _ | Atom _ -> first_order ()
     end
 
