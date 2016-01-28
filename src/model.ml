@@ -37,6 +37,7 @@ type model = {
 and constr = {
   live : form list ;            (* all T *)
   dead : form list ;            (* all T *)
+  buried : form list ;          (* all T *)
   fals : form option ;          (* all F *)
 }
 
@@ -60,7 +61,7 @@ let true_ids lforms constr =
     match form_id lforms f with
     | id -> IdtSet.add id set
     | exception Nonatomic -> set
-  end IdtSet.empty (constr.live @ constr.dead)
+  end IdtSet.empty (constr.live @ constr.dead @ constr.buried)
 
 let model_compatible lforms constr modl =
   IdtSet.equal
@@ -123,6 +124,26 @@ let format_form_expanded lforms ff f =
 
 (* let format_form_expanded lforms ff f = format_form () ff f *)
 
+let expose lforms f =
+  match f.form with
+  | Atom (_, l, args) -> begin
+      match List.find (fun lf -> lf.label == l) lforms with
+      | lf ->
+          let ss = List.fold_right (fun t ss -> Term.Cons (ss, t)) args (Term.Shift 0) in
+          app_form ss lf.Form.skel
+      | exception Not_found -> f
+    end
+  | _ -> f
+
+let expose_test fn lforms f =
+  match f.form with
+  | Atom (_, l, args) -> begin
+      match List.find (fun lf -> lf.label == l) lforms with
+      | lf -> fn lf.Form.skel
+      | exception Not_found -> fn f
+    end
+  | _ -> fn f
+
 let compound lforms f =
   match f.form with
   | Atom (_, l, _) ->
@@ -135,11 +156,11 @@ let format_constr lforms ff constr =
     let live = List.filter_map begin fun f ->
         if elide_true_nonatoms && compound lforms f then None
         else Some (fun () -> fprintf ff "T @[%a@]" (format_form_expanded lforms) f)
-      end constr.live in
+      end (constr.live |> List.unique) in
     let dead = List.filter_map begin fun f ->
-        if elide_dead && compound lforms f then None
+        if elide_dead && elide_true_nonatoms && compound lforms f then None
         else Some (fun () -> fprintf ff "T* @[%a@]" (format_form_expanded lforms) f)
-      end constr.dead in
+      end (constr.dead @ constr.buried |> List.unique) in
     let fals =
       if elide_false then [] else
       match constr.fals with
@@ -259,7 +280,7 @@ let query lforms constr =
       end
   in
   dprintf "modelquery" "Querying @[%a@]@." (format_constr []) constr ;
-  let res = left_active ~stored:[] ~left:(constr.live @ constr.dead) constr.fals in
+  let res = left_active ~stored:[] ~left:(constr.live @ constr.dead @ constr.buried) constr.fals in
   dprintf "modelquery" "Query was a %s@." (if res then "success" else "failure") ;
   res
 
@@ -307,11 +328,7 @@ let rec simplify_right ~succ ~lforms constr =
 and simplify_left ~succ ~lforms constr =
   dprintf "model" "simplify_left: @[%a@]@." (format_constr lforms) constr ;
   match constr.live with
-  | [] ->
-      if query lforms constr then
-        Debug.bugf "Simplified to true constraint: @[%a@]"
-          (format_constr lforms) constr ;
-      succ { constr ; kids = [] }
+  | [] -> bury_left ~succ ~lforms constr
   | lf :: live -> begin
       match lf.form with
       | Atom (_, l, []) -> begin
@@ -340,7 +357,7 @@ and simplify_left ~succ ~lforms constr =
       | False ->
           succ { constr ; kids = [] }
       | Implies (lf1, lf2) ->
-          let constr1 = {live ; dead = ucons lf constr.dead ; fals = Some lf1} in
+          let constr1 = {constr with live ; dead = ucons lf constr.dead ; fals = Some lf1} in
           if query lforms constr1 then
             simplify_left ~lforms ~succ
               { constr with
@@ -354,6 +371,30 @@ and simplify_left ~succ ~lforms constr =
       | Forall _ | Exists _ | Atom _ -> first_order ()
     end
 
+and bury_left ~succ ~lforms constr =
+  assert (constr.live = []) ;
+  let (burials, live, dead, changed) = List.fold_left begin
+      fun (burials, live, dead, changed) f ->
+        let ef = expose lforms f in
+        match ef.form with
+        | Implies (a, b) ->
+            if query lforms {constr with fals = Some a}
+            then (f :: burials, b :: live, dead, true)
+            else (burials, live, f :: dead, changed)
+        | _ -> (f :: burials, live, dead, changed)
+    end ([], [], [], false) constr.dead in
+  (* dprintf "modelbury" "Before: @[%a@]@." (format_constr []) constr ; *)
+  let constr = { constr with
+                 live = live ; dead = dead ;
+                 buried = burials @ constr.buried
+               } in
+  (* dprintf "modelbury" "After (changed: %b): @[%a@]@." changed (format_constr []) constr ; *)
+  if changed then simplify_left ~succ ~lforms constr
+  else if query lforms constr then
+    Debug.bugf "Simplified to true constraint: @[%a@]"
+      (format_constr lforms) constr
+  else succ { constr ; kids = [] }
+
 let create_model res =
   let live = List.filter_map begin fun lf ->
       match lf.place with
@@ -361,7 +402,8 @@ let create_model res =
       | _ -> None
     end res.lforms in
   let dead = [] in
+  let buried = [] in
   let fals = Some res.goal.skel in
-  let constr = {live ; dead ; fals} in
+  let constr = {live ; dead ; buried ; fals} in
   dprintf "model" "Initial constraint: @[%a@]@." (format_constr res.lforms) constr ;
   simplify_right ~lforms:res.lforms ~succ:(fun m -> m) constr
