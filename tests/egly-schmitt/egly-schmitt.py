@@ -10,6 +10,11 @@ parser.add_argument('-bddintkt',
                     default=False,
                     help='create instance tailored for BDDIntKt.')
 
+parser.add_argument('-fcube',
+                    action='store_true',
+                    default=False,
+                    help='create instance tailored for fCube.')
+
 parser.add_argument('size',
                     metavar='N',
                     type=int,
@@ -49,6 +54,8 @@ if args.o is None:
         filename += "-simple"
     if args.bddintkt:
         filename += ".fml"
+    elif args.fcube:
+        filename += ".fc"
     else:
         filename += ".mg"
 else:
@@ -60,6 +67,18 @@ if args.bddintkt:
     orsym = "|"
 else:
     orsym = "+"
+
+def O_fcube(i):
+    if i==0:
+        if args.simplify:
+            return "or(b0, a0)"
+        else:
+            return "or(or(b0, a0), b0)"
+    else:
+        if args.simplify:
+            return "im(b{}, or(b{}, a{}))".format(i-1,i,i)
+        else:
+            return "im(b{}, or(or(b{}, a{}), b{}))".format(i-1,i,i,i)
 
 def O(i):
     if i==0:
@@ -73,6 +92,17 @@ def O(i):
         else:
             return "(b{} => ((b{} {orsym} a{}) {orsym} b{}))".format(i-1,i,i,i,orsym=orsym)
 
+
+def NN_fcube(k,n):
+    if k==n:
+        return N_fcube(k)
+    else:
+        return "or({}, ({}))".format(N_fcube(k), NN_fcube(k+1,n))
+
+def N_fcube(i):
+    return "and(b{}, a{})".format(i,i+1)
+
+
 def NN(k,n):
     if k==n:
         return N(k)
@@ -82,6 +112,10 @@ def NN(k,n):
 def N(i):
     return "(b{} & a{})".format(i,i+1)
 
+if args.fcube:
+    O = O_fcube
+    N = N_fcube
+    NN = NN_fcube
 
 n = args.size
 
@@ -94,25 +128,39 @@ if not args.bddintkt:
             print >> f, "%positive b{}.".format(i)
         print >> f, "%positive a{}.".format(n)
 
+cpars = ")"
+if args.fcube:
+    print >> f, "decide(",
+
+
 if not args.no_proof:
     if args.bddintkt:
         print >> f, "a{} =>".format(n),
+    elif args.fcube:
+        print >> f, "im(a{},".format(n),
+        cpars += ")"
     else:
         print >> f, "%assume end : a{}.".format(n)
 
 for i in range(n):
     if args.bddintkt:
         print >> f, "{} =>".format(O(i)),
+    elif args.fcube:
+        print >> f, "im({}, ".format(O(i)),
+        cpars += ")"
     else:
         print >> f, "%assume O{} : {}.".format(i,O(i))
 
-if not args.bddintkt:
+if not args.bddintkt and not args.fcube:
     if args.no_proof:
         print >> f, "%refute",
     else:
         print >> f, "%prove",
 
-print >> f, "(a0 {orsym} {})".format(NN(0,n-1),orsym=orsym)
+if args.fcube:
+    print >> f, "or(a0, {})".format(NN(0,n-1)), cpars,
+else:
+    print >> f, "(a0 {orsym} {})".format(NN(0,n-1),orsym=orsym)
 
 if not args.bddintkt:
     print >> f, "."
