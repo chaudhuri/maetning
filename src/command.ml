@@ -27,13 +27,17 @@ let add_global x f =
   ensure_new x ;
   let f = force NEG f in
   global_map := IdtMap.add x f !global_map ;
-  Format.printf "Added global %s : %a.@." x.rep (Form.format_form ()) f
+  Format.printf "Added global %s : %a.@." x.rep (Form.format_form ()) f ;
+  Config.pprintf "<p>Assuming <code>#%s : %a</code>.</p><hr>@."
+    x.rep (Form.format_form ()) f
 
 let add_pseudo x f =
   ensure_new x ;
   let f = force NEG f in
   pseudo_map := IdtMap.add x f !pseudo_map ;
-  Format.printf "Added pseudo %s : %a.@." x.rep (Form.format_form ()) f
+  Format.printf "Added pseudo %s : %a.@." x.rep (Form.format_form ()) f ;
+  Config.pprintf "<p>Assuming <code>@@%s : %a</code>.</p><hr>@."
+    x.rep (Form.format_form ()) f
 
 let retract x =
   let (map, map_name) =
@@ -128,6 +132,7 @@ let dump_proof ?(pseudos=false) f res =
           ~cert:res.Inverse.status.Sequent.skel
   with
   | Some prf ->
+      Config.pprintf "<p>Proof for <code>%a</code></p>@." (Form.format_form ()) f ;
       if pseudos then Config.pprintf "<p class='pseudo'>THIS IS A PSEUDO PROOF</p>@." ;
       Seqproof_print.print prf
         ~lforms:res.Inverse.lforms ~goal ;
