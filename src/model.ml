@@ -42,61 +42,6 @@ and constr = {
 
 (******************************************************************************)
 
-let model_kids modl = modl.kids
-
-exception Nonatomic
-
-let form_id lforms f =
-  match f.form with
-  | Atom (_, l, []) -> begin
-      match List.find (fun lf -> lf.label == l) lforms with
-      | _ -> raise Nonatomic
-      | exception Not_found -> l
-    end
-  | _ -> raise Nonatomic
-
-let true_ids lforms constr =
-  List.fold_left begin fun set f ->
-    match form_id lforms f with
-    | id -> IdtSet.add id set
-    | exception Nonatomic -> set
-  end IdtSet.empty (constr.live @ constr.dead)
-
-let model_compatible lforms constr modl =
-  IdtSet.equal
-    (true_ids lforms constr)
-    (true_ids lforms modl.constr)
-
-let rec fork lforms constr kids =
-  if not collapse_steps then {constr ; kids} else
-  let swallow_kid kids modl =
-    if model_compatible lforms constr modl
-    then modl.kids @ kids
-    else modl :: kids
-  in
-  let kids = List.fold_left swallow_kid [] kids in
-  if kids = [] then {constr ; kids} else
-  let rec add_one_kid oldkids newkids modl =
-    match newkids with
-    | [] -> List.rev_append oldkids [modl]
-    | newkid :: newkids ->
-        if model_compatible lforms modl.constr newkid then
-          List.rev_append oldkids
-            (fork lforms newkid.constr (newkid.kids @ modl.kids) :: newkids)
-        else add_one_kid (newkid :: oldkids) newkids modl
-  in
-  let add_one_kid kids modl = add_one_kid [] kids modl in
-  let kids = List.fold_left add_one_kid [List.hd kids] (List.tl kids) in
-  {constr ; kids}
-  (* match kids with *)
-  (* | [kid] -> *)
-  (*     if model_compatible lforms constr kid *)
-  (*     then {kid with constr} *)
-  (*     else {constr ; kids} *)
-  (* | _ -> {constr ; kids} *)
-
-(******************************************************************************)
-
 exception Model
 
 let first_order () =
@@ -134,6 +79,19 @@ let expose lforms f =
     end
   | _ -> f
 
+exception Nonatomic
+
+let rec get_atom lforms f =
+  match f.form with
+  | Atom (_, l, args) -> begin
+      match List.find (fun lf -> lf.label == l) lforms with
+      | {Form.skel = {Form.form = Atom (_, l, _); _} ; _} -> l
+      | _ -> raise Nonatomic
+      | exception Not_found -> l
+    end
+  | Shift f -> get_atom lforms f
+  | _ -> raise Nonatomic
+
 let expose_test fn lforms f =
   match f.form with
   | Atom (_, l, args) -> begin
@@ -143,22 +101,39 @@ let expose_test fn lforms f =
     end
   | _ -> fn f
 
-let compound lforms f =
-  match f.form with
-  | Atom (_, l, _) ->
-      List.exists (fun lf -> lf.label == l) lforms
-  | _ -> true
+let rec compound lforms f =
+  match get_atom lforms f with
+  | _ -> false
+  | exception Nonatomic -> true
 
 let format_constr lforms ff constr =
   let open Format in
+  let seen = ref IdtSet.empty in
+  let rec see f =
+    match get_atom lforms f with
+    | l ->
+        (* dprintf "modelformat" "Seeing: %s@." l.rep ; *)
+        seen := IdtSet.add l !seen
+    | exception Nonatomic -> ()
+  in
+  let is_seen f =
+    match get_atom lforms f with
+    | l ->
+        (* dprintf "modelformat" "%s was seen? %b@." l.rep (IdtSet.mem l !seen) ; *)
+        IdtSet.mem l !seen
+    | exception Nonatomic -> false
+  in
+  (* dprintf "modelformat" "constr format start@." ; *)
   pp_open_box ff 2 ; begin
     let live = List.filter_map begin fun f ->
         if elide_true_nonatoms && compound lforms f then None
-        else Some (fun () -> fprintf ff "T @[%a@]" (format_form_expanded lforms) f)
+        else if is_seen f then None
+        else (see f ; Some (fun () -> fprintf ff "T @[%a@]" (format_form_expanded lforms) f)) ;
       end (constr.live |> List.unique) in
     let dead = List.filter_map begin fun f ->
         if elide_dead && elide_true_nonatoms && compound lforms f then None
-        else Some (fun () -> fprintf ff "T* @[%a@]" (format_form_expanded lforms) f)
+        else if is_seen f then None
+        else (see f ; Some (fun () -> fprintf ff "T* @[%a@]" (format_form_expanded lforms) f))
       end (constr.dead |> List.unique) in
     let fals =
       if elide_false then [] else
@@ -170,7 +145,8 @@ let format_constr lforms ff constr =
     in
     (live @ dead @ fals) |>
     List.interleave (fun () -> fprintf ff ",@ ") |>
-    List.iter (fun doit -> doit ())
+    List.iter (fun doit -> doit ()) ;
+    (* dprintf "modelformat" "constr format end@." ; *)
   end ; pp_close_box ff ()
 
 let pp_indent ff n =
@@ -209,6 +185,75 @@ let dot_format_model lforms modl =
   let result = String.sub result start (String.length result - start) in
   ignore (Unix.close_process (ic, oc)) ;
   result
+
+
+(******************************************************************************)
+
+let model_kids modl = modl.kids
+
+let rec form_id lforms f =
+  (* dprintf "modelcompat" "Computing form_id of %a@." (format_form ()) f ; *)
+  match f.form with
+  | Atom (_, l, []) -> begin
+      (* dprintf "modelcompat" "Need to check if %s is non-atomic@." l.rep ; *)
+      match List.find (fun lf -> lf.label == l) lforms with
+      | {Form.skel = {Form.form = Atom _ ; _} ; _} ->
+          (* dprintf "modelcompat" "It BARELY isn't!@." ; *)
+          l
+      | lf ->
+          (* dprintf "modelcompat" "It is: %a@." (format_form ()) lf.Form.skel ; *)
+          raise Nonatomic
+      | exception Not_found ->
+          (* dprintf "modelcompat" "It isn't!@." ; *)
+          l
+    end
+  | Shift f -> form_id lforms f
+  | _ ->
+      (* dprintf "modelcompat" "Never mind, non-atomic: %a@." (format_form ()) f ; *)
+      raise Nonatomic
+
+let true_ids lforms constr =
+  List.fold_left begin fun set f ->
+    match form_id lforms f with
+    | id -> IdtSet.add id set
+    | exception Nonatomic -> set
+  end IdtSet.empty (constr.live @ constr.dead)
+
+let model_compatible lforms constr modl =
+  let ret =
+    IdtSet.equal
+      (true_ids lforms constr)
+      (true_ids lforms modl.constr) in
+  (* dprintf "modelcompat" *)
+  (*   "@[<v0>%a@,?=@,%a@,: %b@]@." *)
+  (*   (format_constr lforms) constr *)
+  (*   (format_constr lforms) modl.constr *)
+  (*   ret ; *)
+  ret
+
+let rec fork lforms constr kids =
+  if not collapse_steps then {constr ; kids} else
+  let swallow_kid kids modl =
+    if model_compatible lforms constr modl
+    then modl.kids @ kids
+    else modl :: kids
+  in
+  let kids = List.fold_left swallow_kid [] kids in
+  if kids = [] then {constr ; kids} else
+  let rec add_one_kid oldkids newkids modl =
+    match newkids with
+    | [] -> List.rev_append oldkids [modl]
+    | newkid :: newkids ->
+        if model_compatible lforms modl.constr newkid then
+          List.rev_append oldkids
+            (fork lforms newkid.constr (newkid.kids @ modl.kids) :: newkids)
+        else add_one_kid (newkid :: oldkids) newkids modl
+  in
+  let add_one_kid kids modl = add_one_kid [] kids modl in
+  let kids = List.fold_left add_one_kid [List.hd kids] (List.tl kids) in
+  {constr ; kids}
+
+(******************************************************************************)
 
 let query lforms constr =
   let test_init ~stored right =
