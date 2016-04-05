@@ -379,6 +379,30 @@ let relabel ?(place=Right) ~lforms ?top f =
   emit_lform { place ; label = l0 ; args = [] ; skel = spin (weaker_place place) [] f0 } ;
   (l0, !lforms)
 
+let expand_fully ~lforms f0 =
+  let rec spin f =
+    match f.form with
+    | Atom (pol, p, ts) -> begin
+        match IdtMap.find p lforms with
+        | lf ->
+            let repl = List.fold_left2 begin
+                fun repl lfarg arg ->
+                  VMap.add (unvar lfarg) arg repl
+              end VMap.empty lf.args ts
+            in
+            replace ~repl lf.skel |> spin
+        | exception Not_found -> f
+      end
+    | And (pol, f1, f2) -> conj ~pol [spin f1 ; spin f2]
+    | Or (f1, f2) -> disj [spin f1 ; spin f2]
+    | True _ | False -> f
+    | Implies (f1, f2) -> implies [spin f1] (spin f2)
+    | Exists (x, f) -> exists x (spin f)
+    | Forall (x, f) -> forall x (spin f)
+    | Shift f -> shift (spin f)
+  in
+  spin f0
+
 let rec lp_format ?(cx=[]) () ff f =
   let open Format in
   match f.form with

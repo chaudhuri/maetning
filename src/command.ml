@@ -146,6 +146,8 @@ let dump_model f res =
     Config.pprintf "%s@." (Model.dot_format_model res.Inverse.lforms modl)
   else
     Config.pprintf "<pre>@.%a</pre>@." (Model.format_model res.Inverse.lforms) modl ;
+  if Model.validate_model res modl then
+    Debug.dprintf "modelcheck" "!!!!! Reconstructed model is satisfying !!!!!@." ;
   Config.pprintf "<hr>@."
 
 let prove f =

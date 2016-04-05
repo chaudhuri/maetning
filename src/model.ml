@@ -462,3 +462,83 @@ let create_model res =
   let constr = {live ; dead ; fals} in
   dprintf "model" "Initial constraint: @[%a@]@." (format_constr res.lforms) constr ;
   simplify_right ~lforms:res.lforms ~succ:(fun m -> m) constr
+
+type simple_model = {
+  smid : int ;
+  smtrue : IdtSet.t ;
+  smkids : simple_model list ;
+}
+
+let rec simple_model ~id ~lforms modl =
+  let smid = id in
+  let smtrue = List.fold_left begin fun smtrue f ->
+      match get_atom lforms f with
+      | l -> IdtSet.add l smtrue
+      | exception Nonatomic -> smtrue
+    end IdtSet.empty (modl.constr.live @ modl.constr.dead) in
+  let (id, smkids) = List.fold_left begin fun (id, smkids) kid ->
+      let (id, smkid) = simple_model ~id ~lforms kid in
+      (id, smkid :: smkids)
+    end (id + 1, []) modl.kids
+  in
+  (id, {smid ; smtrue ; smkids})
+
+let simple_model ~lforms modl = snd @@ simple_model ~id:0 ~lforms modl
+
+let rec format_simple_model ff sm =
+  let open Format in
+  fprintf ff "@[<hv0>w%d |= {%s},@ @[<b1>[%a]@]@]"
+    sm.smid
+    (String.concat ", " (IdtSet.elements sm.smtrue |> List.map (fun l -> l.rep)))
+    format_simple_models sm.smkids
+
+and format_simple_models ff sms =
+  match sms with
+  | [] -> ()
+  | [sm] -> format_simple_model ff sm
+  | sm :: sms ->
+      format_simple_model ff sm ;
+      Format.fprintf ff ",@ " ;
+      format_simple_models ff sms
+
+let validate_model res modl =
+  let ants = IdtMap.fold begin fun l lf ants ->
+      match lf.Form.place with
+      | Left Global | Left Pseudo ->
+          expand_fully ~lforms:res.lforms lf.Form.skel :: ants
+      | _ -> ants
+    end res.lforms [] in
+  let impl = implies ants (expand_fully ~lforms:res.lforms res.goal.Form.skel) in
+  let rec model_check ~ind sm f =
+    match f.form with
+    | Shift f -> model_check ~ind sm f
+    | _ ->
+        let indent = String.make (2 * ind) ' ' in
+        let ind = ind + 1 in
+        dprintf "modelcheck" "%sChecking: w%d |= %a@." indent sm.smid (format_form ()) f ;
+        let ret = match f.form with
+          | Atom (_, l, _) ->
+              IdtSet.mem l sm.smtrue
+          | And (_, f1, f2) ->
+              model_check ~ind sm f1 && model_check ~ind sm f2
+          | True _ ->
+              true
+          | Or (f1, f2) ->
+              model_check ~ind sm f1 || model_check ~ind sm f2
+          | False ->
+              false
+          | Shift f ->
+              assert false
+          | Implies (f1, f2) ->
+              (model_check ~ind sm f2 ||
+               not (model_check ~ind sm f1)) &&
+              List.for_all (fun sm -> model_check ~ind sm f) sm.smkids
+          | Exists _ | Forall _ ->
+              bugf "Cannot model-check first-order formulas"
+        in
+        dprintf "modelcheck" "%s(w%d |= %a) %b@." indent sm.smid (format_form ()) f ret ;
+        ret
+  in
+  let sm = simple_model ~lforms:res.lforms modl in
+  dprintf "modelcheck" "Simplified model: %a@." format_simple_model sm ;
+  model_check ~ind:0 sm impl
