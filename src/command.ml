@@ -112,17 +112,17 @@ let setup f =
 
 let dump_proof ?(pseudos=false) f res =
   Seqproof.hypgen#reset ;
-  let ctx = List.filter_map begin
-      fun lf -> match lf.place with
-        | Left Global ->
-            Some (lf.Form.label, (lf.Form.label, lf.Form.skel))
-        | Left Pseudo when pseudos ->
-            Some (lf.Form.label, (lf.Form.label, lf.Form.skel))
-        | _ -> None
-    end res.Inverse.lforms in
+  let ctx = List.filter_map begin fun (l, lf) ->
+      match lf.place with
+      | Left Global ->
+          Some (lf.Form.label, (lf.Form.label, lf.Form.skel))
+      | Left Pseudo when pseudos ->
+          Some (lf.Form.label, (lf.Form.label, lf.Form.skel))
+      | _ -> None
+    end (IdtMap.bindings res.Inverse.lforms) in
   let goal = Seqproof.{term_vars = IdtMap.empty ;
                        left_active = [] ;
-                       left_passive = ctx ;
+                       left_passive = IdtMap.digest ctx ;
                        right = res.Inverse.goal.Form.skel}
   in
   match Reconstruct.reconstruct (module Agencies.Rebuild)

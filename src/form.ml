@@ -311,11 +311,12 @@ let place_cookie = function
   | Left Pseudo -> pseudo_cookie
   | _ -> "#"
 
-let relabel ?(place=Right) ?top f =
-  let lforms : lform list ref = ref [] in
+let relabel ?(place=Right) ~lforms ?top f =
+  let lforms = ref lforms in
   let emit_lform lf =
     (* Format.(fprintf std_formatter "  emitted %a@." format_lform lf) ; *)
-    lforms := lf :: !lforms in
+    lforms := IdtMap.add lf.label lf !lforms
+  in
   let rec spin place args f0 =
     (* Format.(fprintf std_formatter *)
     (*           "spin %a %a@." *)
@@ -376,7 +377,7 @@ let relabel ?(place=Right) ?top f =
     | Right -> Right
   in
   emit_lform { place ; label = l0 ; args = [] ; skel = spin (weaker_place place) [] f0 } ;
-  !lforms
+  (l0, !lforms)
 
 let rec lp_format ?(cx=[]) () ff f =
   let open Format in
@@ -448,8 +449,8 @@ module Test () = struct
   let test f =
     let open Format in
     fprintf std_formatter "Formatting: @[%a@]@." (format_form ()) f ;
-    let lfs = relabel ~place:Right f in
-    List.iter (fprintf std_formatter "%a@." format_lform) lfs ;
+    let (l0, lfs) = relabel ~lforms:IdtMap.empty ~place:Right f in
+    IdtMap.iter (fun l f -> fprintf std_formatter "%s: %a@." l.rep format_lform f) lfs ;
     lfs
 
 end

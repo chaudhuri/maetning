@@ -7,6 +7,7 @@
 
 open Batteries
 
+open Idt
 open Term
 open Form
 open Seqproof
@@ -23,7 +24,7 @@ struct
   include C
 
   let ex_InitR sq _ =
-    Choices (List.map fst sq.left_passive)
+    Choices (List.map fst @@ IdtMap.bindings sq.left_passive)
 
   let ex_InitL sq _ =
     Choices []
@@ -147,7 +148,7 @@ struct
     | [], POS, _
     | [], _, Atom (NEG, _, _) ->
         Choices (`right c ::
-                 List.map (fun (x, _) -> `left (x, (fun xx -> c))) sq.left_passive)
+                 List.map (fun (x, _) -> `left (x, (fun xx -> c))) (IdtMap.bindings sq.left_passive))
     | _ -> Invalid "Foc"
 
 end
@@ -169,7 +170,7 @@ module Rebuild : AGENCY with type cert = Skeleton.t = struct
           | Atom (POS, q, _) when p == q -> Some x
           | _ -> None
         in
-        match List.filter_map suitable sq.left_passive with
+        match List.filter_map suitable (IdtMap.bindings sq.left_passive) with
         | [] -> Invalid "InitR: no choices"
         | cs -> Choices cs
       end
@@ -311,7 +312,7 @@ module Rebuild : AGENCY with type cert = Skeleton.t = struct
                   if l == p then
                     Some (`left (x, (fun xx -> cc)))
                   else None
-              end sq.left_passive in
+              end (IdtMap.bindings sq.left_passive) in
             Debug.(
               dprintf "rebuild" "Found %d choices for FocL@." (List.length choices)
             ) ;

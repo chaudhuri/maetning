@@ -16,11 +16,11 @@ module M = VMap
 
 let pprintf = Config.pprintf
 
-let expand_fully ~dict f0 =
+let expand_fully ~lforms f0 =
   let rec spin f =
     match f.form with
     | Atom (pol, p, ts) -> begin
-        match IdtMap.find p dict with
+        match IdtMap.find p lforms with
         | lf ->
             let repl = List.fold_left2 begin
                 fun repl lfarg arg ->
@@ -70,29 +70,33 @@ let pos_or_atom pol f =
 
 let sel_all _ = true
 
-let format_neutral ~sel ~dict ff sq =
+let format_neutral ~sel ~lforms ff sq =
   let open Format in
   pp_open_vbox ff 0 ; begin
     pp_print_as ff 0
       {html|<table cellspacing="0" cellpadding="0">|html} ;
-    if sq.left_passive <> [] || sq.left_active <> [] then begin
+    if not (IdtMap.is_empty sq.left_passive) || sq.left_active <> [] then begin
       pp_print_as ff 0 {html|<tr><td><pre>|html} ;
-      let sel = if !Config.shrink then sel else (fun _ -> true) in
-      let (real, fake) = List.partition sel sq.left_passive in
-      if fake <> [] then fprintf ff "...@," ;
-      List.iter begin fun (h, (_, f)) ->
+      let sel =
+        if !Config.shrink
+        then (fun x f -> sel (x, f))
+        else (fun _ _ -> true)
+      in
+      let (real, fake) = IdtMap.partition sel sq.left_passive in
+      if not (IdtMap.is_empty fake) then fprintf ff "...@," ;
+      IdtMap.iter begin fun h (_, f) ->
         fprintf ff "%s : @[%a@]@,"
-          h.rep (format_form_shift1 neg_or_atom) (expand_fully ~dict f) ;
-      end (List.rev real) ;
+          h.rep (format_form_shift1 neg_or_atom) (expand_fully ~lforms f) ;
+      end real ;
       List.iter begin fun (_, f) ->
         fprintf ff "[@[%a@]]@,"
-          (format_form_shift1 neg_or_atom) (expand_fully ~dict f) ;
+          (format_form_shift1 neg_or_atom) (expand_fully ~lforms f) ;
       end (List.rev sq.left_active) ;
       pp_print_as ff 0 {html|</pre></td></tr>|html} ;
     end ;
     pp_print_as ff 0
       {html|<tr><td class="concl" valign="top"><code>|html} ;
-    format_form_shift1 pos_or_atom ff  (expand_fully ~dict sq.right) ;
+    format_form_shift1 pos_or_atom ff  (expand_fully ~lforms sq.right) ;
     pp_print_as ff 0
       {html|</code></tr></table><br>|html};
   end ; pp_close_box ff ()
@@ -169,14 +173,9 @@ let renumber pf0 =
   spin IdtMap.empty pf0
 
 let print ~lforms ~goal proof =
-  let dict = List.fold_left begin
-      fun dict lf ->
-        IdtMap.add lf.label lf dict
-    end IdtMap.empty lforms in
-
   let expand_lf f = match f.form with
     | Atom (pol, p, ts) -> begin
-        match IdtMap.find p dict with
+        match IdtMap.find p lforms with
         | lf ->
             let ts = List.take (List.length lf.args) ts in
             let repl = List.fold_left2 begin
@@ -189,16 +188,15 @@ let print ~lforms ~goal proof =
       end
     | _ -> f
   in
-  let expand_lf2 (x, (l, f)) = (x, (l, expand_lf f)) in
 
   let rec right_focus news sq pf =
     match sq.right.form, pf with
     | Atom (POS, p, pts), InitR h -> begin
-        match (snd @@ List.assoc h sq.left_passive).form with
+        match (snd @@ IdtMap.find h sq.left_passive).form with
         | Atom (POS, q, qts) when p == q && pts = qts ->
             let sel (h', _) = h == h' in
             pprintf "<ul><li>@.%a [right-init with <code>%s</code>]</li></ul>@."
-              (format_neutral ~sel ~dict) sq h.rep
+              (format_neutral ~sel ~lforms) sq h.rep
         | _ -> failwith "InitR/match"
         | exception Not_found -> failwith "InitR/badindex"
       end
@@ -229,10 +227,10 @@ let print ~lforms ~goal proof =
             match sq.right.form with
             | Atom (NEG, q, qts) when p == q && pts = qts ->
                 pprintf "<ul><li>@.%a [left-init]</li></ul>@."
-                  (format_neutral ~sel:(fun _ -> false) ~dict) sq
+                  (format_neutral ~sel:(fun _ -> false) ~lforms) sq
             (* | Atom (NEG, q, qts) when p == q -> *)
             (*     pprintf "<ul><li>@.%a [BAD left-init: <code>%a ≠ %a</code>]<br><code>%a</code></li></ul>@." *)
-            (*       (format_neutral ~sel:(fun _ -> false) ~dict) sq *)
+            (*       (format_neutral ~sel:(fun _ -> false) ~lforms) sq *)
             (*       (format_term ()) (app p pts) *)
             (*       (format_term ()) (app q qts) *)
             (*       format_seqproof pf *)
@@ -297,14 +295,12 @@ let print ~lforms ~goal proof =
         match f0.form, pf with
         | Atom (POS, p, _), Store (x, pf) ->
             let sq = {sq with left_active = rest ;
-                              left_passive = (x, (p, expand_lf f0))
-                                             :: sq.left_passive} in
+                              left_passive = IdtMap.add x (p, expand_lf f0) sq.left_passive} in
             left_active (x :: news) sq pf
         | Shift ({form = Atom (NEG, lab, _) ; _} as a), Store (x, pf) ->
             let a = expand_lf a in
             let sq = {sq with left_active = rest ;
-                              left_passive = (x, (lab, a))
-                                             :: sq.left_passive} in
+                              left_passive = IdtMap.add x (lab, a) sq.left_passive} in
             left_active (x :: news) sq pf
         | And (POS, a, b), TensL (x, y, pf) ->
             let sq = {sq with left_active = (x, a) :: (y, b) :: rest} in
@@ -331,13 +327,13 @@ let print ~lforms ~goal proof =
       | FocL (h', _) -> h == h'
       | _ -> false
     in
-    pprintf "<ul><li>@.%a@." (format_neutral ~sel ~dict) sq ; begin
+    pprintf "<ul><li>@.%a@." (format_neutral ~sel ~lforms) sq ; begin
       match pf with
       | FocR pf ->
           pprintf "right-focus@." ;
           right_focus0 sq pf
       | FocL (h, (x, pf)) -> begin
-          match snd @@ List.assoc h sq.left_passive with
+          match snd @@ IdtMap.find h sq.left_passive with
           | a ->
               let sq = {sq with left_active = [(x, a)]} in
               pprintf "left-focus on <code>%s</code>@." h.rep ;
@@ -361,7 +357,8 @@ let print ~lforms ~goal proof =
 
   in
 
-  let goal = {goal with left_passive = List.map expand_lf2 goal.left_passive ;
+  let expand_lf2 (l, f) = (l, expand_lf f) in
+  let goal = {goal with left_passive = IdtMap.map expand_lf2 goal.left_passive ;
                         right = expand_lf goal.right}
   in
 

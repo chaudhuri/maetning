@@ -90,10 +90,9 @@ let rec evc_form u f =
       evc_form u f
 
 let evc_sequent u sq =
-  List.iter (fun (_, (_, f)) -> evc_form u f) sq.left_passive ;
+  IdtMap.iter (fun _ (_, f) -> evc_form u f) sq.left_passive ;
   List.iter (fun (_, f) -> evc_form u f) sq.left_active ;
   evc_form u sq.right
-
 
 let rec backtrack ~cc ~fail fn =
   match cc with
@@ -125,14 +124,9 @@ let reconstruct (type cert)
 
   if max <= 0 then Debug.bugf "reconstruct max = %d" max ;
 
-  let lf_dict = List.fold_left begin
-      fun dict lf ->
-        IdtMap.add lf.label lf dict
-    end IdtMap.empty lforms in
-
   let expand_lf f = match f.form with
     | Atom (pol, p, ts) -> begin
-        match IdtMap.find p lf_dict with
+        match IdtMap.find p lforms with
         | lf ->
             let ts = List.take (List.length lf.args) ts in
             let repl = List.fold_left2 begin
@@ -146,14 +140,14 @@ let reconstruct (type cert)
     | _ -> f
   in
 
-  let expand_lf2 (x, (l, f)) = (x, (l, expand_lf f)) in
+  let expand_lf2 (l, f) = (l, expand_lf f) in
 
-  let goal = {goal with left_passive = List.map expand_lf2 goal.left_passive ;
+  let goal = {goal with left_passive = IdtMap.map expand_lf2 goal.left_passive ;
                         right = expand_lf goal.right}
   in
 
   let rec right_focus lev ~succ ~fail sq c =
-    if List.length sq.left_active <> 0 then Debug.bugf "right_focus: has left active" ;
+    if sq.left_active <> [] then Debug.bugf "right_focus: has left active" ;
     dprintf "reconstruct"
       "@.%s@[<v0>right_focus: @[%a@]@,  @[%a@]@]@."
       (indent lev)
@@ -163,7 +157,7 @@ let reconstruct (type cert)
     | Atom (POS, p, pts) ->
         backtrack ~cc:(Ag.ex_InitR sq c) ~fail begin
           fun x ~fail ->
-            match (snd @@ List.assoc x sq.left_passive).form with
+            match (snd @@ IdtMap.find x sq.left_passive).form with
             | Atom (POS, q, qts) when p == q -> begin
                 match Unify.unite_lists M.empty pts qts with
                 | (repl, _) -> succ (InitR x, repl) ~fail
@@ -256,7 +250,7 @@ let reconstruct (type cert)
               | `left -> (a, fun d -> WithL1 (y, d))
               | `right -> (b, fun d -> WithL2 (y, d))
             in
-            let sq = {sq with left_active = [(y, ab)]} in
+            let sq = {sq with left_active = [y, ab]} in
             left_focus lev sq c ~fail
               ~succ:(fun (der, repl) ~fail -> succ (dfn der, repl) ~fail)
         end
@@ -392,8 +386,7 @@ let reconstruct (type cert)
                 let x = hypgen#next in
                 let c = cfn x in
                 let sq = {sq with left_active = rest ;
-                                  left_passive = (x, (p, expand_lf f0))
-                                                 :: sq.left_passive} in
+                                  left_passive = IdtMap.add x (p, expand_lf f0) sq.left_passive} in
                 left_active lev sq c ~fail
                   ~succ:(fun (der, repl) ~fail -> succ (Store (x, der), repl) ~fail)
             end
@@ -408,7 +401,7 @@ let reconstruct (type cert)
                 let x = hypgen#next in
                 let c = cfn x in
                 let sq = {sq with left_active = rest ;
-                                  left_passive = (x, (lab, a)) :: sq.left_passive} in
+                                  left_passive = IdtMap.add x (lab, a) sq.left_passive} in
                 left_active lev sq c ~fail
                   ~succ:(fun (der, repl) ~fail -> succ (Store (x, der), repl) ~fail)
             end
@@ -496,9 +489,9 @@ let reconstruct (type cert)
             dprintf "reconstruct" "Trying choice %s@." x.rep ;
             let xx = hypgen#next in
             let c = cfn xx in
-            match List.assoc x sq.left_passive with
+            match IdtMap.find x sq.left_passive with
             | (_, a) when polarity a = NEG ->
-                let sq = {sq with left_active = [(xx, a)]} in
+                let sq = {sq with left_active = [xx, a]} in
                 left_focus lev sq c ~fail
                   ~succ:(fun (der, repl) ~fail -> succ (FocL (x, (xx, der)), repl) ~fail)
             | _ -> fail "FocL/nonpos"

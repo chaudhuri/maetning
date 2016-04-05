@@ -237,11 +237,11 @@ let vars_rule rr =
   List.map var (S.elements vs)
 
 let generate_rules ~sc lforms =
-  let process_lform lf =
+  let process_lform l lf =
     match lf.place with
     | Left lfp ->
-        focus_left [] lf.skel None |>
-        List.map begin fun rule ->
+        focus_left [] lf.Form.skel None |>
+        List.iter begin fun rule ->
           let left =
             match lfp with
             | Global -> rule.concl.left
@@ -249,20 +249,19 @@ let generate_rules ~sc lforms =
             | Pseudo -> Ft.snoc rule.concl.left (lf.label, lf.args @ vars_rule rule)
           in
           let skel = FocL (lf.label, rule.concl.skel) in
-          {rule with concl = override rule.concl ~left ~skel}
+          sc {rule with concl = override rule.concl ~left ~skel}
         end
     | Right ->
-        focus_right [] lf.skel |>
-        List.map begin fun rule ->
+        focus_right [] lf.Form.skel |>
+        List.iter begin fun rule ->
           let skel = FocR rule.concl.skel in
-          {rule with
-           concl = override rule.concl
-               ~right:(Some (lf.label, lf.args))
-               ~skel}
+          sc {rule with
+              concl = override rule.concl
+                  ~right:(Some (lf.label, lf.args))
+                  ~skel}
         end
   in
-  let rules_list = List.map process_lform lforms in
-  List.iter (fun rules -> List.iter sc rules) rules_list
+  IdtMap.iter process_lform lforms
 
 let freshen_atom lf =
   let (_, f0) = Term.freshen ~repl:M.empty (app lf.label lf.args) in
@@ -280,26 +279,28 @@ let generate0 left pseudo right =
     Debug.bugf "generate0: non-negative pseudo" ;
   if polarity right <> POS then
     Debug.bugf "generate0: non-positive right" ;
-  let lforms = ref [] in
+  let lforms = ref IdtMap.empty in
   let process place hyps =
-    List.iter begin
+    List.map begin
       fun (top, f) ->
         let top = match place with
           | Right -> None
           | _ -> Some top
         in
-        let lfs = relabel ~place ?top f in
-        lforms := lfs @ !lforms
+        let (l0, lfs) = relabel ~lforms:!lforms ~place ?top f in
+        lforms := lfs ;
+        l0
     end hyps in
-  process (Left Global) left ;
-  process (Left Pseudo) pseudo ;
-  process Right [intern "_", right] ;
-  let goal_lform = List.hd !lforms in
+  ignore (process (Left Global) left) ;
+  ignore (process (Left Pseudo) pseudo) ;
+  let goal_label = process Right [intern "_", right] |> List.hd in
+  let goal_lform = IdtMap.find goal_label !lforms in
   dprintf "label"
     "@[<v0>Labeled formulas:@,  %t@,Goal is %s@]@."
     (fun ff ->
-       format_lform ff (List.hd !lforms) ;
-       List.iter (Format.fprintf ff "@,  @[%a@]" format_lform) (List.tl !lforms))
+       let (_, first), rest = IdtMap.pop !lforms in
+       format_lform ff first ;
+       IdtMap.iter (fun _ f -> Format.fprintf ff "@,  @[%a@]" format_lform f) rest)
     goal_lform.label.rep ;
   (!lforms, goal_lform, generate_rules !lforms)
 

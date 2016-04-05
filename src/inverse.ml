@@ -10,6 +10,7 @@
 open Batteries
 open Debug
 
+open Idt
 open Term
 open Form
 open Rule
@@ -223,10 +224,9 @@ and percolate_once (module D : Data) ?spec ~sc_fact ~iter rules =
   !new_rules
 
 let get_polarity ~lforms p =
-  match List.find (fun lf -> lf.label == p) lforms with
+  match IdtMap.find p lforms with
   | lf -> polarity lf.Form.skel
-  | exception Not_found ->
-      lookup_polarity p
+  | exception Not_found -> lookup_polarity p
 
 let rec freeze_vars t =
   match t.term with
@@ -253,23 +253,23 @@ let paranoid_check ~lforms sq =
       let current = ref 0 in
       fun () -> incr current ; Idt.intern ("v" ^ string_of_int !current)
     in
-    let ctx_ambient = List.filter_map begin
-        fun lf -> match lf.place with
-          | Left Global ->
-              Some (lf.label, (lf.label, freeze_vars_form lf.Form.skel))
-          | Left Pseudo -> begin
-              let skel = match lf.Form.skel.form with
-                | Atom (pol, p, _) -> atom pol p []
-                | _ ->
-                    Format.(
-                      eprintf "[WEIRD] %a = %s@." (format_form ()) lf.Form.skel lf.label.Idt.rep
-                    ) ;
-                    lf.Form.skel
-              in
-              Some (lf.Form.label, (lf.label, freeze_vars_form skel))
-            end
-          | _ -> None
-      end lforms
+    let ctx_ambient = List.filter_map begin fun (_, lf) ->
+        match lf.place with
+        | Left Global ->
+            Some (lf.label, (lf.label, freeze_vars_form lf.Form.skel))
+        | Left Pseudo -> begin
+            let skel = match lf.Form.skel.form with
+              | Atom (pol, p, _) -> atom pol p []
+              | _ ->
+                  Format.(
+                    eprintf "[WEIRD] %a = %s@." (format_form ()) lf.Form.skel lf.label.Idt.rep
+                  ) ;
+                  lf.Form.skel
+            in
+            Some (lf.Form.label, (lf.label, freeze_vars_form skel))
+          end
+        | _ -> None
+      end (IdtMap.bindings lforms)
     in
     let ctx_particular =
       Sequent.to_list sq.left
@@ -278,7 +278,7 @@ let paranoid_check ~lforms sq =
     let goal = Seqproof.{
         term_vars = Idt.IdtMap.empty ;
         left_active = [] ;
-        left_passive = ctx_particular @ ctx_ambient ;
+        left_passive = IdtMap.digest (ctx_particular @ ctx_ambient) ;
         right = begin
           match sq.Sequent.right with
           | None -> disj []
@@ -306,7 +306,7 @@ let paranoid_check ~lforms sq =
 let noop () = ()
 
 type 'a result = {
-  lforms  : lform list ;
+  lforms  : lform IdtMap.t ;
   goal    : lform ;
   status  : 'a ;
 }

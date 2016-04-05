@@ -163,14 +163,14 @@ let format_seqproof ff pf =
 
 type sequent = {
   term_vars    : Nstore.t ;
-  left_passive : (idt * (idt * form)) list ;
+  left_passive : (idt * form) IdtMap.t ;
   left_active  : (idt * form) list ;
   right        : form ;
 }
 
 let replace_sequent ~repl sq =
-  let left_passive = List.map begin
-      fun (x, (l, f)) -> (x, (l, Form.replace ~repl f))
+  let left_passive = IdtMap.map begin
+      fun (l, f) -> (l, Form.replace ~repl f)
     end sq.left_passive in
   let left_active = List.map begin
       fun (x, f) -> (x, Form.replace ~repl f)
@@ -193,16 +193,14 @@ let hypgen = new Namegen.namegen
 let format_sequent fmt sq =
   let open Format in
   pp_open_box fmt 0 ; begin
-    begin match List.rev sq.left_passive with
-    | [] ->
-        pp_print_as fmt 1 "·"
-    | (x, (l, f)) :: left ->
+    begin match IdtMap.pop sq.left_passive with
+    | (x, (l, f)), left ->
         (* pp_print_string fmt (x.Idt.rep ^ "[" ^ l.Idt.rep ^ "]") ; *)
         pp_print_string fmt x.Idt.rep ;
         pp_print_string fmt ":" ;
         format_form () fmt f ;
-        List.iter begin
-          fun (x, (l, f)) ->
+        IdtMap.iter begin
+          fun x (l, f) ->
             pp_print_string fmt "," ;
             pp_print_space fmt () ;
             (* pp_print_string fmt (x.Idt.rep ^ "[" ^ l.Idt.rep ^ "]") ; *)
@@ -210,12 +208,13 @@ let format_sequent fmt sq =
             pp_print_string fmt ":" ;
             format_form () fmt f ;
         end left
+    | exception Not_found ->
+        pp_print_as fmt 1 "·"
     end ;
     pp_print_string fmt " ;" ;
     pp_print_space fmt () ;
-    begin match List.rev sq.left_active with
-    | [] ->
-        pp_print_as fmt 1 "·"
+    begin match sq.left_active with
+    | [] -> pp_print_as fmt 1 "·"
     | (x, f) :: left ->
         pp_print_string fmt x.Idt.rep ;
         pp_print_string fmt ":" ;

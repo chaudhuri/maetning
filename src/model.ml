@@ -52,7 +52,7 @@ let format_form_expanded lforms ff f =
   let rec expand f =
     match f.form with
     | Atom (_, l, []) -> begin
-        match List.find (fun lf -> lf.label == l) lforms with
+        match IdtMap.find l lforms with
         | lf -> expand lf.Form.skel
         | exception Not_found -> f
       end
@@ -84,7 +84,7 @@ exception Nonatomic
 let rec get_atom lforms f =
   match f.form with
   | Atom (_, l, args) -> begin
-      match List.find (fun lf -> lf.label == l) lforms with
+      match IdtMap.find l lforms with
       | {Form.skel = {Form.form = Atom (_, l, _); _} ; _} -> l
       | _ -> raise Nonatomic
       | exception Not_found -> l
@@ -196,7 +196,7 @@ let rec form_id lforms f =
   match f.form with
   | Atom (_, l, []) -> begin
       (* dprintf "modelcompat" "Need to check if %s is non-atomic@." l.rep ; *)
-      match List.find (fun lf -> lf.label == l) lforms with
+      match IdtMap.find l lforms with
       | {Form.skel = {Form.form = Atom _ ; _} ; _} ->
           (* dprintf "modelcompat" "It BARELY isn't!@." ; *)
           l
@@ -329,7 +329,7 @@ let query lforms constr =
         (*       (format_form ()) lf *)
       end
   in
-  dprintf "modelquery" "Querying @[%a@]@." (format_constr []) constr ;
+  dprintf "modelquery" "Querying @[%a@]@." (format_constr IdtMap.empty) constr ;
   let res = left_active ~stored:[] ~left:(constr.live @ constr.dead) constr.fals in
   dprintf "modelquery" "Query was a %s@." (if res then "success" else "failure") ;
   res
@@ -364,13 +364,13 @@ let add_true_constraints fs constr =
   {constr with live}
 
 let rec simplify_right ~succ ~lforms constr =
-  dprintf "model" "simplify_right: @[%a@]@." (format_constr []) constr ;
+  dprintf "model" "simplify_right: @[%a@]@." (format_constr IdtMap.empty) constr ;
   match constr.fals with
   | None -> simplify_left ~succ ~lforms constr
   | Some rt -> begin
       match rt.form with
       | Atom (_, l, []) -> begin
-          match (List.find (fun lf -> lf.label == l) lforms).Form.skel with
+          match (IdtMap.find l lforms).Form.skel with
           | rt -> simplify_right ~succ ~lforms {constr with fals = Some rt}
           | exception Not_found -> simplify_left ~succ ~lforms constr
         end
@@ -401,7 +401,7 @@ let rec simplify_right ~succ ~lforms constr =
     end
 
 and simplify_left ~succ ~lforms constr =
-  dprintf "model" "simplify_left: @[%a@]@." (format_constr []) constr ;
+  dprintf "model" "simplify_left: @[%a@]@." (format_constr IdtMap.empty) constr ;
   match constr.live with
   | [] ->
       if query lforms constr then
@@ -411,7 +411,7 @@ and simplify_left ~succ ~lforms constr =
   | lf :: live -> begin
       match lf.form with
       | Atom (_, l, []) -> begin
-          match (List.find (fun lf -> lf.label == l) lforms).Form.skel with
+          match (IdtMap.find l lforms).Form.skel with
           | newlf ->
               {constr with live ; dead = unique_cons lf constr.dead} |>
               add_true_constraints [newlf] |>
@@ -452,11 +452,11 @@ and simplify_left ~succ ~lforms constr =
     end
 
 let create_model res =
-  let live = List.filter_map begin fun lf ->
+  let live = IdtMap.fold begin fun l lf live ->
       match lf.place with
-      | Left Global | Left Pseudo -> Some lf.Form.skel
-      | _ -> None
-    end res.lforms in
+      | Left Global | Left Pseudo -> lf.Form.skel :: live
+      | _ -> live
+    end res.lforms [] in
   let dead = [] in
   let fals = Some res.goal.skel in
   let constr = {live ; dead ; fals} in
