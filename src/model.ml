@@ -233,12 +233,11 @@ let model_compatible lforms constr modl =
 
 let rec fork lforms constr kids =
   if not collapse_steps then {constr ; kids} else
-  let swallow_kid kids modl =
-    if model_compatible lforms constr modl
-    then modl.kids @ kids
-    else modl :: kids
+  let kids =
+    if List.for_all (fun kid -> model_compatible lforms constr kid) kids
+    then List.map (fun kid -> kid.kids) kids |> List.concat
+    else kids
   in
-  let kids = List.fold_left swallow_kid [] kids in
   if kids = [] then {constr ; kids} else
   let rec add_one_kid oldkids newkids modl =
     match newkids with
@@ -513,9 +512,9 @@ let validate_model res modl =
     match f.form with
     | Shift f -> model_check ~ind sm f
     | _ ->
-        let indent = String.make (2 * ind) ' ' in
+        let indent = String.init (2 * ind) (fun k -> if k mod 2 = 0 then '|' else ' ') in
         let ind = ind + 1 in
-        dprintf "modelcheck" "%sChecking: w%d |= %a@." indent sm.smid (format_form ()) f ;
+        dprintf "modelcheck" "%s(w%d |= %a) ?@." indent sm.smid (format_form ()) f ;
         let ret = match f.form with
           | Atom (_, l, _) ->
               IdtSet.mem l sm.smtrue
@@ -536,7 +535,7 @@ let validate_model res modl =
           | Exists _ | Forall _ ->
               bugf "Cannot model-check first-order formulas"
         in
-        dprintf "modelcheck" "%s(w%d |= %a) %b@." indent sm.smid (format_form ()) f ret ;
+        dprintf "modelcheck" "%s`-- (w%d |= %a) %b@." indent sm.smid (format_form ()) f ret ;
         ret
   in
   let sm = simple_model ~lforms:res.lforms modl in
