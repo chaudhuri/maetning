@@ -475,7 +475,7 @@ and simplify_left ~succ ~lforms ~saved constr =
           if query lforms {constr with live = unique_cons lf2 constr.live} then begin
             let save ~succ constr  =
               simplify_right ~lforms ~succ
-                (add_true_constraints [lf] {constr with live ; fals = Some lf1})
+                {constr with live ; dead = unique_cons lf constr.dead ; fals = Some lf1}
                 (* {constr with live = unique_cons lf constr.live ; fals = Some lf1} *)
                 (* {live ; dead = unique_cons lf constr.dead ; fals = Some lf1} *)
             in
