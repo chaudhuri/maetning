@@ -38,7 +38,10 @@ and constr = {
   live : form list ;            (* all T *)
   dead : form list ;            (* all T *)
   fals : form option ;          (* all F *)
+  seen : IdtSet.t ;             (* all F and atomic *)
 }
+
+let bottom_id = Idt.intern "#<BOTTOM>"
 
 (******************************************************************************)
 
@@ -143,7 +146,11 @@ let format_constr lforms ff constr =
           else [fun () -> fprintf ff "F @[%a@]" (format_form_expanded lforms) f]
       | None -> []
     in
-    (live @ dead @ fals) |>
+    let seen =
+      IdtSet.elements constr.seen |>
+      List.map (fun e () -> fprintf ff "S %s" e.rep)
+    in
+    (live @ dead @ fals @ seen) |>
     List.interleave (fun () -> fprintf ff ",@ ") |>
     List.iter (fun doit -> doit ()) ;
     (* dprintf "modelformat" "constr format end@." ; *)
@@ -347,16 +354,19 @@ let unique_cons x l =
   let l = List.filter (fun y -> x <> y) l in
   if is_implies x then l @ [x] else x :: l
 
+let reawaken_stuff constr =
+  let (impls, dead) = List.partition is_implies constr.dead in
+  List.iter (dprintf "model" "exhumed: %a@." (format_form ())) impls ;
+  {constr with live = impls @ constr.live ; dead}
+
 let add_true_constraints fs constr =
   let fs = List.filter (fun f -> not (List.mem f constr.live || List.mem f constr.dead)) fs in
   if fs = [] then constr else
   let () = List.iter (dprintf "model" "new true %a@." (format_form ())) fs in
   let constr =
-    if List.exists is_atomic fs then begin
-      let (impls, dead) = List.partition is_implies constr.dead in
-      List.iter (dprintf "model" "exhumed: %a@." (format_form ())) impls ;
-      {constr with live = impls @ constr.live ; dead}
-    end else constr
+    if List.exists is_atomic fs
+    then {(reawaken_stuff constr) with seen = IdtSet.empty}
+    else constr
   in
   let (fs_implies, fs) = List.partition is_implies fs in
   let live = fs @ constr.live @ fs_implies in
@@ -371,7 +381,12 @@ let rec simplify_right ~succ ~lforms constr =
       | Atom (_, l, []) -> begin
           match (IdtMap.find l lforms).Form.skel with
           | rt -> simplify_right ~succ ~lforms {constr with fals = Some rt}
-          | exception Not_found -> simplify_left ~succ ~lforms ~saved:[] constr
+          | exception Not_found ->
+              let constr =
+                if IdtSet.mem l constr.seen then constr
+                else {(reawaken_stuff constr) with seen = IdtSet.add l constr.seen}
+              in
+              simplify_left ~succ ~lforms ~saved:[] constr
         end
       | And (_, rt1, rt2) ->
           let constr1 = {constr with fals = Some rt1} in
@@ -388,6 +403,10 @@ let rec simplify_right ~succ ~lforms constr =
                   ~succ:(fun m2 ->
                       succ (fork lforms constr [m1 ; m2])))
       | False ->
+          let constr =
+            if IdtSet.mem bottom_id constr.seen then constr
+            else {(reawaken_stuff constr) with seen = IdtSet.add bottom_id constr.seen}
+          in
           simplify_left ~succ ~lforms ~saved:[] {constr with fals = None}
       | Implies (rt1, rt2) ->
           simplify_right ~lforms
@@ -453,20 +472,33 @@ and simplify_left ~succ ~lforms ~saved constr =
       | False ->
           succ {constr ; kids = []}
       | Implies (lf1, lf2) ->
-          let constr1 = {live ;
-                         dead = unique_cons lf constr.dead ;
-                         fals = Some lf1} in
-          if query lforms constr1 then
+          if query lforms {constr with live = unique_cons lf2 constr.live} then begin
+            let save ~succ constr  =
+              simplify_right ~lforms ~succ
+                (add_true_constraints [lf] {constr with live ; fals = Some lf1})
+                (* {constr with live = unique_cons lf constr.live ; fals = Some lf1} *)
+                (* {live ; dead = unique_cons lf constr.dead ; fals = Some lf1} *)
+            in
+            simplify_left ~succ ~lforms ~saved:((lf, save) :: saved) {constr with live}
+          end else begin
             simplify_left ~succ ~lforms ~saved
               (add_true_constraints [lf2] {constr with live})
-          else begin
-            let save ~succ constr  =
-              dprintf "model" "Trying saved implication: %a@." (format_form ()) lf ;
-              simplify_right ~lforms ~succ {constr with fals = Some lf1}
-            in
-            simplify_left ~succ ~lforms ~saved:((lf, save) :: saved)
-              {constr with live ; dead = unique_cons lf constr.dead}
           end
+      (* | Implies (lf1, lf2) -> *)
+      (*     let constr1 = {live ; *)
+      (*                    dead = unique_cons lf constr.dead ; *)
+      (*                    fals = Some lf1} in *)
+      (*     if query lforms constr1 then *)
+      (*       simplify_left ~succ ~lforms ~saved *)
+      (*         (add_true_constraints [lf2] {constr with live}) *)
+      (*     else begin *)
+      (*       let save ~succ constr  = *)
+      (*         dprintf "model" "Trying saved implication: %a@." (format_form ()) lf ; *)
+      (*         simplify_right ~lforms ~succ {constr with fals = Some lf1} *)
+      (*       in *)
+      (*       simplify_left ~succ ~lforms ~saved:((lf, save) :: saved) *)
+      (*         {constr with live ; dead = unique_cons lf constr.dead} *)
+      (*     end *)
       | Shift lf ->
           simplify_left ~lforms ~succ ~saved
             (add_true_constraints [lf] {constr with live})
@@ -481,7 +513,7 @@ let create_model res =
     end res.lforms [] in
   let dead = [] in
   let fals = Some res.goal.skel in
-  let constr = {live ; dead ; fals} in
+  let constr = {live ; dead ; fals ; seen = IdtSet.empty} in
   dprintf "model" "Initial constraint: @[%a@]@." (format_constr res.lforms) constr ;
   simplify_right ~lforms:res.lforms ~succ:(fun m -> m) constr
 
