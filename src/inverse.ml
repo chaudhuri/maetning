@@ -262,7 +262,7 @@ let paranoid_check ~lforms sq =
               | Atom (pol, p, _) -> atom pol p []
               | _ ->
                   Format.(
-                    eprintf "[WEIRD] %a = %s@." (format_form ()) lf.Form.skel lf.label.Idt.rep
+                    eprintf "[WEIRD] %a = %s@." format_form lf.Form.skel lf.label.Idt.rep
                   ) ;
                   lf.Form.skel
             in

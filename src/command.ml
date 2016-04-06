@@ -27,17 +27,17 @@ let add_global x f =
   ensure_new x ;
   let f = force NEG f in
   global_map := IdtMap.add x f !global_map ;
-  Format.printf "Added global %s : %a.@." x.rep (Form.format_form ()) f ;
+  Format.printf "Added global %s : %a.@." x.rep Form.format_form f ;
   Config.pprintf "<p>Assuming <code>#%s : %a</code>.</p><hr>@."
-    x.rep (Form.format_form ()) f
+    x.rep Form.format_form f
 
 let add_pseudo x f =
   ensure_new x ;
   let f = force NEG f in
   pseudo_map := IdtMap.add x f !pseudo_map ;
-  Format.printf "Added pseudo %s : %a.@." x.rep (Form.format_form ()) f ;
+  Format.printf "Added pseudo %s : %a.@." x.rep Form.format_form f ;
   Config.pprintf "<p>Assuming <code>@@%s : %a</code>.</p><hr>@."
-    x.rep (Form.format_form ()) f
+    x.rep Form.format_form f
 
 let retract x =
   let (map, map_name) =
@@ -132,7 +132,7 @@ let dump_proof ?(pseudos=false) f res =
           ~cert:res.Inverse.status.Sequent.skel
   with
   | Some prf ->
-      Config.pprintf "<p>Proof for <code>%a</code></p>@." (Form.format_form ()) f ;
+      Config.pprintf "<p>Proof for <code>%a</code></p>@." Form.format_form f ;
       if pseudos then Config.pprintf "<p class='pseudo'>THIS IS A PSEUDO PROOF</p>@." ;
       Seqproof_print.print prf
         ~lforms:res.Inverse.lforms ~goal ;
@@ -140,15 +140,20 @@ let dump_proof ?(pseudos=false) f res =
   | None -> failwith "Reconstruction failed"
 
 let dump_model f res =
-  let modl = Model.create_model res in
-  Config.pprintf "<p>Countermodel for <code>%a</code></p>@." (Form.format_form ()) f ;
-  if !Config.dot_models then
-    Config.pprintf "%s@." (Model.dot_format_model res.Inverse.lforms modl)
-  else
-    Config.pprintf "<pre>@.%a</pre>@." (Model.format_model res.Inverse.lforms) modl ;
-  if Model.validate_model res modl then
-    Debug.dprintf "modelcheck" "!!!!! Reconstructed model is satisfying !!!!!@." ;
-  Config.pprintf "<hr>@."
+  (* match Model.create_model res with *)
+  match Model.Build.build res with
+  | Model.Valid ->
+      Debug.bugf "Countermodel reconstruction managed to prove %a" Form.format_form f
+  | Model.Counter modl ->
+      Config.pprintf "<p>Countermodel for <code>%a</code></p>@." Form.format_form f ;
+      if !Config.dot_models then
+        Config.pprintf "%s@." (Model.dot_format_model modl)
+      else
+        Config.pprintf "<pre>@.%a</pre>@." Model.format_model modl ;
+      if Model.Check.validate res modl then
+        (* Debug.dprintf "modelcheck" "!!!!! Reconstructed model is satisfying !!!!!@." ; *)
+        Debug.bugf "!!!!! Reconstructed model is satisfying !!!!!@." ;
+      Config.pprintf "<hr>@."
 
 let prove f =
   let res = setup f in

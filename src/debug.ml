@@ -31,35 +31,51 @@ and file_dest = {
   mutable status : [`opened | `closed]
 }
 
-module StringMap = Map.Make(String)
-let __dchans : dest StringMap.t ref = ref StringMap.empty
+let __dchans : (string, dest) Hashtbl.t = Hashtbl.create 19
 
 let on_stdout dchan =
-  __dchans := StringMap.add dchan Stdout !__dchans
+  Hashtbl.replace __dchans dchan Stdout
 
 let on_stderr dchan =
-  __dchans := StringMap.add dchan Stderr !__dchans
+  Hashtbl.replace __dchans dchan Stderr
 
 let on_file ~file dchan =
   let dest = File {filename = file ; ff = Format.err_formatter ; status = `closed} in
-  __dchans := StringMap.add dchan dest !__dchans
+  Hashtbl.replace __dchans dchan dest
 
 let disable dchan =
-  __dchans := StringMap.remove dchan !__dchans
+  Hashtbl.remove __dchans dchan
 
-let dprintf dchan =
-  let uchan = String.map Char.uppercase dchan in
-  match StringMap.find dchan !__dchans with
+let __pp_large = 1_000_000
+let big_margin_fmt ff fmt =
+  let marg = Format.pp_get_margin ff () in
+  (* let maxind = Format.pp_get_max_indent ff () in *)
+  let maxbox = Format.pp_get_max_boxes ff () in
+  Format.pp_set_margin ff __pp_large ;
+  (* Format.pp_set_max_indent ff __pp_large ; *)
+  Format.pp_set_max_boxes ff __pp_large ;
+  Format.kfprintf begin fun ff ->
+    Format.pp_set_margin ff marg ;
+    (* Format.pp_set_max_indent ff maxind ; *)
+    Format.pp_set_max_boxes ff maxbox ;
+  end ff fmt
+
+let dprintf ?(ind="") dchan =
+  match Hashtbl.find __dchans dchan with
   | Stdout ->
-      fun fmt -> Format.printf ("[%s] " ^^ fmt) uchan
+      fun fmt ->
+        big_margin_fmt Format.std_formatter ("[%s] %s" ^^ fmt) (String.map Char.uppercase dchan) ind
   | Stderr ->
-      fun fmt -> Format.eprintf ("[%s] " ^^ fmt) uchan
+      fun fmt ->
+        big_margin_fmt Format.err_formatter ("[%s] %s" ^^ fmt) (String.map Char.uppercase dchan) ind
   | File fd ->
       if fd.status = `closed then begin
         fd.ff <- Format.formatter_of_output @@ File.open_out fd.filename ;
         fd.status <- `opened ;
       end ;
-      fun fmt -> Format.fprintf fd.ff ("[%s] " ^^ fmt) uchan
+      Format.pp_set_margin fd.ff max_int ;
+      Format.pp_set_max_indent fd.ff max_int ;
+      fun fmt -> Format.fprintf fd.ff ("[%s] %s" ^^ fmt) (String.map Char.uppercase dchan) ind
   | exception Not_found -> Format.(ifprintf err_formatter)
 
 let failwithf fmt =

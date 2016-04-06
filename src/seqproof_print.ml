@@ -24,7 +24,7 @@ let maybe_unshift f =
 let format_form_shift1 pol_test ff f =
   let f = maybe_unshift f in
   let pol = polarity f in
-  if pol_test pol f then format_form () ff f else
+  if pol_test pol f then format_form ff f else
   let op = match pol with
     | NEG -> Pretty.STR "↓"
     | POS -> Pretty.STR "↑"
@@ -235,7 +235,7 @@ let print ~lforms ~goal proof =
             left_active news sq pf
         | _, pf ->
             Format.eprintf "left_focus: @[<v0>%a@,%a@]@."
-              (format_form ()) f
+              format_form f
               format_seqproof pf ;
             failwith "Invalid: left focus"
       end

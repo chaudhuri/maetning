@@ -9,6 +9,10 @@
 % The "intermediate" one from figure 11
 % (((~~P -> P) -> P | ~P) -> ~P | ~~P) -> ~~P | (~~P -> P)
 
+% positive p.
+% assume as1 : (((~ ~ p => p) => p + ~ p) => ~ p + ~ ~ p).
+% refute ~ ~ p + (~ ~ p => p).
+
 %refute (((~ ~ p => p) => p + ~ p) => ~ p + ~ ~ p) => ~ ~ p + (~ ~ p => p).
 
 

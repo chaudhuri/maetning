@@ -48,8 +48,8 @@ banner:
 |                            { Format.printf "-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-@." }
 
 command:
-| POSITIVE h=IDENT DOT       { Form.register_polarity h Form.POS }
-| NEGATIVE h=IDENT DOT       { Form.register_polarity h Form.NEG }
+| POSITIVE hs=vars DOT       { List.iter (fun h -> Form.register_polarity h Form.POS) hs }
+| NEGATIVE hs=vars DOT       { List.iter (fun h -> Form.register_polarity h Form.NEG) hs }
 | ASSUME x=IDENT COLON f=form DOT
                              { Command.add_global x f }
 | PSEUDO x=IDENT COLON f=form DOT

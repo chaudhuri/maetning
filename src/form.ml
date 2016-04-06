@@ -233,13 +233,15 @@ let rec pretty_form ?(cx=[]) ?max_depth f0 =
       let op fmt = Format.fprintf fmt "∃%s.@ " x.rep in
       Pretty.(Opapp (__quant_prec, Prefix (FUN op, fe)))
 
-let format_form ?cx ?max_depth () fmt f =
+let format_form_full ?cx ?max_depth () fmt f =
   Pretty.print fmt @@ pretty_form ?cx ?max_depth f
+
+let format_form fmt f = format_form_full () fmt f
 
 let form_to_string ?(cx=[]) ?max_depth f =
   let buf = Buffer.create 19 in
   let fmt = Format.formatter_of_buffer buf in
-  format_form ~cx ?max_depth () fmt f ;
+  format_form_full ~cx ?max_depth () fmt f ;
   Format.pp_print_flush fmt () ;
   Buffer.contents buf
 
@@ -281,11 +283,11 @@ let format_lform fmt lf =
         end
       | Right -> "right "
     end ;
-    format_form () fmt @@ atom (polarity lf.skel) lf.label lf.args ;
+    format_form fmt @@ atom (polarity lf.skel) lf.label lf.args ;
     pp_print_string fmt " :=" ;
     pp_print_space fmt () ;
     pp_open_box fmt 2 ; begin
-      format_form () fmt lf.skel ;
+      format_form fmt lf.skel ;
     end ; pp_close_box fmt () ;
   end ; pp_close_box fmt ()
 
@@ -317,50 +319,55 @@ let relabel ?(place=Right) ~lforms ?top f =
     (* Format.(fprintf std_formatter "  emitted %a@." format_lform lf) ; *)
     lforms := IdtMap.add lf.label lf !lforms
   in
+  let memo = Hashtbl.create 19 in
   let rec spin place args f0 =
-    (* Format.(fprintf std_formatter *)
-    (*           "spin %a %a@." *)
-    (*           (Term.format_term ()) (place_term place args) *)
-    (*           (format_form ()) f0) ; *)
-    match f0.form with
-    | Shift f when is_frontier place (polarity f) ->
-        (* Format.(fprintf std_formatter "  is a frontier@.") ; *)
-        let lab = labelgen#next (place_cookie place) in
-        (* Format.(fprintf std_formatter "  labelled %s@." lab.rep) ; *)
-        let f = spin place args f in
-        let args = List.filter begin
-            fun arg -> VSet.mem (unvar arg) f0.vars
-          end args in
-        emit_lform { place ; label = lab ; args ; skel = f } ;
-        shift @@ atom (polarity f) lab args
-    | Shift f ->
-        (* Format.(fprintf std_formatter "  is NOT a frontier@.") ; *)
-        let res = shift @@ spin place args f in
-        (* Format.(fprintf std_formatter "  is therefore %a@." (format_form ()) res) ; *)
-        res
-    | Atom (_, pred, args) -> f0
-    | And (pol, pf1, pf2)  ->
-        conj ~pol [spin place args pf1 ; spin place args pf2]
-    | Or (pf1, pf2)    ->
-        disj [spin place args pf1 ; spin place args pf2]
-    | (True _ | False) -> f0
-    | Exists (x, pf) -> begin
-        let v = vargen#next (match place with Right -> E | Left _ -> U) in
-        let pf = app_form (Cons (Shift 0, v)) pf in
-        let pf = spin place (v :: args) pf in
-        let pf = app_form (Shift 1) pf in
-        let pf = replace ~depth:0 ~repl:(VMap.digest [unvar v, idx 0]) pf in
-        exists x pf
-      end
-    | Implies (pf, nf) ->
-         implies [spin (change place) args pf] @@ spin place args nf
-    | Forall (x, nf) -> begin
-        let v = vargen#next (match place with Left _ -> E | Right -> U) in
-        let nf = app_form (Cons (Shift 0, v)) nf in
-        let nf = spin place (v :: args) nf in
-        let nf = app_form (Shift 1) nf in
-        let nf = replace ~depth:0 ~repl:(VMap.digest [unvar v, idx 0]) nf in
-        forall x nf
+    match Hashtbl.find memo (place, args, f0) with
+    | f -> f
+    | exception Not_found -> begin
+        let f =
+          match f0.form with
+          | Shift f when is_frontier place (polarity f) ->
+              (* Format.(fprintf std_formatter "  is a frontier@.") ; *)
+              let lab = labelgen#next (place_cookie place) in
+              (* Format.(fprintf std_formatter "  labelled %s@." lab.rep) ; *)
+              let f = spin place args f in
+              let args = List.filter begin
+                  fun arg -> VSet.mem (unvar arg) f0.vars
+                end args in
+              emit_lform { place ; label = lab ; args ; skel = f } ;
+              shift @@ atom (polarity f) lab args
+          | Shift f ->
+              (* Format.(fprintf std_formatter "  is NOT a frontier@.") ; *)
+              let res = shift @@ spin place args f in
+              (* Format.(fprintf std_formatter "  is therefore %a@." (format_form ()) res) ; *)
+              res
+          | Atom (_, pred, args) -> f0
+          | And (pol, pf1, pf2)  ->
+              conj ~pol [spin place args pf1 ; spin place args pf2]
+          | Or (pf1, pf2)    ->
+              disj [spin place args pf1 ; spin place args pf2]
+          | (True _ | False) -> f0
+          | Exists (x, pf) -> begin
+              let v = vargen#next (match place with Right -> E | Left _ -> U) in
+              let pf = app_form (Cons (Shift 0, v)) pf in
+              let pf = spin place (v :: args) pf in
+              let pf = app_form (Shift 1) pf in
+              let pf = replace ~depth:0 ~repl:(VMap.digest [unvar v, idx 0]) pf in
+              exists x pf
+            end
+          | Implies (pf, nf) ->
+              implies [spin (change place) args pf] @@ spin place args nf
+          | Forall (x, nf) -> begin
+              let v = vargen#next (match place with Left _ -> E | Right -> U) in
+              let nf = app_form (Cons (Shift 0, v)) nf in
+              let nf = spin place (v :: args) nf in
+              let nf = app_form (Shift 1) nf in
+              let nf = replace ~depth:0 ~repl:(VMap.digest [unvar v, idx 0]) nf in
+              forall x nf
+            end
+        in
+        Hashtbl.replace memo (place, args, f0) f ;
+        f
       end
   in
   let l0 = match top with
@@ -472,7 +479,7 @@ module Test () = struct
 
   let test f =
     let open Format in
-    fprintf std_formatter "Formatting: @[%a@]@." (format_form ()) f ;
+    fprintf std_formatter "Formatting: @[%a@]@." format_form f ;
     let (l0, lfs) = relabel ~lforms:IdtMap.empty ~place:Right f in
     IdtMap.iter (fun l f -> fprintf std_formatter "%s: %a@." l.rep format_lform f) lfs ;
     lfs
