@@ -5,11 +5,11 @@
  * See LICENSE for licensing details.
  *)
 
-let collapse_steps       = true (* collapse steps that have the same constraints *)
-let elide_true_nonatoms  = true (* omit T A when A is a non-atom *)
-let elide_dead           = true (* omit T* A when A is a non-atom *)
-let elide_false          = true (* omit F A *)
-let elide_false_nonatoms = true (* omit F A when A is a non-atom *)
+let collapse_steps       = false (* collapse steps that have the same constraints *)
+let elide_true_nonatoms  = false (* omit T A when A is a non-atom *)
+let elide_dead           = false (* omit T* A when A is a non-atom *)
+let elide_false          = false (* omit F A *)
+let elide_false_nonatoms = false (* omit F A when A is a non-atom *)
 
 (* Model reconstruction based on the algorithm described in:
 
@@ -365,13 +365,13 @@ let add_true_constraints fs constr =
 let rec simplify_right ~succ ~lforms constr =
   dprintf "model" "simplify_right: @[%a@]@." (format_constr IdtMap.empty) constr ;
   match constr.fals with
-  | None -> simplify_left ~succ ~lforms constr
+  | None -> simplify_left ~succ ~lforms ~saved:[] constr
   | Some rt -> begin
       match rt.form with
       | Atom (_, l, []) -> begin
           match (IdtMap.find l lforms).Form.skel with
           | rt -> simplify_right ~succ ~lforms {constr with fals = Some rt}
-          | exception Not_found -> simplify_left ~succ ~lforms constr
+          | exception Not_found -> simplify_left ~succ ~lforms ~saved:[] constr
         end
       | And (_, rt1, rt2) ->
           let constr1 = {constr with fals = Some rt1} in
@@ -388,10 +388,9 @@ let rec simplify_right ~succ ~lforms constr =
                   ~succ:(fun m2 ->
                       succ (fork lforms constr [m1 ; m2])))
       | False ->
-          simplify_left ~succ ~lforms {constr with fals = None}
+          simplify_left ~succ ~lforms ~saved:[] {constr with fals = None}
       | Implies (rt1, rt2) ->
           simplify_right ~lforms
-            (* ~succ:(fun m -> succ (fork lforms constr [m])) *)
             ~succ
             (add_true_constraints [rt1] {constr with fals = Some rt2})
       | Shift rt ->
@@ -399,14 +398,19 @@ let rec simplify_right ~succ ~lforms constr =
       | Atom _ | Forall _ | Exists _ -> first_order ()
     end
 
-and simplify_left ~succ ~lforms constr =
+and simplify_left ~succ ~lforms ~saved constr =
   dprintf "model" "simplify_left: @[%a@]@." (format_constr IdtMap.empty) constr ;
   match constr.live with
-  | [] ->
-      if query lforms constr then
-        Debug.bugf "Model: simplified to valid constraint@\n@[%a@]"
-          (format_constr lforms) constr
-      else succ {constr ; kids = []}
+  | [] -> begin
+      match saved with
+      | (_lf, top) :: rest ->
+          top ~succ (List.map fst rest)
+      | [] ->
+          if query lforms constr then
+            Debug.bugf "Model: simplified to valid constraint@\n@[%a@]"
+              (format_constr lforms) constr
+          else succ {constr ; kids = []}
+    end
   | lf :: live -> begin
       match lf.form with
       | Atom (_, l, []) -> begin
@@ -414,25 +418,24 @@ and simplify_left ~succ ~lforms constr =
           | newlf ->
               {constr with live ; dead = unique_cons lf constr.dead} |>
               add_true_constraints [newlf] |>
-              simplify_left ~succ ~lforms
+              simplify_left ~succ ~lforms ~saved
           | exception Not_found ->
-              simplify_left ~succ ~lforms
+              simplify_left ~succ ~lforms ~saved
                 {constr with
-                 live ;
-                 dead = unique_cons lf constr.dead}
+                 live ; dead = unique_cons lf constr.dead}
         end
       | And (_, lf1, lf2) ->
-          simplify_left ~succ ~lforms
+          simplify_left ~succ ~lforms ~saved
             (add_true_constraints [lf1 ; lf2] {constr with live})
       | True _ ->
-          simplify_left ~succ ~lforms {constr with live}
+          simplify_left ~succ ~lforms ~saved {constr with live}
       | Or (lf1, lf2) ->
           let constr1 = {constr with live = unique_cons lf1 live} in
           if query lforms constr1 then
-            simplify_left ~lforms ~succ
+            simplify_left ~lforms ~succ ~saved
               (add_true_constraints [lf2]  {constr with live})
           else
-            simplify_left ~lforms ~succ constr1
+            simplify_left ~lforms ~succ ~saved constr1
       | False ->
           succ {constr ; kids = []}
       | Implies (lf1, lf2) ->
@@ -440,12 +443,18 @@ and simplify_left ~succ ~lforms constr =
                          dead = unique_cons lf constr.dead ;
                          fals = Some lf1} in
           if query lforms constr1 then
-            simplify_left ~succ ~lforms
+            simplify_left ~succ ~lforms ~saved
               (add_true_constraints [lf2] {constr with live})
-          else
-            simplify_right ~lforms ~succ:(fun m -> fork lforms constr [m] |> succ) constr1
+          else begin
+            let save ~succ rest =
+              dprintf "model" "Trying saved implication: %a@." (format_form ()) lf ;
+              simplify_right ~lforms ~succ:(fun m -> fork lforms constr [m] |> succ)
+                {constr1 with live = rest @ constr1.live}
+            in
+            simplify_left ~succ ~lforms ~saved:((lf, save) :: saved) {constr with live}
+          end
       | Shift lf ->
-          simplify_left ~lforms ~succ
+          simplify_left ~lforms ~succ ~saved
             (add_true_constraints [lf] {constr with live})
       | Forall _ | Exists _ | Atom _ -> first_order ()
     end
