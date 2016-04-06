@@ -398,18 +398,32 @@ let rec simplify_right ~succ ~lforms constr =
       | Atom _ | Forall _ | Exists _ -> first_order ()
     end
 
+and simplify_left_branch ~succ ~lforms ~saved ms constr =
+  match saved with
+  | [] -> succ (fork lforms constr ms)
+  | (lf, save) :: rest ->
+      save
+        ~succ:(fun m ->
+            simplify_left_branch ~succ ~lforms ~saved:rest (m :: ms) constr)
+        constr
+
 and simplify_left ~succ ~lforms ~saved constr =
   dprintf "model" "simplify_left: @[%a@]@." (format_constr IdtMap.empty) constr ;
   match constr.live with
   | [] -> begin
       match saved with
-      | (_lf, top) :: rest ->
-          top ~succ (List.map fst rest)
       | [] ->
+          dprintf "modelquery" "Branch closed, so doing a sanity check@." ;
           if query lforms constr then
             Debug.bugf "Model: simplified to valid constraint@\n@[%a@]"
               (format_constr lforms) constr
           else succ {constr ; kids = []}
+      | _ ->
+          dprintf "model" "Need to branch for the following implications:@." ;
+          List.iter begin fun (lf, _) ->
+            dprintf "model" "   %a@." (format_form ()) lf
+          end saved ;
+          simplify_left_branch ~succ ~lforms ~saved [] constr
     end
   | lf :: live -> begin
       match lf.form with
@@ -446,12 +460,12 @@ and simplify_left ~succ ~lforms ~saved constr =
             simplify_left ~succ ~lforms ~saved
               (add_true_constraints [lf2] {constr with live})
           else begin
-            let save ~succ rest =
+            let save ~succ constr  =
               dprintf "model" "Trying saved implication: %a@." (format_form ()) lf ;
-              simplify_right ~lforms ~succ:(fun m -> fork lforms constr [m] |> succ)
-                {constr1 with live = rest @ constr1.live}
+              simplify_right ~lforms ~succ {constr with fals = Some lf1}
             in
-            simplify_left ~succ ~lforms ~saved:((lf, save) :: saved) {constr with live}
+            simplify_left ~succ ~lforms ~saved:((lf, save) :: saved)
+              {constr with live ; dead = unique_cons lf constr.dead}
           end
       | Shift lf ->
           simplify_left ~lforms ~succ ~saved
