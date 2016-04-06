@@ -299,7 +299,7 @@ let query lforms constr =
         | False ->
             false
         | Implies (rf1, rf2) ->
-            left_active ~stored ~left:[rf1] (Some rf2)
+            left_active ~stored ~impls:[] ~left:[rf1] (Some rf2)
         | Forall _ | Exists _ | Atom _ -> first_order ()
         | Shift rf ->
             right_active ~stored (Some rf)
@@ -307,36 +307,43 @@ let query lforms constr =
         (*     Debug.bugf "Model.query(right_active}: Impossible @[%a@]" *)
         (*       (format_form ()) rf *)
       end
-  and left_active ~stored ~left right =
+  and left_active ~stored ~impls ~left right =
     match left with
-    | [] -> right_active ~stored right
+    | [] -> begin
+        match impls with
+        | [] -> right_active ~stored right
+        | (lf1, lf2) :: impls -> begin
+            (right_active ~stored (Some lf1) &&
+             left_active ~stored ~impls ~left:(lf2 :: left) right) ||
+            left_active ~stored ~impls ~left right
+          end
+      end
     | lf :: left -> begin
         match lf.form with
         | Atom (_, l, [])
         | Shift {form = Atom (_, l, []) ; _} ->
-            left_active ~stored:(l :: stored) ~left right
+            left_active ~stored:(l :: stored) ~impls ~left right
         | And (_, lf1, lf2) ->
-            left_active ~stored ~left:(lf1 :: lf2 :: left) right
+            left_active ~stored ~impls ~left:(lf1 :: lf2 :: left) right
         | True _ ->
-            left_active ~stored ~left right
+            left_active ~stored ~impls ~left right
         | Or (lf1, lf2) ->
-            left_active ~stored ~left:(lf1 :: left) right &&
-            left_active ~stored ~left:(lf2 :: left) right
+            left_active ~stored ~impls ~left:(lf1 :: left) right &&
+            left_active ~stored ~impls ~left:(lf2 :: left) right
         | False ->
             true
-        | Implies _ ->
-            (* We just drop this assumption, i.e., try just weakening *)
-            left_active ~stored ~left right
+        | Implies (lf1, lf2) ->
+            left_active ~stored ~impls:((lf1, lf2) :: impls) ~left right
         | Forall _ | Exists _ | Atom _ -> first_order ()
         | Shift lf ->
-            left_active ~stored ~left:(lf :: left) right
+            left_active ~stored ~impls ~left:(lf :: left) right
         (* | Shift _ -> *)
         (*     Debug.bugf "Model.query(left_active}: Impossible @[%a@]" *)
         (*       (format_form ()) lf *)
       end
   in
   dprintf "modelquery" "Querying @[%a@]@." (format_constr IdtMap.empty) constr ;
-  let res = left_active ~stored:[] ~left:(constr.live @ constr.dead) constr.fals in
+  let res = left_active ~stored:[] ~impls:[] ~left:(constr.live @ constr.dead) constr.fals in
   dprintf "modelquery" "Query was a %s@." (if res then "success" else "failure") ;
   res
 
@@ -477,7 +484,6 @@ and simplify_left ~succ ~lforms ~saved constr =
               simplify_right ~lforms ~succ
                 {constr with live ; dead = unique_cons lf constr.dead ; fals = Some lf1}
                 (* {constr with live = unique_cons lf constr.live ; fals = Some lf1} *)
-                (* {live ; dead = unique_cons lf constr.dead ; fals = Some lf1} *)
             in
             simplify_left ~succ ~lforms ~saved:((lf, save) :: saved) {constr with live}
           end else begin
