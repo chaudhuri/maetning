@@ -48,7 +48,7 @@ module IdtSet = struct
       | x :: xs ->
           fprintf ff "%s" x.rep ;
           List.iter begin fun x ->
-            fprintf ff "@, %s" x.rep
+            fprintf ff ",@ %s" x.rep
           end xs
     end ; pp_close_box ff ()
 end
@@ -69,7 +69,7 @@ module IdtMap = struct
       | (x, v) :: binds ->
           fprintf ff "%s:%a" x.rep vfn v ;
           List.iter begin fun (x, v) ->
-            fprintf ff "@, %s:%a" x.rep vfn v
+            fprintf ff ",@ %s:%a" x.rep vfn v
           end binds
     end ; pp_close_box ff ()
 end
