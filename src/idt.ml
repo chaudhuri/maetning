@@ -38,6 +38,19 @@ end
 module IdtSet = struct
   include Set.Make (IdtOrdered)
   let insert set elt = add elt set
+  let pp ff set =
+    let open Format in
+    pp_open_box ff 0 ; begin
+      let elts = elements set in
+      match elts with
+      | [] -> ()
+      | [x] -> fprintf ff "%s" x.rep
+      | x :: xs ->
+          fprintf ff "%s" x.rep ;
+          List.iter begin fun x ->
+            fprintf ff "@, %s" x.rep
+          end xs
+    end ; pp_close_box ff ()
 end
 
 module IdtMap = struct
@@ -46,6 +59,19 @@ module IdtMap = struct
   let digest kvs = List.fold_left (fun m (k, v) -> add k v m) empty kvs
   let find_opt k m =
     try Some (find k m) with Not_found -> None
+  let pp vfn ff m =
+    let open Format in
+    pp_open_box ff 0 ; begin
+      let binds = bindings m in
+      match binds with
+      | [] -> ()
+      | [x, v] -> fprintf ff "%s:%a" x.rep vfn v
+      | (x, v) :: binds ->
+          fprintf ff "%s:%a" x.rep vfn v ;
+          List.iter begin fun (x, v) ->
+            fprintf ff "@, %s:%a" x.rep vfn v
+          end binds
+    end ; pp_close_box ff ()
 end
 
 type t = idt

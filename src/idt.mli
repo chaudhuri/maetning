@@ -24,6 +24,7 @@ module IdtOrdered : Set.OrderedType with type t = idt
 module IdtSet : sig
   include Set.S
   val insert : t -> elt -> t
+  val pp : Format.formatter -> t -> unit
 end with type elt := idt
 
 module IdtMap : sig
@@ -31,6 +32,7 @@ module IdtMap : sig
   val insert : 'v t -> key -> 'v -> 'v t
   val digest : (key * 'v) list -> 'v t
   val find_opt : key -> 'v t -> 'v option
+  val pp : (Format.formatter -> 'v -> unit) -> Format.formatter -> 'v t -> unit
 end with type key := idt
 
 module IdHash : Hashtbl.S with type key = idt
