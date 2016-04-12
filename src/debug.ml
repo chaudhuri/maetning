@@ -47,18 +47,35 @@ let on_file ~file dchan =
 let disable dchan =
   __dchans := StringMap.remove dchan !__dchans
 
+let big_margin_fmt ff fmt =
+  let marg = Format.pp_get_margin ff () in
+  let maxind = Format.pp_get_max_indent ff () in
+  let maxbox = Format.pp_get_max_boxes ff () in
+  Format.pp_set_margin ff max_int ;
+  Format.pp_set_max_indent ff max_int ;
+  Format.pp_set_max_boxes ff max_int ;
+  Format.kfprintf begin fun ff ->
+    Format.pp_set_margin ff marg ;
+    Format.pp_set_max_indent ff maxind ;
+  Format.pp_set_max_boxes ff maxbox ;
+  end ff fmt
+
 let dprintf dchan =
   let uchan = String.map Char.uppercase dchan in
   match StringMap.find dchan !__dchans with
   | Stdout ->
-      fun fmt -> Format.printf ("[%s] " ^^ fmt) uchan
+      fun fmt ->
+        big_margin_fmt Format.std_formatter ("[%s] " ^^ fmt) uchan
   | Stderr ->
-      fun fmt -> Format.eprintf ("[%s] " ^^ fmt) uchan
+      fun fmt ->
+        big_margin_fmt Format.err_formatter ("[%s] " ^^ fmt) uchan
   | File fd ->
       if fd.status = `closed then begin
         fd.ff <- Format.formatter_of_output @@ File.open_out fd.filename ;
         fd.status <- `opened ;
       end ;
+      Format.pp_set_margin fd.ff max_int ;
+      Format.pp_set_max_indent fd.ff max_int ;
       fun fmt -> Format.fprintf fd.ff ("[%s] " ^^ fmt) uchan
   | exception Not_found -> Format.(ifprintf err_formatter)
 

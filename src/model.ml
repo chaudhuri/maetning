@@ -43,7 +43,6 @@ type state = {
   left_dead : IdtSet.t ;
   left_active : form list ;
   right : [`Active of form | `Passive of Idt.t | `Dead of Idt.t] ;
-  right_seen : IdtSet.t ;
 }
 
 exception Model
@@ -111,12 +110,7 @@ let rec compound lforms f =
   | _ -> false
   | exception Nonatomic -> true
 
-let pp_indent ff n = ()
-  (* for i = 1 to n do *)
-  (*   Format.pp_print_string ff "  " *)
-  (* done *)
-
-let format_state ff stt =
+let format_state annot ff stt =
   let open Format in
   pp_open_box ff 2 ; begin
     let left_passive = List.map begin fun f () ->
@@ -146,17 +140,23 @@ let format_state ff stt =
     (left_passive @ left_dead @ left_active) |>
     List.interleave (fun () -> fprintf ff ",@ ") |>
     List.iter (fun doit -> doit ()) ;
-    fprintf ff " -->@ %t ;@ " right ;
-    IdtSet.pp ff stt.right_seen ;
+    fprintf ff " -%s->@ %t" annot right ;
   end ; pp_close_box ff ()
 
-let rec format_model_lines indent ff modl =
+let rec format_model ff modl =
   let open Format in
-  List.iter (format_model_lines (indent + 1) ff) modl.kids ;
-  fprintf ff "%a* @[%a@]@," pp_indent indent IdtSet.pp modl.assn
-
-let format_model ff modl =
-  Format.fprintf ff "@[<v0>%a@]" (format_model_lines 0) modl
+  if IdtSet.is_empty modl.assn && modl.kids = [] then fprintf ff "∅" else
+  let assn =
+    IdtSet.elements modl.assn |>
+    List.map (fun f () -> fprintf ff "%s" f.rep)
+  in
+  let kids =
+    modl.kids |>
+    List.map (fun modl () -> fprintf ff "@[<b1>{%a}@]" format_model modl)
+  in
+  (assn @ kids) |>
+  List.interleave (fun () -> fprintf ff ",@ ") |>
+  List.iter (fun doit -> doit ())
 
 let dot_format_model modl =
   let open Format in
@@ -192,10 +192,17 @@ let state_to_model lforms stt =
     end (IdtSet.union stt.left_passive stt.left_dead) IdtSet.empty in
   {assn ; kids = []}
 
-let join m1 m2 =  {
-  assn = IdtSet.union m1.assn m2.assn ;
-  kids = m1.kids @ m2.kids ;
+let rec percolate assn modl = {
+  assn = IdtSet.union assn modl.assn ;
+  kids = List.map (percolate assn) modl.kids ;
 }
+
+let join m1 m2 =
+  let assn = IdtSet.union m1.assn m2.assn in
+  {assn ; kids = List.map (percolate assn) (m1.kids @ m2.kids)}
+
+let join m1 m2 =
+  {assn = IdtSet.union m1.assn m2.assn ; kids = m1.kids @ m2.kids}
 
 let move_forward m = {
   assn = IdtSet.empty ;
@@ -206,6 +213,8 @@ let or_models (m1, v1) (m2, v2) =
   if not v1
   then (m1, v1 && v2)
   else (m2, v1 && v2)
+
+let empty_model = {assn = IdtSet.empty ; kids = []}
 
 (******************************************************************************)
 
@@ -230,37 +239,48 @@ let query stt =
 
 (******************************************************************************)
 
-let rec right_invert ~ind ~lforms ~succ stt =
-  dprintf "model" "%aright_invert: %a@." pp_indent ind format_state stt ;
+let rec check_monotone modl =
+  IdtSet.for_all begin fun x ->
+    List.for_all (is_assigned x) modl.kids
+  end modl.assn
+
+and is_assigned x modl =
+  IdtSet.mem x modl.assn &&
+  List.for_all (is_assigned x) modl.kids
+
+let pp_indent ff n =
+  for i = 1 to n do
+    Format.pp_print_as ff 2 "│ "
+  done
+
+let record ~ind ~lforms innerfn desc annot stt =
+  dprintf "model" "%s:@.%a %a@." desc pp_indent ind (format_state annot) stt ;
+  let (m, v) as mv = innerfn ~ind ~lforms stt in
+  dprintf "model" "%s:@.%a@<3>%s @[<h>%b: @[%a@]@]@." desc pp_indent ind "└──" v format_model m ;
+  mv
+
+let rec right_invert ~ind ~lforms stt =
+  record right_invert_inner "right_invert" "ri" stt ~ind ~lforms
+
+and right_invert_inner ~ind ~lforms stt =
   let ind = ind + 1 in
   match stt.right with
   | `Passive f | `Dead f -> bugf "right_invert: %s" f.Idt.rep
   | `Active f -> begin
       match f.form with
       | Shift {form = Atom (POS, l, []) ; _} ->
-          (if IdtSet.mem l stt.right_seen
-           then left_invert ~ind {stt with right = `Passive l}
-           else left_invert ~ind {stt with right = `Passive l ; left_seen = IdtSet.empty})
-          ~lforms ~succ
+          left_invert {stt with right = `Passive l} ~ind ~lforms
       | Atom (NEG, l, []) ->
-          (if IdtSet.mem l stt.right_seen
-           then left_invert ~ind {stt with right = `Dead l}
-           else left_invert ~ind {stt with right = `Dead l (* ; left_seen = IdtSet.empty *)})
-          ~lforms ~succ
+          left_invert {stt with right = `Dead l} ~ind ~lforms
       | And (NEG, f1, f2) ->
-          (* let ind = ind + 1 in *)
-          right_invert ~ind {stt with right = `Active f1}
-            ~lforms
-            ~succ:(fun mv1 ->
-                right_invert ~ind {stt with right = `Active f2}
-                  ~lforms
-                  ~succ:(fun mv2 ->
-                      succ (or_models mv1 mv2)))
+          let mv1 = right_invert {stt with right = `Active f1} ~ind ~lforms in
+          let mv2 = right_invert {stt with right = `Active f2} ~ind ~lforms in
+          or_models mv1 mv2
       | True NEG ->
-          succ (state_to_model lforms stt, true)
+          (empty_model, true)
       | Implies (f1, f2) ->
-          right_invert ~ind {stt with right = `Active f2 ; left_active = f1 :: stt.left_active}
-            ~lforms ~succ
+          right_invert {stt with right = `Active f2 ; left_active = f1 :: stt.left_active}
+            ~ind ~lforms
       | And (POS, _, _) | True POS | Or _ | False ->
           bugf "right_invert: positive formula %a" (format_form ()) f
       | Shift _ ->
@@ -268,47 +288,48 @@ let rec right_invert ~ind ~lforms ~succ stt =
       | Atom _ | Forall _ | Exists _ -> first_order ()
     end
 
-and left_invert ~ind ~lforms ~succ stt =
-  dprintf "model" "%aleft_invert: %a@." pp_indent ind format_state stt ;
+and left_invert ~ind ~lforms stt =
+  record left_invert_inner "left_invert" "li" stt ~ind ~lforms
+
+and left_invert_inner ~ind ~lforms stt =
   let ind = ind + 1 in
   match stt.left_active with
-  | [] -> neutral_right ~ind ~lforms ~succ stt
+  | [] ->
+      neutral_right ~ind ~lforms stt
   | f :: left_active -> begin
       match f.form with
       | Shift {form = Atom (NEG, l, []) ; _} ->
-          neutral_right ~ind ~lforms ~succ
-            (if IdtSet.mem l stt.left_passive
-             then (dprintf "model" "Already seen %s@." l.rep ; {stt with left_active})
-             else {stt with
-                   left_active ;
-                   left_passive = IdtSet.add l stt.left_passive ;
-                   left_seen = IdtSet.empty ;
-                   right_seen = IdtSet.empty})
+          let stt =
+            if IdtSet.mem l stt.left_passive
+            then (dprintf "model" "Already seen %s@." l.rep ; {stt with left_active})
+            else {stt with
+                  left_active ;
+                  left_passive = IdtSet.add l stt.left_passive ;
+                  left_seen = IdtSet.empty}
+          in
+          left_invert stt ~ind ~lforms
       | Atom (POS, l, []) ->
-          neutral_right ~ind ~lforms ~succ
-            (if IdtSet.mem l stt.left_dead
-             then (dprintf "model" "Already seen %s@." l.rep ; {stt with left_active})
-             else {stt with
-                   left_active ;
-                   left_dead = IdtSet.add l stt.left_dead ;
-                   left_seen = IdtSet.empty ;
-                   right_seen = IdtSet.empty})
+          let stt =
+            if IdtSet.mem l stt.left_dead
+            then (dprintf "model" "Already seen %s@." l.rep ; {stt with left_active})
+            else {stt with
+                  left_active ;
+                  left_dead = IdtSet.add l stt.left_dead ;
+                  left_seen = IdtSet.empty}
+          in
+          left_invert stt ~ind ~lforms
       | And (POS, f1, f2) ->
-          left_invert ~ind {stt with left_active = f1 :: f2 :: left_active}
-            ~lforms ~succ
+          left_invert {stt with left_active = f1 :: f2 :: left_active}
+            ~ind ~lforms
       | True POS ->
-          left_invert ~ind {stt with left_active} ~lforms ~succ
+          left_invert {stt with left_active}
+            ~ind ~lforms
       | Or (f1, f2) ->
-          (* let ind = ind + 1 in *)
-          left_invert ~ind {stt with left_active = f1 :: left_active}
-            ~lforms
-            ~succ:(fun mv1 ->
-                left_invert ~ind {stt with left_active = f2 :: left_active}
-                  ~lforms
-                  ~succ:(fun mv2 ->
-                      succ (or_models mv1 mv2)))
+          let mv1 = left_invert {stt with left_active = f1 :: left_active} ~ind ~lforms in
+          let mv2 = left_invert {stt with left_active = f2 :: left_active} ~ind ~lforms in
+          or_models mv1 mv2
       | False ->
-          succ (state_to_model lforms stt, true)
+          (empty_model, true)
       | And (NEG, _, _) | True NEG | Implies _ ->
           bugf "left_invert: negative formula %a" (format_form ()) f
       | Shift _ ->
@@ -316,66 +337,61 @@ and left_invert ~ind ~lforms ~succ stt =
       | Atom _ | Forall _ | Exists _ -> first_order ()
     end
 
-and right_focus ~ind ~lforms ~succ stt =
-  dprintf "model" "%aright_focus: %a@." pp_indent ind format_state stt ;
+and right_focus ~ind ~lforms stt =
+  record right_focus_inner "right_focus" "rf" stt ~ind ~lforms
+
+and right_focus_inner ~ind ~lforms stt =
   let ind = ind + 1 in
   match stt.right with
   | `Passive f | `Dead f -> bugf "right_focus: %s" f.Idt.rep
   | `Active f -> begin
       match f.form with
       | Shift f ->
-          right_invert ~ind {stt with right = `Active f} ~lforms ~succ
+          right_invert {stt with right = `Active f} ~ind ~lforms
       | Atom (POS, l, []) ->
-          succ (state_to_model lforms stt, IdtSet.mem l stt.left_dead)
+          (state_to_model lforms stt, IdtSet.mem l stt.left_dead)
       | And (POS, f1, f2) ->
-          (* let ind = ind + 1 in *)
-          right_focus ~ind {stt with right = `Active f1} ~lforms
-            ~succ:(fun mv1 ->
-                right_focus ~ind {stt with right = `Active f2} ~lforms
-                  ~succ:(fun mv2 ->
-                      succ (or_models mv1 mv2)))
+          let mv1 = right_focus {stt with right = `Active f1} ~ind ~lforms in
+          let mv2 = right_focus {stt with right = `Active f2} ~ind ~lforms in
+          or_models mv1 mv2
       | True POS ->
-          succ (state_to_model lforms stt, true)
+          (empty_model, true)
       | Or (f1, f2) ->
           (* let ind = ind + 1 in *)
-          right_focus ~ind {stt with right = `Active f1} ~lforms
-            ~succ:(fun (m1, v1) ->
-                right_focus ~ind {stt with right = `Active f2} ~lforms
-                  ~succ:(fun (m2, v2) ->
-                      succ (join (move_forward m1) (move_forward m2), v1 || v2)))
+          let (m1, v1) = right_focus {stt with right = `Active f1} ~ind ~lforms in
+          let (m2, v2) = right_focus {stt with right = `Active f2} ~ind ~lforms in
+          (join (move_forward m1) (move_forward m2), v1 || v2)
       | False ->
-          succ (state_to_model lforms stt, false)
+          (empty_model, false)
       | And (NEG, _, _) | True NEG | Implies _ ->
           bugf "right_focus: negative formula %a" (format_form ()) f
       | Atom _ | Forall _ | Exists _ -> first_order ()
     end
 
-and left_focus ~ind ~lforms ~succ stt =
-  dprintf "model" "%aleft_focus: %a@." pp_indent ind format_state stt ;
+and left_focus ~ind ~lforms stt =
+  record left_focus_inner "left_focus" "lf" stt ~ind ~lforms
+
+and left_focus_inner ~ind ~lforms stt =
   let ind = ind + 1 in
   match stt.left_active with
   | [f] -> begin
       match f.form with
       | Shift f ->
-          left_invert ~ind {stt with left_active = [f]} ~lforms ~succ
+          left_invert ~ind {stt with left_active = [f]} ~lforms
       | Atom (NEG, l, []) ->
-          succ (state_to_model lforms stt, stt.right = `Dead l)
+          let modl = state_to_model lforms {stt with left_passive = IdtSet.add l stt.left_passive} in
+          (modl, stt.right = `Dead l)
       | And (NEG, f1, f2) ->
           (* let ind = ind + 1 in *)
-          left_focus ~ind {stt with left_active = [f1]} ~lforms
-            ~succ:(fun (m1, v1) ->
-                left_focus ~ind {stt with left_active = [f2]} ~lforms
-                  ~succ:(fun (m2, v2) ->
-                      succ (join m1 m2, v1 || v2)))
+          let (m1, v1) = left_focus {stt with left_active = [f1]} ~ind ~lforms in
+          let (m2, v2) = left_focus {stt with left_active = [f2]} ~ind ~lforms in
+          (join m1 m2, v1 || v2)
       | True NEG ->
-          succ (state_to_model lforms stt, false)
+          (empty_model, false)
       | Implies (f1, f2) ->
-          (* let ind = ind + 1 in *)
-          right_focus ~ind {stt with left_active = [] ; right = `Active f1} ~lforms
-            ~succ:(fun (m1, v1) ->
-                left_focus ~ind {stt with left_active = [f2]} ~lforms
-                  ~succ:(fun mv2 ->
-                      succ (or_models (move_forward m1, v1) mv2)))
+          let (m1, v1) = right_focus {stt with left_active = [] ; right = `Active f1} ~ind ~lforms in
+          let mv2 = left_focus {stt with left_active = [f2]} ~ind ~lforms in
+          (or_models (move_forward m1, v1) mv2)
       | And (POS, _, _) | True POS | Or _ | False ->
           bugf "left_focus: positive formula %a" (format_form ()) f
       | Atom _ | Forall _ | Exists _ -> first_order ()
@@ -383,58 +399,55 @@ and left_focus ~ind ~lforms ~succ stt =
   | _ ->
       bugf "left_focus: left active zone not singleton"
 
-and neutral_right ~ind ~lforms ~succ stt =
-  dprintf "model" "%aneutral_right: %a@." pp_indent ind format_state stt ;
+and neutral_right ~ind ~lforms stt =
+  record neutral_right_inner "neutral_right" "nr" stt ~ind ~lforms
+
+and neutral_right_inner ~ind ~lforms stt =
   let ind = ind + 1 in
   match stt.right with
   | `Active f -> bugf "neutral: right not passive: %a" (format_form ()) f
   | `Dead f ->
-      neutral_left ~ind ~lforms ~succ stt
+      neutral_left ~ind ~lforms stt
   | `Passive f -> begin
-      if IdtSet.mem f stt.right_seen || query stt then neutral_left ~ind ~lforms ~succ stt else
-      let stt = {stt with right_seen = IdtSet.add f stt.right_seen} in
+      if query stt then neutral_left ~ind ~lforms stt else
       let f = match IdtMap.find f lforms with
         | lf -> lf.Form.skel
         | exception Not_found -> atom POS f []
       in
       (* let ind = ind + 1 in *)
-      neutral_left ~ind stt ~lforms
-        ~succ:(fun (m1, v1) ->
-            if v1 then succ (m1, v1) else
-              right_focus ~ind {stt with right = `Active f} ~lforms
-                ~succ:(fun (m2, v2) ->
-                    if v2 then succ (m2, v2)
-                    else succ (join m1 m2, v2)))
+      let (m1, v1) = neutral_left stt ~ind ~lforms in
+      if v1 then (m1, v1) else
+      let (m2, v2) = right_focus {stt with right = `Active f} ~ind ~lforms in
+      if v2 then (m2, v2)
+      else (join m1 m2, false)
     end
 
-and neutral_left ~ind ~lforms ~succ stt =
-  dprintf "model" "%aneutral_left: %a@." pp_indent ind format_state stt ;
+and neutral_left ~ind ~lforms stt =
+  record neutral_left_inner "neutral_left" "nl" stt ~ind ~lforms
+
+and neutral_left_inner ~ind ~lforms stt =
   let ind = ind + 1 in
   let v = query stt in
-  if v then succ (state_to_model lforms stt, true) else
+  let modl = state_to_model lforms stt in
+  if v then (modl, true) else
   let rec attempt = function
     | [] ->
-        let modl = state_to_model lforms stt in
-        (* let v = query stt in *)
-        dprintf "model" "branch close: sending %b model %a@." v format_model modl ;
+        dprintf "model" "branch close: sending %b model: %a@." v format_model modl ;
         assert (IdtSet.subset stt.left_passive stt.left_seen) ;
-        succ (modl, false)
+        (modl, false)
     | f :: fs ->
         if (IdtSet.mem f stt.left_seen (* || query stt *)) then attempt fs else begin
-          dprintf "model" "%aneutral_left: Attempting %s@." pp_indent ind f.rep ;
+          dprintf "model" "neutral_left: Attempting %s@." f.rep ;
           let stt = {stt with left_seen = IdtSet.add f stt.left_seen} in
           let f = match IdtMap.find f lforms with
             | lf -> lf.Form.skel
             | exception Not_found -> atom NEG f []
           in
-          (* let ind = ind + 1 in *)
-          neutral_left ~ind stt ~lforms
-            ~succ:(fun (m1, v1) ->
-                if v1 then succ (m1, v1) else
-                  left_focus ~ind {stt with left_active = [f]} ~lforms
-                    ~succ:(fun (m2, v2) ->
-                        if v2 then succ (m2, v2)
-                        else succ (join m1 m2, v2)))
+          let (m1, v1) = neutral_left stt ~ind ~lforms in
+          if v1 then (m1, v1) else
+          let (m2, v2) = left_focus {stt with left_active = [f]} ~ind ~lforms in
+          if v2 then (m2, v2)
+          else (join m1 m2, v2)
         end
   in
   attempt (IdtSet.elements stt.left_passive)
@@ -533,9 +546,8 @@ let create_model res =
     left_dead = IdtSet.empty ;
     left_active = [] ;
     right = `Passive res.goal.label ;
-    right_seen = IdtSet.empty ;
   } in
-  dprintf "model" "Initial constraint: @[%a@]@." format_state stt ;
-  neutral_right ~ind:0 stt
-    ~lforms:res.lforms
-    ~succ:(fun mv -> mv)
+  dprintf "model" "Initial constraint: @[%a@]@." (format_state "nr") stt ;
+  let mv = neutral_right stt ~ind:0 ~lforms:res.lforms in
+  dprintf "model" "Created:@.@[%a@]@." format_model (fst mv) ;
+  mv
