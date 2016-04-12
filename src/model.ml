@@ -203,13 +203,6 @@ let join m1 m2 =
   let assn = IdtSet.union m1.assn m2.assn in
   {assn ; kids = List.map (percolate assn) (m1.kids @ m2.kids)}
 
-let join m1 m2 =
-  let assn = IdtSet.union m1.assn m2.assn in
-  {assn ; kids = List.map (percolate assn) (m1.kids @ m2.kids)}
-
-let join m1 m2 =
-  {assn = IdtSet.union m1.assn m2.assn ; kids = m1.kids @ m2.kids}
-
 let move_forward m = {
   assn = IdtSet.empty ;
   kids = [m] ;
