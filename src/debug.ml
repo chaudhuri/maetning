@@ -47,17 +47,18 @@ let on_file ~file dchan =
 let disable dchan =
   __dchans := StringMap.remove dchan !__dchans
 
+let __pp_large = 1_000_000
 let big_margin_fmt ff fmt =
   let marg = Format.pp_get_margin ff () in
-  let maxind = Format.pp_get_max_indent ff () in
+  (* let maxind = Format.pp_get_max_indent ff () in *)
   let maxbox = Format.pp_get_max_boxes ff () in
-  Format.pp_set_margin ff max_int ;
-  Format.pp_set_max_indent ff max_int ;
-  Format.pp_set_max_boxes ff max_int ;
+  Format.pp_set_margin ff __pp_large ;
+  (* Format.pp_set_max_indent ff __pp_large ; *)
+  Format.pp_set_max_boxes ff __pp_large ;
   Format.kfprintf begin fun ff ->
     Format.pp_set_margin ff marg ;
-    Format.pp_set_max_indent ff maxind ;
-  Format.pp_set_max_boxes ff maxbox ;
+    (* Format.pp_set_max_indent ff maxind ; *)
+    Format.pp_set_max_boxes ff maxbox ;
   end ff fmt
 
 let dprintf dchan =
