@@ -5,7 +5,7 @@
  * See LICENSE for licensing details.
  *)
 
-let collapse_steps       = false (* collapse steps that have the same constraints *)
+let compress_model       = true (* compress model *)
 let elide_true_nonatoms  = false (* omit T A when A is a non-atom *)
 let elide_dead           = false (* omit T* A when A is a non-atom *)
 let elide_false          = false (* omit F A *)
@@ -199,9 +199,29 @@ let rec percolate assn modl =
   let assn = IdtSet.union assn modl.assn in
   {assn ; kids = List.map (percolate assn) modl.kids}
 
+let zip modl =
+  if not compress_model then modl else
+  let rec register_kid ocls ncls kid =
+    match ncls with
+    | [] -> kid :: ocls
+    | ncl :: ncls ->
+        if IdtSet.equal kid.assn ncl.assn then
+          {ncl with kids= kid.kids @ ncl.kids} :: ncls
+        else
+          register_kid (ncl :: ocls) ncls kid
+  in
+  let kids = List.fold_left (fun cls kid -> register_kid [] cls kid) [] modl.kids in
+  {modl with kids}
+
+let compress modl =
+  let kids = List.unique modl.kids in
+  match kids with
+  | [kid] when modl.assn = kid.assn -> kid
+  | _ -> {modl with kids}
+
 let join m1 m2 =
   let assn = IdtSet.union m1.assn m2.assn in
-  {assn ; kids = List.map (percolate assn) (m1.kids @ m2.kids)}
+  compress {assn ; kids = List.map (percolate assn) (m1.kids @ m2.kids)}
 
 let move_forward m = {
   assn = IdtSet.empty ;
