@@ -141,8 +141,8 @@ let dump_proof ?(pseudos=false) f res =
 
 let dump_model f res =
   match Model.create_model res with
-  | Model.Sat ->
-      Debug.bugf "Model for %a was satisfying" (Form.format_form ()) f
+  | Model.Valid ->
+      Debug.bugf "Countermodel reconstruction managed to prove %a" (Form.format_form ()) f
   | Model.Counter modl ->
       Config.pprintf "<p>Countermodel for <code>%a</code></p>@." (Form.format_form ()) f ;
       if !Config.dot_models then

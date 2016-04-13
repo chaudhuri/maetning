@@ -13,7 +13,7 @@ let elide_false_nonatoms = false (* omit F A when A is a non-atom *)
 
 (* Model reconstruction based on the algorithm described in:
 
-   Taus Brock-Nannestad and Kaustuv Chaudhuri, "Saturation-based
+   Taus Brock-Nannestad and Kaustuv Chaudhuri, "Validuration-based
    Countermodel Construction for Propositional Intuitionistic Logic",
    2016
 *)
@@ -187,11 +187,16 @@ let dot_format_model modl =
 (******************************************************************************)
 
 let state_to_model lforms stt =
-  let assn = IdtSet.fold begin fun x assn ->
+  let add_atoms_from set assn =
+    IdtSet.fold begin fun x assn ->
       match get_atom_idt lforms x with
       | x -> IdtSet.add x assn
       | exception Nonatomic -> assn
-    end (IdtSet.union stt.left_passive stt.left_dead) IdtSet.empty in
+    end set assn
+  in
+  let assn = add_atoms_from stt.left_seen IdtSet.empty in
+  let assn = add_atoms_from stt.left_passive assn in
+  let assn = add_atoms_from stt.left_dead assn in
   {assn ; kids = []}
 
 let rec percolate assn modl =
@@ -255,33 +260,33 @@ let pp_indent ff n =
   done
 
 type meval =
-  | Sat
+  | Valid
   | Counter of model
 
 let select_meval mv1 mv2 =
   match mv1, mv2 with
   | Counter m, _ -> Counter m
   | _, Counter m -> Counter m
-  | _, _ -> Sat
+  | _, _ -> Valid
 
 let join_meval mv1 mv2 =
   match mv1, mv2 with
-  | Sat, m | m, Sat -> m
+  | Valid, m | m, Valid -> m
   | Counter m, Counter n -> Counter (join m n)
 
 let meet_meval mv1 mv2 =
   match mv1, mv2 with
-  | Sat, _ | _, Sat -> Sat
+  | Valid, _ | _, Valid -> Valid
   | Counter m, Counter n -> Counter (join m n)
 
 let forward_meval mv =
   match mv with
-  | Sat -> Sat
+  | Valid -> Valid
   | Counter m -> Counter (move_forward m)
 
 let format_meval ff mv =
   match mv with
-  | Sat -> Format.pp_print_string ff "true"
+  | Valid -> Format.pp_print_string ff "true"
   | Counter m -> Format.fprintf ff "@[<h>false: %a@]" format_model m
 
 let record ~ind ~lforms innerfn desc annot stt =
@@ -304,14 +309,20 @@ and right_invert_inner ~ind ~lforms stt =
           let stt = {stt with right = `Passive l} in
           let stt =
             if IdtSet.mem l stt.right_seen then stt else
-              {stt with left_seen = IdtSet.empty ; right_seen = IdtSet.add l stt.right_seen}
+              {stt with
+               left_passive = IdtSet.union stt.left_seen stt.left_passive ;
+               left_seen = IdtSet.empty ;
+               right_seen = IdtSet.add l stt.right_seen}
           in
           left_invert stt ~ind ~lforms
       | Atom (NEG, l, []) ->
           let stt = {stt with right = `Dead l} in
           let stt =
             if IdtSet.mem l stt.right_seen then stt else
-              {stt with left_seen = IdtSet.empty ; right_seen = IdtSet.add l stt.right_seen}
+              {stt with
+               left_passive = IdtSet.union stt.left_seen stt.left_passive ;
+               left_seen = IdtSet.empty ;
+               right_seen = IdtSet.add l stt.right_seen}
           in
           left_invert stt ~ind ~lforms
       | And (NEG, f1, f2) ->
@@ -319,7 +330,7 @@ and right_invert_inner ~ind ~lforms stt =
           let mv2 = right_invert {stt with right = `Active f2} ~ind ~lforms in
           select_meval mv1 mv2
       | True NEG ->
-          Sat
+          Valid
       | Implies (f1, f2) ->
           right_invert {stt with right = `Active f2 ; left_active = f1 :: stt.left_active}
             ~ind ~lforms
@@ -342,11 +353,11 @@ and left_invert_inner ~ind ~lforms stt =
       match f.form with
       | Shift {form = Atom (NEG, l, []) ; _} ->
           let stt =
-            if IdtSet.mem l stt.left_passive
+            if IdtSet.mem l stt.left_passive || IdtSet.mem l stt.left_dead
             then (dprintf "model" "Already seen %s@." l.rep ; {stt with left_active})
             else {stt with
                   left_active ;
-                  left_passive = IdtSet.add l stt.left_passive ;
+                  left_passive = IdtSet.union stt.left_dead (IdtSet.add l stt.left_passive) ;
                   left_seen = IdtSet.empty ;
                   right_seen = IdtSet.empty}
           in
@@ -357,6 +368,7 @@ and left_invert_inner ~ind ~lforms stt =
             then (dprintf "model" "Already seen %s@." l.rep ; {stt with left_active})
             else {stt with
                   left_active ;
+                  left_passive = IdtSet.union stt.left_dead stt.left_passive ;
                   left_dead = IdtSet.add l stt.left_dead ;
                   left_seen = IdtSet.empty ;
                   right_seen = IdtSet.empty}
@@ -373,7 +385,7 @@ and left_invert_inner ~ind ~lforms stt =
           let mv2 = left_invert {stt with left_active = f2 :: left_active} ~ind ~lforms in
           select_meval mv1 mv2
       | False ->
-          Sat
+          Valid
       | Atom (NEG, _, _) | And (NEG, _, _) | True NEG | Implies _ ->
           bugf "left_invert: negative formula %a" (format_form ()) f
       | Shift _ ->
@@ -393,7 +405,7 @@ and right_focus_inner ~ind ~lforms stt =
       | Shift f ->
           right_invert {stt with right = `Active f} ~ind ~lforms
       | Atom (POS, l, []) ->
-          if IdtSet.mem l stt.left_dead then Sat else
+          if IdtSet.mem l stt.left_dead then Valid else
           let stt = {stt with right = `Passive l ; right_seen = IdtSet.add l stt.right_seen} in
           neutral_right stt ~ind ~lforms
       | And (POS, f1, f2) ->
@@ -401,7 +413,7 @@ and right_focus_inner ~ind ~lforms stt =
           let mv2 = right_focus {stt with right = `Active f2} ~ind ~lforms in
           select_meval mv1 mv2
       | True POS ->
-          Sat
+          Valid
       | Or (f1, f2) ->
           (* let ind = ind + 1 in *)
           let mv1 = right_focus {stt with right = `Active f1} ~ind ~lforms in
@@ -425,7 +437,7 @@ and left_focus_inner ~ind ~lforms stt =
       | Shift f ->
           left_invert ~ind {stt with left_active = [f]} ~lforms
       | Atom (NEG, l, []) ->
-          if stt.right = `Dead l then Sat else
+          if stt.right = `Dead l then Valid else
           let stt = {stt with
                      left_active = [] ;
                      left_passive = IdtSet.add l stt.left_passive ;
@@ -466,10 +478,10 @@ and neutral_right_inner ~ind ~lforms stt =
       in
       (* let ind = ind + 1 in *)
       match neutral_left stt ~ind ~lforms with
-      | Sat -> Sat
+      | Valid -> Valid
       | Counter m1 -> begin
           match right_focus {stt with right = `Active f} ~ind ~lforms with
-          | Sat -> Sat
+          | Valid -> Valid
           | Counter m2 -> Counter (join m1 m2)
         end
     end
@@ -479,33 +491,27 @@ and neutral_left ~ind ~lforms stt =
 
 and neutral_left_inner ~ind ~lforms stt =
   let ind = ind + 1 in
-  let v = query stt in
-  let modl = state_to_model lforms stt in
-  if v then Sat else
-  let rec attempt = function
-    | [] ->
-        dprintf "model" "branch close: sending %b model: @[<h>%a@]@." v format_model modl ;
-        (* assert (IdtSet.subset stt.left_passive stt.left_seen) ; *)
-        Counter modl
-    | f :: fs ->
-        if (IdtSet.mem f stt.left_seen (* || query stt *)) then attempt fs else begin
-          dprintf "model" "neutral_left: Attempting %s@." f.rep ;
-          let stt = {stt with left_seen = IdtSet.add f stt.left_seen} in
-          let f = match IdtMap.find f lforms with
-            | lf -> lf.Form.skel
-            | exception Not_found -> atom NEG f []
-          in
-          match neutral_left stt ~ind ~lforms with
-          | Sat -> Sat
-          | Counter m1 -> begin
-              match left_focus {stt with left_active = [f]} ~ind ~lforms with
-              | Sat -> Sat
-              | Counter m2 ->
-                  Counter (join m1 m2)
-            end
+  match IdtSet.pop stt.left_passive with
+  | exception Not_found ->
+      if query stt then Valid else
+      let modl = state_to_model lforms stt in
+      Counter modl
+  | f, left_passive ->
+      let seen = IdtSet.mem f stt.left_seen in
+      let stt = {stt with left_passive ; left_seen = IdtSet.add f stt.left_seen} in
+      if seen then neutral_left stt ~ind ~lforms else
+      let f = match IdtMap.find f lforms with
+        | lf -> lf.Form.skel
+        | exception Not_found -> atom NEG f []
+      in
+      match neutral_left stt ~ind ~lforms with
+      | Valid -> Valid
+      | Counter m1 -> begin
+          match left_focus {stt with left_active = [f]} ~ind ~lforms with
+          | Valid -> Valid
+          | Counter m2 ->
+              Counter (join m1 m2)
         end
-  in
-  attempt (IdtSet.elements stt.left_passive)
 
 (******************************************************************************)
 

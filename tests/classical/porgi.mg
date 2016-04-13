@@ -9,7 +9,7 @@
 % The "intermediate" one from figure 11
 % (((~~P -> P) -> P | ~P) -> ~P | ~~P) -> ~~P | (~~P -> P)
 
-%refute (((~ ~ p => p) => p + ~ p) => ~ p + ~ ~ p) => ~ ~ p + (~ ~ p => p).
+% refute (((~ ~ p => p) => p + ~ p) => ~ p + ~ ~ p) => ~ ~ p + (~ ~ p => p).
 
 
 % The "hard" one from figure 12
