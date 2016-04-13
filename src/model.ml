@@ -6,6 +6,8 @@
  *)
 
 let compress_model       = true (* compress model *)
+let memoize              = true
+let rewrite              = true
 let elide_true_nonatoms  = false (* omit T A when A is a non-atom *)
 let elide_dead           = false (* omit T* A when A is a non-atom *)
 let elide_false          = false (* omit F A *)
@@ -280,6 +282,7 @@ let record ~ind ~lforms innerfn desc annot stt =
   dprintf "model" "%s:@.@[<h>%a %a@]@." desc pp_indent ind (format_state annot) stt ;
   dprintf "modelstate" "@[<h>%a@]@." (format_state "") stt ;
   let mv =
+    if not memoize then innerfn ~ind ~lforms stt else
     match Hashtbl.find memo (stt, annot) with
     | mv ->
         dprintf "modelstate" "SEEN@." ;
@@ -378,9 +381,22 @@ and right_invert_inner ~ind ~lforms stt =
         end
       | True NEG ->
           Valid
-      | Implies (f1, f2) ->
+      | Implies (f1, f2) -> begin
           right_invert {stt with right = `Active f2 ; left_active = f1 :: stt.left_active}
             ~ind ~lforms
+(* [RIGHT IMPLIES]
+          match right_invert {stt with right = `Active f2 ; left_active = f1 :: stt.left_active}
+                  ~ind ~lforms with
+          | Valid -> Valid
+          | Counter m1 -> begin
+              match right_invert {stt with right = `Active f2} ~ind ~lforms with
+              | Valid -> Valid
+              | Counter m2 ->
+                  Counter (join m1 m2)
+            end
+*)
+        end
+
       | Atom (POS, _, _) | And (POS, _, _) | True POS | Or _ | False ->
           bugf "right_invert: positive formula %a" (format_form ()) f
       | Shift _ ->
@@ -407,7 +423,7 @@ and left_invert_inner ~ind ~lforms stt =
                left_seen = IdtSet.empty ;
                right_seen = IdtSet.empty}
           in
-          let lforms = if seen then lforms else IdtMap.map (make_true_lform l) lforms in
+          let lforms = if not rewrite || seen then lforms else IdtMap.map (make_true_lform l) lforms in
           left_invert stt ~ind ~lforms
       | Atom (POS, l, []) ->
           let seen = IdtSet.mem l stt.left_dead in
@@ -419,7 +435,7 @@ and left_invert_inner ~ind ~lforms stt =
                left_seen = IdtSet.empty ;
                right_seen = IdtSet.empty}
           in
-          let lforms = if seen then lforms else IdtMap.map (make_true_lform l) lforms in
+          let lforms = if not rewrite || seen then lforms else IdtMap.map (make_true_lform l) lforms in
           left_invert stt ~ind ~lforms
       | And (POS, f1, f2) ->
           left_invert {stt with left_active = f1 :: f2 :: left_active}
@@ -455,11 +471,14 @@ and right_focus_inner ~ind ~lforms stt =
       | Atom (POS, l, []) ->
           if IdtSet.mem l stt.left_dead then Valid else
           (* Counter empty_model *)
-          let stt = {stt with
-                     left_seen = IdtSet.empty ;
-                     left_passive = IdtSet.union stt.left_seen stt.left_passive ;
-                     right = `Passive l ;
-                     right_seen = IdtSet.add l stt.right_seen} in
+          let stt =
+            if IdtSet.mem l stt.right_seen then {stt with right = `Passive l} else
+              {stt with
+               left_seen = IdtSet.empty ;
+               left_passive = IdtSet.union stt.left_seen stt.left_passive ;
+               right = `Passive l ;
+               right_seen = IdtSet.add l stt.right_seen}
+          in
           neutral_left stt ~ind ~lforms
       | And (POS, f1, f2) -> begin
           match right_focus {stt with right = `Active f1} ~ind ~lforms with
