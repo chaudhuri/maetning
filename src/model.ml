@@ -229,7 +229,7 @@ let empty_model = {assn = IdtSet.empty ; kids = []}
 let query stt =
   let get_label l = (l, []) in
   let sq = mk_sequent ()
-      ~left:((IdtSet.union stt.left_passive stt.left_dead) |>
+      ~left:((IdtSet.union stt.left_seen (IdtSet.union stt.left_passive stt.left_dead)) |>
              IdtSet.elements |>
              List.map get_label |>
              Ft.of_list)
