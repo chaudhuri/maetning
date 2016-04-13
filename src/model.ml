@@ -13,7 +13,7 @@ let elide_false_nonatoms = false (* omit F A when A is a non-atom *)
 
 (* Model reconstruction based on the algorithm described in:
 
-   Taus Brock-Nannestad and Kaustuv Chaudhuri, "Validuration-based
+   Taus Brock-Nannestad and Kaustuv Chaudhuri, "Saturation-based
    Countermodel Construction for Propositional Intuitionistic Logic",
    2016
 *)
@@ -218,7 +218,6 @@ let join m1 m2 =
   compress {assn ; kids = List.map (percolate assn) (m1.kids @ m2.kids)}
 
 let move_forward m =
-  (* if IdtSet.is_empty m.assn then m else *)
   {assn = IdtSet.empty ; kids = [m]}
 
 let empty_model = {assn = IdtSet.empty ; kids = []}
@@ -294,6 +293,54 @@ let record ~ind ~lforms innerfn desc annot stt =
   dprintf "model" "%s:@.@[<h>%a    for %a@]@." desc pp_indent ind (format_state annot) stt ;
   mv
 
+let rec make_true l f =
+  match f.form with
+  | Atom (pol, pl, []) ->
+      if pl = l then conj ~pol [] else f
+  | And (pol, f1, f2) -> begin
+      let f1 = make_true l f1 in
+      match f1.form with
+      | True _ -> make_true l f2
+      | _ -> conj ~pol [f1 ; make_true l f2]
+    end
+  | Or (f1, f2) -> begin
+      let f1 = make_true l f1 in
+      match f1.form with
+      | True _ -> f1
+      | _ -> begin
+          let f2 = make_true l f2 in
+          match f2.form with
+          | True _ -> f2
+          | _ -> disj [f1 ; f2]
+        end
+    end
+  | Implies (f1, f2) -> begin
+      let f1 = make_true l f1 in
+      match f1.form with
+      | True _ -> make_true l f2
+      | _ -> begin
+          let f2 = make_true l f2 in
+          match f2.form with
+          | True _ -> conj ~pol:NEG []
+          | _ -> implies [f1] f2
+        end
+    end
+  | Shift f -> begin
+      let f = make_true l f in
+      match f.form with
+      | True pol -> conj ~pol:(dual_polarity pol) []
+      | _ -> shift f
+    end
+  | Atom _ | True _ | False | Forall _ | Exists _ -> f
+
+let rec make_true_lform l lf =
+  let new_skel = make_true l lf.Form.skel in
+  if lf.Form.skel = new_skel then lf else begin
+    dprintf "modelsimplify" "@[<h>Simplified %s from %a to %a@]@."
+      lf.label.rep (format_form ()) lf.Form.skel (format_form ()) new_skel ;
+    {lf with Form.skel = new_skel}
+  end
+
 let rec right_invert ~ind ~lforms stt =
   record right_invert_inner "right_invert" "ri" stt ~ind ~lforms
 
@@ -352,27 +399,27 @@ and left_invert_inner ~ind ~lforms stt =
   | f :: left_active -> begin
       match f.form with
       | Shift {form = Atom (NEG, l, []) ; _} ->
-          let stt =
-            if IdtSet.mem l stt.left_passive || IdtSet.mem l stt.left_dead
-            then (dprintf "model" "Already seen %s@." l.rep ; {stt with left_active})
-            else {stt with
-                  left_active ;
-                  left_passive = IdtSet.union stt.left_dead (IdtSet.add l stt.left_passive) ;
-                  left_seen = IdtSet.empty ;
-                  right_seen = IdtSet.empty}
+          let seen = IdtSet.mem l stt.left_passive || IdtSet.mem l stt.left_dead in
+          let stt = if seen then {stt with left_active} else
+              {stt with
+               left_active ;
+               left_passive = IdtSet.union stt.left_dead (IdtSet.add l stt.left_passive) ;
+               left_seen = IdtSet.empty ;
+               right_seen = IdtSet.empty}
           in
+          let lforms = if seen then lforms else IdtMap.map (make_true_lform l) lforms in
           left_invert stt ~ind ~lforms
       | Atom (POS, l, []) ->
-          let stt =
-            if IdtSet.mem l stt.left_dead
-            then (dprintf "model" "Already seen %s@." l.rep ; {stt with left_active})
-            else {stt with
-                  left_active ;
-                  left_passive = IdtSet.union stt.left_dead stt.left_passive ;
-                  left_dead = IdtSet.add l stt.left_dead ;
-                  left_seen = IdtSet.empty ;
-                  right_seen = IdtSet.empty}
+          let seen = IdtSet.mem l stt.left_dead in
+          let stt = if seen then {stt with left_active} else
+              {stt with
+               left_active ;
+               left_passive = IdtSet.union stt.left_dead stt.left_passive ;
+               left_dead = IdtSet.add l stt.left_dead ;
+               left_seen = IdtSet.empty ;
+               right_seen = IdtSet.empty}
           in
+          let lforms = if seen then lforms else IdtMap.map (make_true_lform l) lforms in
           left_invert stt ~ind ~lforms
       | And (POS, f1, f2) ->
           left_invert {stt with left_active = f1 :: f2 :: left_active}
