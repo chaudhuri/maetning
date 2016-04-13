@@ -46,6 +46,8 @@ type state = {
   right : [`Active of form | `Passive of Idt.t | `Dead of Idt.t] ;
 }
 
+let false_atom = Idt.intern "#<FALSE>"
+
 exception Model
 
 let first_order f =
@@ -215,10 +217,9 @@ let join m1 m2 =
   let assn = IdtSet.union m1.assn m2.assn in
   compress {assn ; kids = List.map (percolate assn) (m1.kids @ m2.kids)}
 
-let move_forward m = {
-  assn = IdtSet.empty ;
-  kids = [m] ;
-}
+let move_forward m =
+  (* if IdtSet.is_empty m.assn then m else *)
+  {assn = IdtSet.empty ; kids = [m]}
 
 let empty_model = {assn = IdtSet.empty ; kids = []}
 
@@ -263,22 +264,6 @@ type meval =
   | Valid
   | Counter of model
 
-let select_meval mv1 mv2 =
-  match mv1, mv2 with
-  | Counter m, _ -> Counter m
-  | _, Counter m -> Counter m
-  | _, _ -> Valid
-
-let join_meval mv1 mv2 =
-  match mv1, mv2 with
-  | Valid, m | m, Valid -> m
-  | Counter m, Counter n -> Counter (join m n)
-
-let meet_meval mv1 mv2 =
-  match mv1, mv2 with
-  | Valid, _ | _, Valid -> Valid
-  | Counter m, Counter n -> Counter (join m n)
-
 let forward_meval mv =
   match mv with
   | Valid -> Valid
@@ -289,9 +274,22 @@ let format_meval ff mv =
   | Valid -> Format.pp_print_string ff "true"
   | Counter m -> Format.fprintf ff "@[<h>false: %a@]" format_model m
 
+let memo : (state * string, meval) Hashtbl.t = Hashtbl.create 19
+let reset_memo () = Hashtbl.clear memo
+
 let record ~ind ~lforms innerfn desc annot stt =
   dprintf "model" "%s:@.@[<h>%a %a@]@." desc pp_indent ind (format_state annot) stt ;
-  let mv = innerfn ~ind ~lforms stt in
+  dprintf "modelstate" "@[<h>%a@]@." (format_state "") stt ;
+  let mv =
+    match Hashtbl.find memo (stt, annot) with
+    | mv ->
+        dprintf "modelstate" "SEEN@." ;
+        mv
+    | exception Not_found ->
+        let mv = innerfn ~ind ~lforms stt in
+        Hashtbl.replace memo (stt, annot) mv ;
+        mv
+  in
   dprintf "model" "%s:@.@[<h>%a@<3>%s %a@]@." desc pp_indent ind "└──" format_meval mv ;
   dprintf "model" "%s:@.@[<h>%a    for %a@]@." desc pp_indent ind (format_state annot) stt ;
   mv
@@ -325,10 +323,12 @@ and right_invert_inner ~ind ~lforms stt =
                right_seen = IdtSet.add l stt.right_seen}
           in
           left_invert stt ~ind ~lforms
-      | And (NEG, f1, f2) ->
-          let mv1 = right_invert {stt with right = `Active f1} ~ind ~lforms in
-          let mv2 = right_invert {stt with right = `Active f2} ~ind ~lforms in
-          select_meval mv1 mv2
+      | And (NEG, f1, f2) -> begin
+          match right_invert {stt with right = `Active f1} ~ind ~lforms with
+          | Valid ->
+              right_invert {stt with right = `Active f2} ~ind ~lforms
+          | Counter _ as mv1 -> mv1
+        end
       | True NEG ->
           Valid
       | Implies (f1, f2) ->
@@ -378,12 +378,13 @@ and left_invert_inner ~ind ~lforms stt =
           left_invert {stt with left_active = f1 :: f2 :: left_active}
             ~ind ~lforms
       | True POS ->
-          left_invert {stt with left_active}
-            ~ind ~lforms
-      | Or (f1, f2) ->
-          let mv1 = left_invert {stt with left_active = f1 :: left_active} ~ind ~lforms in
-          let mv2 = left_invert {stt with left_active = f2 :: left_active} ~ind ~lforms in
-          select_meval mv1 mv2
+          left_invert {stt with left_active} ~ind ~lforms
+      | Or (f1, f2) -> begin
+          match left_invert {stt with left_active = f1 :: left_active} ~ind ~lforms with
+          | Valid ->
+              left_invert {stt with left_active = f2 :: left_active} ~ind ~lforms
+          | Counter _ as mv1 -> mv1
+        end
       | False ->
           Valid
       | Atom (NEG, _, _) | And (NEG, _, _) | True NEG | Implies _ ->
@@ -406,21 +407,38 @@ and right_focus_inner ~ind ~lforms stt =
           right_invert {stt with right = `Active f} ~ind ~lforms
       | Atom (POS, l, []) ->
           if IdtSet.mem l stt.left_dead then Valid else
-          let stt = {stt with right = `Passive l ; right_seen = IdtSet.add l stt.right_seen} in
-          neutral_right stt ~ind ~lforms
-      | And (POS, f1, f2) ->
-          let mv1 = right_focus {stt with right = `Active f1} ~ind ~lforms in
-          let mv2 = right_focus {stt with right = `Active f2} ~ind ~lforms in
-          select_meval mv1 mv2
+          (* Counter empty_model *)
+          let stt = {stt with
+                     left_seen = IdtSet.empty ;
+                     left_passive = IdtSet.union stt.left_seen stt.left_passive ;
+                     right = `Passive l ;
+                     right_seen = IdtSet.add l stt.right_seen} in
+          neutral_left stt ~ind ~lforms
+      | And (POS, f1, f2) -> begin
+          match right_focus {stt with right = `Active f1} ~ind ~lforms with
+          | Valid -> right_focus {stt with right = `Active f2} ~ind ~lforms
+          | Counter _ as mv1 -> mv1
+        end
       | True POS ->
           Valid
-      | Or (f1, f2) ->
+      | Or (f1, f2) -> begin
           (* let ind = ind + 1 in *)
-          let mv1 = right_focus {stt with right = `Active f1} ~ind ~lforms in
-          let mv2 = right_focus {stt with right = `Active f2} ~ind ~lforms in
-          meet_meval (forward_meval mv1) (forward_meval mv2)
+          match right_focus {stt with right = `Active f1} ~ind ~lforms |> forward_meval with
+          | Valid -> Valid
+          | Counter m1 -> begin
+              match right_focus {stt with right = `Active f2} ~ind ~lforms |> forward_meval with
+              | Valid -> Valid
+              | Counter m2 ->
+                  Counter (join m1 m2)
+            end
+        end
       | False ->
-          Counter (state_to_model lforms stt)
+          let stt = {stt with
+                     left_seen = IdtSet.empty ;
+                     left_passive = IdtSet.union stt.left_seen stt.left_passive ;
+                     right = `Passive false_atom ;
+                     right_seen = IdtSet.add false_atom stt.right_seen} in
+          neutral_left stt ~ind ~lforms
       | Atom (NEG, _, _) | And (NEG, _, _) | True NEG | Implies _ ->
           bugf "right_focus: negative formula %a" (format_form ()) f
       | Atom _ | Forall _ | Exists _ -> first_order f
@@ -438,22 +456,36 @@ and left_focus_inner ~ind ~lforms stt =
           left_invert ~ind {stt with left_active = [f]} ~lforms
       | Atom (NEG, l, []) ->
           if stt.right = `Dead l then Valid else
+          (* Counter {assn = IdtSet.singleton l ; kids = []} *)
           let stt = {stt with
                      left_active = [] ;
                      left_passive = IdtSet.add l stt.left_passive ;
                      left_seen = IdtSet.add l stt.left_seen} in
           neutral_right stt ~ind ~lforms
-      | And (NEG, f1, f2) ->
+      | And (NEG, f1, f2) -> begin
           (* let ind = ind + 1 in *)
-          let mv1 = left_focus {stt with left_active = [f1]} ~ind ~lforms in
-          let mv2 = left_focus {stt with left_active = [f2]} ~ind ~lforms in
-          join_meval mv1 mv2
+          match left_focus {stt with left_active = [f1]} ~ind ~lforms with
+          | Valid ->
+              left_focus {stt with left_active = [f2]} ~ind ~lforms
+          | Counter m1 -> begin
+              match left_focus {stt with left_active = [f2]} ~ind ~lforms with
+              | Valid -> Valid
+              | Counter m2 ->
+                  Counter (join m1 m2)
+            end
+        end
       | True NEG ->
           Counter (state_to_model lforms stt)
-      | Implies (f1, f2) ->
-          let mv1 = right_focus {stt with left_active = [] ; right = `Active f1} ~ind ~lforms in
-          let mv2 = left_focus {stt with left_active = [f2]} ~ind ~lforms in
-          select_meval mv2 (forward_meval mv1)
+      | Implies (f1, f2) -> begin
+          match left_focus {stt with left_active = [f2]} ~ind ~lforms with
+          | Valid ->
+              right_focus {stt with left_active = [] ; right = `Active f1} ~ind ~lforms |> forward_meval
+          | Counter _ as mv2 -> mv2
+          (* match right_focus {stt with left_active = [] ; right = `Active f1} ~ind ~lforms |> forward_meval with *)
+          (* | Valid -> *)
+          (*     left_focus {stt with left_active = [f2]} ~ind ~lforms *)
+          (* | Counter _ as mv1 -> mv1 *)
+        end
       | Atom (POS, _, _) | And (POS, _, _) | True POS | Or _ | False ->
           bugf "left_focus: positive formula %a" (format_form ()) f
       | Atom _ | Forall _ | Exists _ -> first_order f
@@ -596,6 +628,7 @@ let validate_model res modl =
 (*****************************************************************************)
 
 let create_model res =
+  reset_memo () ;
   let left_passive = IdtMap.fold begin fun l lf live ->
       match lf.place with
       | Left Global | Left Pseudo -> IdtSet.add lf.Form.label live
