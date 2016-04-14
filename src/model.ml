@@ -416,9 +416,11 @@ let rec make_true l f =
       if pl = l then conj ~pol [] else f
   | And (pol, f1, f2) -> begin
       let f1 = make_true l f1 in
-      match f1.form with
-      | True _ -> make_true l f2
-      | _ -> conj ~pol [f1 ; make_true l f2]
+      let f2 = make_true l f2 in
+      match f1.form, f2.form with
+      | True _, _ -> f2
+      | _, True _ -> f1
+      | _ -> conj ~pol [f1 ; f2]
     end
   | Or (f1, f2) -> begin
       let f1 = make_true l f1 in
@@ -433,14 +435,11 @@ let rec make_true l f =
     end
   | Implies (f1, f2) -> begin
       let f1 = make_true l f1 in
-      match f1.form with
-      | True _ -> make_true l f2
-      | _ -> begin
-          let f2 = make_true l f2 in
-          match f2.form with
-          | True _ -> conj ~pol:NEG []
-          | _ -> implies [f1] f2
-        end
+      let f2 = make_true l f2 in
+      match f1.form, f2.form with
+      | True _, _
+      | _, True _ -> f2
+      | _ -> implies [f1] f2
     end
   | Shift f -> begin
       let f = make_true l f in
@@ -457,6 +456,28 @@ let rec make_true_lform l lf =
       lf.label.rep format_form lf.Form.skel format_form new_skel ;
     {lf with Form.skel = new_skel}
   end
+
+let make_true_lforms lforms l0 =
+  let todo = ref [l0] in
+  let finished = ref IdtSet.empty in
+  let rec spin lforms =
+    match !todo with
+    | l :: rest ->
+        todo := rest ;
+        if IdtSet.mem l !finished then spin lforms else
+        let lforms = IdtMap.mapi begin fun ll lf ->
+            let newlf = make_true_lform l lf in
+            begin match newlf.Form.skel.Form.form with
+            | True _ -> todo := ll :: !todo
+            | _ -> ()
+            end ;
+            newlf
+          end lforms in
+        finished := IdtSet.add l !finished ;
+        spin lforms
+    | [] -> lforms
+  in
+  spin lforms
 
 let rec right_invert ishere ~ind ~lforms stt =
   record (right_invert_inner ishere) "right_invert" "ri" stt ~ind ~lforms
@@ -538,7 +559,7 @@ and left_invert_inner ~ind ~lforms stt =
                left_seen = IdtSet.empty ;
                right_seen = IdtSet.empty}
           in
-          let lforms = if not rewrite || seen then lforms else IdtMap.map (make_true_lform l) lforms in
+          let lforms = if not rewrite || seen then lforms else make_true_lforms lforms l in
           left_invert stt ~ind ~lforms
       | Atom (POS, l, []) ->
           let seen = IdtSet.mem l stt.left_dead in
@@ -550,7 +571,7 @@ and left_invert_inner ~ind ~lforms stt =
                left_seen = IdtSet.empty ;
                right_seen = IdtSet.empty}
           in
-          let lforms = if not rewrite || seen then lforms else IdtMap.map (make_true_lform l) lforms in
+          let lforms = if not rewrite || seen then lforms else make_true_lforms lforms l in
           left_invert stt ~ind ~lforms
       | And (POS, f1, f2) ->
           left_invert {stt with left_active = f1 :: f2 :: left_active}
