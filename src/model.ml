@@ -415,11 +415,11 @@ and left_invert_inner ~ind ~lforms stt =
   | f :: left_active -> begin
       match f.form with
       | Shift {form = Atom (NEG, l, []) ; _} ->
-          let seen = IdtSet.mem l stt.left_passive || IdtSet.mem l stt.left_dead in
+          let seen = IdtSet.mem l stt.left_passive || IdtSet.mem l stt.left_seen in
           let stt = if seen then {stt with left_active} else
               {stt with
                left_active ;
-               left_passive = IdtSet.union stt.left_dead (IdtSet.add l stt.left_passive) ;
+               left_passive = IdtSet.union stt.left_seen (IdtSet.add l stt.left_passive) ;
                left_seen = IdtSet.empty ;
                right_seen = IdtSet.empty}
           in
@@ -430,7 +430,7 @@ and left_invert_inner ~ind ~lforms stt =
           let stt = if seen then {stt with left_active} else
               {stt with
                left_active ;
-               left_passive = IdtSet.union stt.left_dead stt.left_passive ;
+               left_passive = IdtSet.union stt.left_seen stt.left_passive ;
                left_dead = IdtSet.add l stt.left_dead ;
                left_seen = IdtSet.empty ;
                right_seen = IdtSet.empty}
@@ -467,10 +467,9 @@ and right_focus_inner ~ind ~lforms stt =
   | `Active f -> begin
       match f.form with
       | Shift f ->
-          right_invert {stt with right = `Active f} ~ind ~lforms
+          right_invert {stt with right = `Active f} ~ind ~lforms |> forward_meval
       | Atom (POS, l, []) ->
           if IdtSet.mem l stt.left_dead then Valid else
-          (* Counter empty_model *)
           let stt =
             if IdtSet.mem l stt.right_seen then {stt with right = `Passive l} else
               {stt with
@@ -479,7 +478,7 @@ and right_focus_inner ~ind ~lforms stt =
                right = `Passive l ;
                right_seen = IdtSet.add l stt.right_seen}
           in
-          neutral_left stt ~ind ~lforms
+          neutral_left stt ~ind ~lforms |> forward_meval
       | And (POS, f1, f2) -> begin
           match right_focus {stt with right = `Active f1} ~ind ~lforms with
           | Valid -> right_focus {stt with right = `Active f2} ~ind ~lforms
@@ -489,10 +488,10 @@ and right_focus_inner ~ind ~lforms stt =
           Valid
       | Or (f1, f2) -> begin
           (* let ind = ind + 1 in *)
-          match right_focus {stt with right = `Active f1} ~ind ~lforms |> forward_meval with
+          match right_focus {stt with right = `Active f1} ~ind ~lforms (* |> forward_meval *) with
           | Valid -> Valid
           | Counter m1 -> begin
-              match right_focus {stt with right = `Active f2} ~ind ~lforms |> forward_meval with
+              match right_focus {stt with right = `Active f2} ~ind ~lforms (* |> forward_meval *) with
               | Valid -> Valid
               | Counter m2 ->
                   Counter (join m1 m2)
@@ -545,7 +544,7 @@ and left_focus_inner ~ind ~lforms stt =
       | Implies (f1, f2) -> begin
           match left_focus {stt with left_active = [f2]} ~ind ~lforms with
           | Valid ->
-              right_focus {stt with left_active = [] ; right = `Active f1} ~ind ~lforms |> forward_meval
+              right_focus {stt with left_active = [] ; right = `Active f1} ~ind ~lforms (* |> forward_meval *)
           | Counter _ as mv2 -> mv2
           (* match right_focus {stt with left_active = [] ; right = `Active f1} ~ind ~lforms |> forward_meval with *)
           (* | Valid -> *)
