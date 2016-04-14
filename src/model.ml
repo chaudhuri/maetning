@@ -469,16 +469,17 @@ and right_focus_inner ~ind ~lforms stt =
       | Shift f ->
           right_invert {stt with right = `Active f} ~ind ~lforms |> forward_meval
       | Atom (POS, l, []) ->
-          if IdtSet.mem l stt.left_dead then Valid else
-          let stt =
-            if IdtSet.mem l stt.right_seen then {stt with right = `Passive l} else
-              {stt with
-               left_seen = IdtSet.empty ;
-               left_passive = IdtSet.union stt.left_seen stt.left_passive ;
-               right = `Passive l ;
-               right_seen = IdtSet.add l stt.right_seen}
-          in
-          neutral_left stt ~ind ~lforms |> forward_meval
+          if IdtSet.mem l stt.left_dead then Valid
+          else Counter empty_model
+          (* let stt = *)
+          (*   if IdtSet.mem l stt.right_seen then {stt with right = `Passive l} else *)
+          (*     {stt with *)
+          (*      left_seen = IdtSet.empty ; *)
+          (*      left_passive = IdtSet.union stt.left_seen stt.left_passive ; *)
+          (*      right = `Passive l ; *)
+          (*      right_seen = IdtSet.add l stt.right_seen} *)
+          (* in *)
+          (* neutral_left stt ~ind ~lforms |> forward_meval *)
       | And (POS, f1, f2) -> begin
           match right_focus {stt with right = `Active f1} ~ind ~lforms with
           | Valid -> right_focus {stt with right = `Active f2} ~ind ~lforms
@@ -520,13 +521,13 @@ and left_focus_inner ~ind ~lforms stt =
       | Shift f ->
           left_invert ~ind {stt with left_active = [f]} ~lforms
       | Atom (NEG, l, []) ->
-          if stt.right = `Dead l then Valid else
-          (* Counter {assn = IdtSet.singleton l ; kids = []} *)
-          let stt = {stt with
-                     left_active = [] ;
-                     left_passive = IdtSet.add l stt.left_passive ;
-                     left_seen = IdtSet.add l stt.left_seen} in
-          neutral_right stt ~ind ~lforms
+          if stt.right = `Dead l then Valid
+          else Counter {assn = IdtSet.singleton l ; kids = []}
+          (* let stt = {stt with *)
+          (*            left_active = [] ; *)
+          (*            left_passive = IdtSet.add l stt.left_passive ; *)
+          (*            left_seen = IdtSet.add l stt.left_seen} in *)
+          (* neutral_right stt ~ind ~lforms *)
       | And (NEG, f1, f2) -> begin
           (* let ind = ind + 1 in *)
           match left_focus {stt with left_active = [f1]} ~ind ~lforms with
