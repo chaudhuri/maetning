@@ -5,7 +5,8 @@
  * See LICENSE for licensing details.
  *)
 
-let compress_model       = true (* compress model *)
+let paranoid             = true
+let compress_model       = true
 let memoize              = true
 let rewrite              = true
 let elide_true_nonatoms  = false (* omit T A when A is a non-atom *)
@@ -226,6 +227,112 @@ let empty_model = {assn = IdtSet.empty ; kids = []}
 
 (******************************************************************************)
 
+type lmodel = {
+  id : int ;
+  lassn : IdtSet.t ;
+  lkids : lmodel list ;
+}
+
+let rec label_model id0 modl =
+  let lkids, id = label_models (id0 + 1) modl.kids in
+  ({id = id0 ; lassn = modl.assn ; lkids}, id)
+
+and label_models id0 ms =
+  match ms with
+  | [] -> ([], id0)
+  | m :: ms ->
+      let (m, id) = label_model id0 m in
+      let (ms, id) = label_models id ms in
+      (m :: ms, id)
+
+let label_model modl = fst (label_model 0 modl)
+
+let rec format_lmodel ff sm =
+  let open Format in
+  fprintf ff "@[<hv0>w%d |= {%a},@ @[<b1>[%a]@]@]"
+    sm.id
+    IdtSet.pp sm.lassn
+    format_lmodels sm.lkids
+
+and format_lmodels ff sms =
+  match sms with
+  | [] -> ()
+  | [sm] -> format_lmodel ff sm
+  | sm :: sms ->
+      format_lmodel ff sm ;
+      Format.fprintf ff ",@ " ;
+      format_lmodels ff sms
+
+let rec model_check ~ind sm f =
+  match f.form with
+  | Shift f -> model_check ~ind sm f
+  | _ ->
+      let indent = String.init (2 * ind) (fun k -> if k mod 2 = 0 then '|' else ' ') in
+      let ind = ind + 1 in
+      dprintf "modelcheck" "%s(w%d |= %a) ?@." indent sm.id (format_form ()) f ;
+      let ret = match f.form with
+        | Atom (_, l, _) ->
+            IdtSet.mem l sm.lassn
+        | And (_, f1, f2) ->
+            model_check ~ind sm f1 && model_check ~ind sm f2
+        | True _ ->
+            true
+        | Or (f1, f2) ->
+            model_check ~ind sm f1 || model_check ~ind sm f2
+        | False ->
+            false
+        | Shift f ->
+            assert false
+        | Implies (f1, f2) ->
+            (model_check ~ind sm f2 ||
+             not (model_check ~ind sm f1)) &&
+            List.for_all (fun sm -> model_check ~ind sm f) sm.lkids
+        | Exists _ | Forall _ ->
+            bugf "Cannot model-check first-order formulas"
+      in
+      dprintf "modelcheck" "%s`-- (w%d |= %a) %b@." indent sm.id (format_form ()) f ret ;
+      ret
+
+let validate_state lforms stt modl =
+  let sm = label_model modl in
+  let ants = List.map (expand_fully ~lforms) stt.left_active in
+  let ants = IdtSet.fold begin fun l ants ->
+      expand_fully ~lforms (atom NEG l []) :: ants
+    end (IdtSet.diff stt.left_passive stt.left_seen) ants in
+  let ants = IdtSet.fold begin fun l ants ->
+      (atom POS l []) :: ants
+    end stt.left_dead ants in
+  let concl = match stt.right with
+    | `Active f ->
+        expand_fully ~lforms f
+    | `Dead f ->
+        if IdtSet.mem f stt.right_seen then
+          atom NEG false_atom []
+        else
+          atom NEG f []
+    | `Passive f ->
+        if IdtSet.mem f stt.right_seen then
+          atom POS false_atom []
+        else
+          expand_fully ~lforms (atom POS f [])
+  in
+  let impl = implies ants concl in
+  (impl, model_check ~ind:0 sm impl)
+
+let validate_model res modl =
+  let sm = label_model modl in
+  let ants = IdtMap.fold begin fun l lf ants ->
+      match lf.Form.place with
+      | Left Global | Left Pseudo ->
+          expand_fully ~lforms:res.lforms lf.Form.skel :: ants
+      | _ -> ants
+    end res.lforms [] in
+  let impl = implies ants (expand_fully ~lforms:res.lforms res.goal.Form.skel) in
+  dprintf "modelcheck" "Simplified model: %a@." format_lmodel sm ;
+  model_check ~ind:0 sm impl
+
+(******************************************************************************)
+
 let query stt =
   let get_label l = (l, []) in
   let sq = mk_sequent ()
@@ -294,6 +401,20 @@ let record ~ind ~lforms innerfn desc annot stt =
   in
   dprintf "model" "%s:@.@[<h>%a@<3>%s %a@]@." desc pp_indent ind "└──" format_meval mv ;
   dprintf "model" "%s:@.@[<h>%a    for %a@]@." desc pp_indent ind (format_state annot) stt ;
+  if paranoid then begin
+    match mv with
+    | Counter modl when not (List.mem annot ["lf" ; "rf"]) ->
+        dprintf "model" "@.@[<h>%a    paranoid checking %a |= %a@]@."
+          pp_indent ind
+          format_model modl
+          (format_state annot) stt ;
+        let (impl, eval) = validate_state lforms stt modl in
+        if eval then
+          bugf "paranoid mode found satisfying model:@.%a |= %a@."
+            format_model modl
+            (format_form ()) impl ;
+    | _ -> ()
+  end ;
   mv
 
 let rec make_true l f =
@@ -569,11 +690,11 @@ and neutral_right_inner ~ind ~lforms stt =
   | `Active f -> bugf "neutral: right not passive: %a" (format_form ()) f
   | `Dead f ->
       neutral_left ~ind ~lforms stt
-  | `Passive f -> begin
-      if IdtSet.mem f stt.right_seen || query stt then neutral_left ~ind ~lforms stt else
-      let f = match IdtMap.find f lforms with
+  | `Passive l -> begin
+      if IdtSet.mem l stt.right_seen || query stt then neutral_left ~ind ~lforms stt else
+      let f = match IdtMap.find l lforms with
         | lf -> lf.Form.skel
-        | exception Not_found -> atom POS f []
+        | exception Not_found -> atom POS l []
       in
       (* let ind = ind + 1 in *)
       match f.form with
@@ -581,7 +702,7 @@ and neutral_right_inner ~ind ~lforms stt =
           neutral_left {stt with right = `Dead false_atom ; right_seen = IdtSet.add false_atom stt.right_seen}
             ~ind ~lforms
       | _ -> begin
-          match neutral_left stt ~ind ~lforms with
+          match neutral_left {stt with right_seen = IdtSet.add l stt.right_seen} ~ind ~lforms with
           | Valid -> Valid
           | Counter m1 -> begin
               match right_focus {stt with right = `Active f} ~ind ~lforms with
@@ -617,86 +738,6 @@ and neutral_left_inner ~ind ~lforms stt =
           | Counter m2 ->
               Counter (join m1 m2)
         end
-
-(******************************************************************************)
-
-type lmodel = {
-  id : int ;
-  lassn : IdtSet.t ;
-  lkids : lmodel list ;
-}
-
-let rec label_model id0 modl =
-  let lkids, id = label_models (id0 + 1) modl.kids in
-  ({id = id0 ; lassn = modl.assn ; lkids}, id)
-
-and label_models id0 ms =
-  match ms with
-  | [] -> ([], id0)
-  | m :: ms ->
-      let (m, id) = label_model id0 m in
-      let (ms, id) = label_models id ms in
-      (m :: ms, id)
-
-let label_model modl = fst (label_model 0 modl)
-
-let rec format_lmodel ff sm =
-  let open Format in
-  fprintf ff "@[<hv0>w%d |= {%a},@ @[<b1>[%a]@]@]"
-    sm.id
-    IdtSet.pp sm.lassn
-    format_lmodels sm.lkids
-
-and format_lmodels ff sms =
-  match sms with
-  | [] -> ()
-  | [sm] -> format_lmodel ff sm
-  | sm :: sms ->
-      format_lmodel ff sm ;
-      Format.fprintf ff ",@ " ;
-      format_lmodels ff sms
-
-let validate_model res modl =
-  let sm = label_model modl in
-  let ants = IdtMap.fold begin fun l lf ants ->
-      match lf.Form.place with
-      | Left Global | Left Pseudo ->
-          expand_fully ~lforms:res.lforms lf.Form.skel :: ants
-      | _ -> ants
-    end res.lforms [] in
-  let impl = implies ants (expand_fully ~lforms:res.lforms res.goal.Form.skel) in
-  let rec model_check ~ind sm f =
-    match f.form with
-    | Shift f -> model_check ~ind sm f
-    | _ ->
-        let indent = String.init (2 * ind) (fun k -> if k mod 2 = 0 then '|' else ' ') in
-        let ind = ind + 1 in
-        dprintf "modelcheck" "%s(w%d |= %a) ?@." indent sm.id (format_form ()) f ;
-        let ret = match f.form with
-          | Atom (_, l, _) ->
-              IdtSet.mem l sm.lassn
-          | And (_, f1, f2) ->
-              model_check ~ind sm f1 && model_check ~ind sm f2
-          | True _ ->
-              true
-          | Or (f1, f2) ->
-              model_check ~ind sm f1 || model_check ~ind sm f2
-          | False ->
-              false
-          | Shift f ->
-              assert false
-          | Implies (f1, f2) ->
-              (model_check ~ind sm f2 ||
-               not (model_check ~ind sm f1)) &&
-              List.for_all (fun sm -> model_check ~ind sm f) sm.lkids
-          | Exists _ | Forall _ ->
-              bugf "Cannot model-check first-order formulas"
-        in
-        dprintf "modelcheck" "%s`-- (w%d |= %a) %b@." indent sm.id (format_form ()) f ret ;
-        ret
-  in
-  dprintf "modelcheck" "Simplified model: %a@." format_lmodel sm ;
-  model_check ~ind:0 sm impl
 
 (*****************************************************************************)
 
