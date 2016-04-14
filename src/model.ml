@@ -344,10 +344,10 @@ let rec make_true_lform l lf =
     {lf with Form.skel = new_skel}
   end
 
-let rec right_invert ~ind ~lforms stt =
-  record right_invert_inner "right_invert" "ri" stt ~ind ~lforms
+let rec right_invert ishere ~ind ~lforms stt =
+  record (right_invert_inner ishere) "right_invert" "ri" stt ~ind ~lforms
 
-and right_invert_inner ~ind ~lforms stt =
+and right_invert_inner ishere ~ind ~lforms stt =
   let ind = ind + 1 in
   match stt.right with
   | `Passive f | `Dead f -> bugf "right_invert: %s" f.Idt.rep
@@ -374,16 +374,17 @@ and right_invert_inner ~ind ~lforms stt =
           in
           left_invert stt ~ind ~lforms
       | And (NEG, f1, f2) -> begin
-          match right_invert {stt with right = `Active f1} ~ind ~lforms with
+          match right_invert ishere {stt with right = `Active f1} ~ind ~lforms with
           | Valid ->
-              right_invert {stt with right = `Active f2} ~ind ~lforms
+              right_invert ishere {stt with right = `Active f2} ~ind ~lforms
           | Counter _ as mv1 -> mv1
         end
       | True NEG ->
           Valid
       | Implies (f1, f2) -> begin
-          right_invert {stt with right = `Active f2 ; left_active = f1 :: stt.left_active}
-            ~ind ~lforms
+          let mv = right_invert false {stt with right = `Active f2 ; left_active = f1 :: stt.left_active}
+              ~ind ~lforms in
+          if ishere then forward_meval mv else mv
 (* [RIGHT IMPLIES]
           match right_invert {stt with right = `Active f2 ; left_active = f1 :: stt.left_active}
                   ~ind ~lforms with
@@ -467,7 +468,7 @@ and right_focus_inner ~ind ~lforms stt =
   | `Active f -> begin
       match f.form with
       | Shift f ->
-          right_invert {stt with right = `Active f} ~ind ~lforms |> forward_meval
+          right_invert true {stt with right = `Active f} ~ind ~lforms
       | Atom (POS, l, []) ->
           if IdtSet.mem l stt.left_dead then Valid
           else Counter empty_model
@@ -575,12 +576,18 @@ and neutral_right_inner ~ind ~lforms stt =
         | exception Not_found -> atom POS f []
       in
       (* let ind = ind + 1 in *)
-      match neutral_left stt ~ind ~lforms with
-      | Valid -> Valid
-      | Counter m1 -> begin
-          match right_focus {stt with right = `Active f} ~ind ~lforms with
+      match f.form with
+      | Shift {form = False ; _} ->
+          neutral_left {stt with right = `Dead false_atom ; right_seen = IdtSet.add false_atom stt.right_seen}
+            ~ind ~lforms
+      | _ -> begin
+          match neutral_left stt ~ind ~lforms with
           | Valid -> Valid
-          | Counter m2 -> Counter (join m1 m2)
+          | Counter m1 -> begin
+              match right_focus {stt with right = `Active f} ~ind ~lforms with
+              | Valid -> Valid
+              | Counter m2 -> Counter (join m1 m2)
+            end
         end
     end
 
