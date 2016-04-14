@@ -5,7 +5,7 @@
  * See LICENSE for licensing details.
  *)
 
-let paranoid             = true
+let paranoid             = false
 let compress_model       = true
 let memoize              = true
 let rewrite              = true
@@ -403,7 +403,7 @@ let record ~ind ~lforms innerfn desc annot stt =
   dprintf "model" "%s:@.@[<h>%a    for %a@]@." desc pp_indent ind (format_state annot) stt ;
   if paranoid then begin
     match mv with
-    | Counter modl when not (List.mem annot ["lf" ; "rf"]) ->
+    | Counter modl when List.mem annot ["nr" ; "nl"] ->
         dprintf "model" "@.@[<h>%a    paranoid checking %a |= %a@]@."
           pp_indent ind
           format_model modl
@@ -480,8 +480,8 @@ and right_invert_inner ishere ~ind ~lforms stt =
             if IdtSet.mem l stt.right_seen then stt else
               {stt with
                left_passive = IdtSet.union stt.left_seen stt.left_passive ;
-               left_seen = IdtSet.empty ;
-               right_seen = IdtSet.add l stt.right_seen}
+               left_seen = IdtSet.empty(*  ; *)
+               (* right_seen = IdtSet.add l stt.right_seen *)}
           in
           left_invert stt ~ind ~lforms
       | Atom (NEG, l, []) ->
@@ -663,16 +663,16 @@ and left_focus_inner ~ind ~lforms stt =
             end
         end
       | True NEG ->
-          Counter (state_to_model lforms stt)
+          Counter empty_model (* (state_to_model lforms stt) *)
       | Implies (f1, f2) -> begin
-          match left_focus {stt with left_active = [f2]} ~ind ~lforms with
-          | Valid ->
-              right_focus {stt with left_active = [] ; right = `Active f1} ~ind ~lforms (* |> forward_meval *)
-          | Counter _ as mv2 -> mv2
-          (* match right_focus {stt with left_active = [] ; right = `Active f1} ~ind ~lforms |> forward_meval with *)
+          (* match left_focus {stt with left_active = [f2]} ~ind ~lforms with *)
           (* | Valid -> *)
-          (*     left_focus {stt with left_active = [f2]} ~ind ~lforms *)
-          (* | Counter _ as mv1 -> mv1 *)
+          (*     right_focus {stt with left_active = [] ; right = `Active f1} ~ind ~lforms (\* |> forward_meval *\) *)
+          (* | Counter _ as mv2 -> mv2 *)
+          match right_focus {stt with left_active = [] ; right = `Active f1} ~ind ~lforms |> forward_meval with
+          | Valid ->
+              left_focus {stt with left_active = [f2]} ~ind ~lforms
+          | Counter _ as mv1 -> mv1
         end
       | Atom (POS, _, _) | And (POS, _, _) | True POS | Or _ | False ->
           bugf "left_focus: positive formula %a" (format_form ()) f
@@ -702,7 +702,8 @@ and neutral_right_inner ~ind ~lforms stt =
           neutral_left {stt with right = `Dead false_atom ; right_seen = IdtSet.add false_atom stt.right_seen}
             ~ind ~lforms
       | _ -> begin
-          match neutral_left {stt with right_seen = IdtSet.add l stt.right_seen} ~ind ~lforms with
+          let stt = {stt with right_seen = IdtSet.add l stt.right_seen} in
+          match neutral_left stt ~ind ~lforms with
           | Valid -> Valid
           | Counter m1 -> begin
               match right_focus {stt with right = `Active f} ~ind ~lforms with
@@ -723,9 +724,7 @@ and neutral_left_inner ~ind ~lforms stt =
       let modl = state_to_model lforms stt in
       Counter modl
   | f, left_passive ->
-      let seen = IdtSet.mem f stt.left_seen in
       let stt = {stt with left_passive ; left_seen = IdtSet.add f stt.left_seen} in
-      if seen then neutral_left stt ~ind ~lforms else
       let f = match IdtMap.find f lforms with
         | lf -> lf.Form.skel
         | exception Not_found -> atom NEG f []
