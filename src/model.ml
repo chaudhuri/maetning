@@ -54,7 +54,7 @@ let false_atom = Idt.intern "#<FALSE>"
 exception Model
 
 let first_order f =
-  Format.eprintf "Cannot construct countermodels for first-order formulas@.%a@." (format_form ()) f ;
+  Format.eprintf "Cannot construct countermodels for first-order formulas@.%a@." format_form f ;
   raise Model
 
 let format_form_expanded lforms ff f =
@@ -73,7 +73,7 @@ let format_form_expanded lforms ff f =
     | Forall _ | Exists _ | Atom _ -> first_order f
     | Shift f -> shift (expand f)
   in
-  format_form () ff (expand f)
+  format_form ff (expand f)
 
 (* let format_form_expanded lforms ff f = format_form () ff f *)
 
@@ -129,13 +129,13 @@ let format_state annot ff stt =
       if elide_true_nonatoms then [] else
       stt.left_active |>
       List.map begin fun f () ->
-        fprintf ff "@[<b1><%a>@]" (format_form ()) f
+        fprintf ff "@[<b1><%a>@]" format_form f
       end in
     let right ff =
       match stt.right with
       | `Active f ->
           if elide_false_nonatoms then fprintf ff "###" else
-          fprintf ff "@[<b1><%a>@]" (format_form ()) f
+          fprintf ff "@[<b1><%a>@]" format_form f
       | `Passive f ->
           fprintf ff "%s" f.Idt.rep
       | `Dead f ->
@@ -262,7 +262,7 @@ let rec model_check ~ind sm f =
   | _ ->
       let indent = String.init (2 * ind) (fun k -> if k mod 2 = 0 then '|' else ' ') in
       let ind = ind + 1 in
-      dprintf "modelcheck" "%s(w%d |= %a) ?@." indent sm.id (format_form ()) f ;
+      dprintf "modelcheck" "%s(w%d |= %a) ?@." indent sm.id format_form f ;
       let ret = match f.form with
         | Atom (_, l, _) ->
             IdtSet.mem l sm.lassn
@@ -283,7 +283,7 @@ let rec model_check ~ind sm f =
         | Exists _ | Forall _ ->
             bugf "Cannot model-check first-order formulas"
       in
-      dprintf "modelcheck" "%s`-- (w%d |= %a) %b@." indent sm.id (format_form ()) f ret ;
+      dprintf "modelcheck" "%s`-- (w%d |= %a) %b@." indent sm.id format_form f ret ;
       ret
 
 let validate_state lforms stt modl =
@@ -405,7 +405,7 @@ let record ~ind ~lforms innerfn desc annot stt =
         if eval then
           bugf "paranoid mode found satisfying model:@.@[<h>%a |= %a@]@."
             format_model modl
-            (format_form ()) impl ;
+            format_form impl ;
     | _ -> ()
   end ;
   mv
@@ -454,7 +454,7 @@ let rec make_true_lform l lf =
   let new_skel = make_true l lf.Form.skel in
   if lf.Form.skel = new_skel then lf else begin
     dprintf "modelsimplify" "@[<h>Simplified %s from %a to %a@]@."
-      lf.label.rep (format_form ()) lf.Form.skel (format_form ()) new_skel ;
+      lf.label.rep format_form lf.Form.skel format_form new_skel ;
     {lf with Form.skel = new_skel}
   end
 
@@ -513,9 +513,9 @@ and right_invert_inner ishere ~ind ~lforms stt =
         end
 
       | Atom (POS, _, _) | And (POS, _, _) | True POS | Or _ | False ->
-          bugf "right_invert: positive formula %a" (format_form ()) f
+          bugf "right_invert: positive formula %a" format_form f
       | Shift _ ->
-          bugf "right_invert: invalid shift: %a" (format_form ()) f
+          bugf "right_invert: invalid shift: %a" format_form f
       | Atom _ | Forall _ | Exists _ -> first_order f
     end
 
@@ -566,9 +566,9 @@ and left_invert_inner ~ind ~lforms stt =
       | False ->
           Valid
       | Atom (NEG, _, _) | And (NEG, _, _) | True NEG | Implies _ ->
-          bugf "left_invert: negative formula %a" (format_form ()) f
+          bugf "left_invert: negative formula %a" format_form f
       | Shift _ ->
-          bugf "left_invert: invalid shift: %a" (format_form ()) f
+          bugf "left_invert: invalid shift: %a" format_form f
       | Atom _ | Forall _ | Exists _ -> first_order f
     end
 
@@ -621,7 +621,7 @@ and right_focus_inner ~ind ~lforms stt =
                      right_seen = IdtSet.add false_atom stt.right_seen} in
           neutral_left stt ~ind ~lforms
       | Atom (NEG, _, _) | And (NEG, _, _) | True NEG | Implies _ ->
-          bugf "right_focus: negative formula %a" (format_form ()) f
+          bugf "right_focus: negative formula %a" format_form f
       | Atom _ | Forall _ | Exists _ -> first_order f
     end
 
@@ -668,7 +668,7 @@ and left_focus_inner ~ind ~lforms stt =
           | Counter _ as mv1 -> mv1
         end
       | Atom (POS, _, _) | And (POS, _, _) | True POS | Or _ | False ->
-          bugf "left_focus: positive formula %a" (format_form ()) f
+          bugf "left_focus: positive formula %a" format_form f
       | Atom _ | Forall _ | Exists _ -> first_order f
     end
   | _ ->
@@ -680,7 +680,7 @@ and neutral_right ~ind ~lforms stt =
 and neutral_right_inner ~ind ~lforms stt =
   let ind = ind + 1 in
   match stt.right with
-  | `Active f -> bugf "neutral: right not passive: %a" (format_form ()) f
+  | `Active f -> bugf "neutral: right not passive: %a" format_form f
   | `Dead f ->
       neutral_left ~ind ~lforms stt
   | `Passive l -> begin

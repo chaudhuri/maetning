@@ -233,13 +233,15 @@ let rec pretty_form ?(cx=[]) ?max_depth f0 =
       let op fmt = Format.fprintf fmt "∃%s.@ " x.rep in
       Pretty.(Opapp (__quant_prec, Prefix (FUN op, fe)))
 
-let format_form ?cx ?max_depth () fmt f =
+let format_form_full ?cx ?max_depth () fmt f =
   Pretty.print fmt @@ pretty_form ?cx ?max_depth f
+
+let format_form fmt f = format_form_full () fmt f
 
 let form_to_string ?(cx=[]) ?max_depth f =
   let buf = Buffer.create 19 in
   let fmt = Format.formatter_of_buffer buf in
-  format_form ~cx ?max_depth () fmt f ;
+  format_form_full ~cx ?max_depth () fmt f ;
   Format.pp_print_flush fmt () ;
   Buffer.contents buf
 
@@ -281,11 +283,11 @@ let format_lform fmt lf =
         end
       | Right -> "right "
     end ;
-    format_form () fmt @@ atom (polarity lf.skel) lf.label lf.args ;
+    format_form fmt @@ atom (polarity lf.skel) lf.label lf.args ;
     pp_print_string fmt " :=" ;
     pp_print_space fmt () ;
     pp_open_box fmt 2 ; begin
-      format_form () fmt lf.skel ;
+      format_form fmt lf.skel ;
     end ; pp_close_box fmt () ;
   end ; pp_close_box fmt ()
 
@@ -477,7 +479,7 @@ module Test () = struct
 
   let test f =
     let open Format in
-    fprintf std_formatter "Formatting: @[%a@]@." (format_form ()) f ;
+    fprintf std_formatter "Formatting: @[%a@]@." format_form f ;
     let (l0, lfs) = relabel ~lforms:IdtMap.empty ~place:Right f in
     IdtMap.iter (fun l f -> fprintf std_formatter "%s: %a@." l.rep format_lform f) lfs ;
     lfs

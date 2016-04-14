@@ -198,7 +198,7 @@ let format_sequent fmt sq =
         (* pp_print_string fmt (x.Idt.rep ^ "[" ^ l.Idt.rep ^ "]") ; *)
         pp_print_string fmt x.Idt.rep ;
         pp_print_string fmt ":" ;
-        format_form () fmt f ;
+        format_form fmt f ;
         IdtMap.iter begin
           fun x (l, f) ->
             pp_print_string fmt "," ;
@@ -206,7 +206,7 @@ let format_sequent fmt sq =
             (* pp_print_string fmt (x.Idt.rep ^ "[" ^ l.Idt.rep ^ "]") ; *)
             pp_print_string fmt x.Idt.rep ;
             pp_print_string fmt ":" ;
-            format_form () fmt f ;
+            format_form fmt f ;
         end left
     | exception Not_found ->
         pp_print_as fmt 1 "·"
@@ -218,17 +218,17 @@ let format_sequent fmt sq =
     | (x, f) :: left ->
         pp_print_string fmt x.Idt.rep ;
         pp_print_string fmt ":" ;
-        format_form () fmt f ;
+        format_form fmt f ;
         List.iter begin
           fun (x, f) ->
             pp_print_string fmt "," ;
             pp_print_space fmt () ;
             pp_print_string fmt x.Idt.rep ;
             pp_print_string fmt ":" ;
-            format_form () fmt f ;
+            format_form fmt f ;
         end left
     end ;
     pp_print_as fmt 2 " ⊢" ;
     pp_print_space fmt () ;
-    format_form () fmt sq.right ;
+    format_form fmt sq.right ;
   end ; pp_close_box fmt ()

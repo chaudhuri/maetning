@@ -66,7 +66,7 @@ let rec focus_right left right =
   | True NEG
   | Forall _
   | Implies _ ->
-      Debug.bugf "Rule_gen.focus_right: negative: @[%a@]" (format_form ()) right
+      Debug.bugf "Rule_gen.focus_right: negative: @[%a@]" format_form right
 
 and focus_left left lfoc ratm =
   match lfoc.form with
@@ -95,7 +95,7 @@ and focus_left left lfoc ratm =
   | And (POS, _, _)
   | True POS
   | Or _ | False | Exists _ ->
-      Debug.bugf "Rule_gen.focus_left: positive: @[%a@]" (format_form ()) lfoc
+      Debug.bugf "Rule_gen.focus_left: positive: @[%a@]" format_form lfoc
 
 and active_right left_passive left_active right =
   match right.form with
@@ -130,7 +130,7 @@ and active_right left_passive left_active right =
   | True POS
   | Or _ | False | Exists _
   | Shift _ ->
-      Debug.bugf "Rule_gen.active_right: positive: @[%a@]" (format_form ()) right
+      Debug.bugf "Rule_gen.active_right: positive: @[%a@]" format_form right
 
 and active_left left_passive left_active ratm =
   match left_active with
@@ -183,7 +183,7 @@ and active_left_one left_passive left_active la ratm =
   | Implies _
   | Forall _
   | Shift _ ->
-      Debug.bugf "Rule_gen.active_left_one: negative: @[%a@]" (format_form ()) la
+      Debug.bugf "Rule_gen.active_left_one: negative: @[%a@]" format_form la
 
 and right_init p pargs =
   [{prems = [] ;
