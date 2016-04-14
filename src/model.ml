@@ -209,16 +209,9 @@ let rec percolate assn modl =
   let assn = IdtSet.union assn modl.assn in
   {assn ; kids = List.map (percolate assn) modl.kids}
 
-let compress modl =
-  if not compress_model then modl else
-  let kids = List.unique modl.kids in
-  match kids with
-  | [kid] when modl.assn = kid.assn -> kid
-  | _ -> {modl with kids}
-
 let join m1 m2 =
   let assn = IdtSet.union m1.assn m2.assn in
-  compress {assn ; kids = List.map (percolate assn) (m1.kids @ m2.kids)}
+  {assn ; kids = List.map (percolate assn) (m1.kids @ m2.kids)}
 
 let move_forward m =
   {assn = IdtSet.empty ; kids = [m]}
@@ -410,7 +403,7 @@ let record ~ind ~lforms innerfn desc annot stt =
           (format_state annot) stt ;
         let (impl, eval) = validate_state lforms stt modl in
         if eval then
-          bugf "paranoid mode found satisfying model:@.%a |= %a@."
+          bugf "paranoid mode found satisfying model:@.@[<h>%a |= %a@]@."
             format_model modl
             (format_form ()) impl ;
     | _ -> ()
@@ -740,6 +733,24 @@ and neutral_left_inner ~ind ~lforms stt =
 
 (*****************************************************************************)
 
+let rec eq_models m1 m2 =
+  IdtSet.equal m1.assn m2.assn &&
+  List.length m1.kids = List.length m2.kids &&
+  List.for_all2 eq_models m1.kids m2.kids
+
+let rec compress modl =
+  let kids = modl.kids |>
+             List.map compress |>
+             List.sort (fun m1 m2 -> IdtSet.compare m1.assn m2.assn) |>
+             List.unique ~eq:eq_models in
+  match kids with
+  | [kid] when IdtSet.equal modl.assn kid.assn -> kid
+  | _ -> {modl with kids}
+
+let compress_meval = function
+  | Valid -> Valid
+  | Counter modl -> Counter (compress modl)
+
 let create_model res =
   reset_memo () ;
   let left_passive = IdtMap.fold begin fun l lf live ->
@@ -758,4 +769,4 @@ let create_model res =
   dprintf "model" "Initial constraint: @[%a@]@." (format_state "nr") stt ;
   let mv = neutral_right stt ~ind:0 ~lforms:res.lforms in
   dprintf "model" "Created:@.@[%a@]@." format_meval mv ;
-  mv
+  if compress_model then compress_meval mv else mv
