@@ -31,21 +31,20 @@ and file_dest = {
   mutable status : [`opened | `closed]
 }
 
-module StringMap = Map.Make(String)
-let __dchans : dest StringMap.t ref = ref StringMap.empty
+let __dchans : (string, dest) Hashtbl.t = Hashtbl.create 19
 
 let on_stdout dchan =
-  __dchans := StringMap.add dchan Stdout !__dchans
+  Hashtbl.replace __dchans dchan Stdout
 
 let on_stderr dchan =
-  __dchans := StringMap.add dchan Stderr !__dchans
+  Hashtbl.replace __dchans dchan Stderr
 
 let on_file ~file dchan =
   let dest = File {filename = file ; ff = Format.err_formatter ; status = `closed} in
-  __dchans := StringMap.add dchan dest !__dchans
+  Hashtbl.replace __dchans dchan dest
 
 let disable dchan =
-  __dchans := StringMap.remove dchan !__dchans
+  Hashtbl.remove __dchans dchan
 
 let __pp_large = 1_000_000
 let big_margin_fmt ff fmt =
@@ -62,14 +61,13 @@ let big_margin_fmt ff fmt =
   end ff fmt
 
 let dprintf dchan =
-  let uchan = String.map Char.uppercase dchan in
-  match StringMap.find dchan !__dchans with
+  match Hashtbl.find __dchans dchan with
   | Stdout ->
       fun fmt ->
-        big_margin_fmt Format.std_formatter ("[%s] " ^^ fmt) uchan
+        big_margin_fmt Format.std_formatter ("[%s] " ^^ fmt) (String.map Char.uppercase dchan)
   | Stderr ->
       fun fmt ->
-        big_margin_fmt Format.err_formatter ("[%s] " ^^ fmt) uchan
+        big_margin_fmt Format.err_formatter ("[%s] " ^^ fmt) (String.map Char.uppercase dchan)
   | File fd ->
       if fd.status = `closed then begin
         fd.ff <- Format.formatter_of_output @@ File.open_out fd.filename ;
@@ -77,7 +75,7 @@ let dprintf dchan =
       end ;
       Format.pp_set_margin fd.ff max_int ;
       Format.pp_set_max_indent fd.ff max_int ;
-      fun fmt -> Format.fprintf fd.ff ("[%s] " ^^ fmt) uchan
+      fun fmt -> Format.fprintf fd.ff ("[%s] " ^^ fmt) (String.map Char.uppercase dchan)
   | exception Not_found -> Format.(ifprintf err_formatter)
 
 let failwithf fmt =
