@@ -5,10 +5,10 @@
  * See LICENSE for licensing details.
  *)
 
-let paranoid             = false
-let compress_model       = true
-let memoize              = true
-let rewrite              = true
+let paranoid             = true
+let compress_model       = false
+let memoize              = false
+let rewrite              = false
 let elide_true_nonatoms  = false (* omit T A when A is a non-atom *)
 let elide_dead           = false (* omit T* A when A is a non-atom *)
 let elide_false          = false (* omit F A *)
@@ -199,7 +199,8 @@ let state_to_model lforms stt =
       | exception Nonatomic -> assn
     end set assn
   in
-  let assn = add_atoms_from stt.left_seen IdtSet.empty in
+  let assn = IdtSet.empty in
+  let assn = add_atoms_from stt.left_seen assn in
   let assn = add_atoms_from stt.left_passive assn in
   let assn = add_atoms_from stt.left_dead assn in
   {assn ; kids = []}
@@ -479,10 +480,10 @@ let make_true_lforms lforms l0 =
   in
   spin lforms
 
-let rec right_invert ishere ~ind ~lforms stt =
-  record (right_invert_inner ishere) "right_invert" "ri" stt ~ind ~lforms
+let rec right_invert ~ind ~lforms stt =
+  record right_invert_inner "right_invert" "ri" stt ~ind ~lforms
 
-and right_invert_inner ishere ~ind ~lforms stt =
+and right_invert_inner ~ind ~lforms stt =
   let ind = ind + 1 in
   match stt.right with
   | `Passive f | `Dead f -> bugf "right_invert: %s" f.Idt.rep
@@ -509,17 +510,16 @@ and right_invert_inner ishere ~ind ~lforms stt =
           in
           left_invert stt ~ind ~lforms
       | And (NEG, f1, f2) -> begin
-          match right_invert ishere {stt with right = `Active f1} ~ind ~lforms with
+          match right_invert {stt with right = `Active f1} ~ind ~lforms with
           | Valid ->
-              right_invert ishere {stt with right = `Active f2} ~ind ~lforms
+              right_invert {stt with right = `Active f2} ~ind ~lforms
           | Counter _ as mv1 -> mv1
         end
       | True NEG ->
           Valid
       | Implies (f1, f2) -> begin
-          let mv = right_invert false {stt with right = `Active f2 ; left_active = f1 :: stt.left_active}
-              ~ind ~lforms in
-          if ishere then forward_meval mv else mv
+          right_invert {stt with right = `Active f2 ; left_active = f1 :: stt.left_active}
+            ~ind ~lforms
 (* [RIGHT IMPLIES]
           match right_invert {stt with right = `Active f2 ; left_active = f1 :: stt.left_active}
                   ~ind ~lforms with
@@ -603,7 +603,7 @@ and right_focus_inner ~ind ~lforms stt =
   | `Active f -> begin
       match f.form with
       | Shift f ->
-          right_invert true {stt with right = `Active f} ~ind ~lforms
+          right_invert {stt with right = `Active f} ~ind ~lforms |> forward_meval
       | Atom (POS, l, []) ->
           if IdtSet.mem l stt.left_dead then Valid
           else Counter empty_model
