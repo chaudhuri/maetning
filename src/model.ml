@@ -6,9 +6,9 @@
  *)
 
 let paranoid             = true
-let compress_model       = false
-let memoize              = false
-let rewrite              = false
+let compress_model       = true
+let memoize              = true
+let rewrite              = true
 let elide_true_nonatoms  = false (* omit T A when A is a non-atom *)
 let elide_dead           = false (* omit T* A when A is a non-atom *)
 let elide_false          = false (* omit F A *)
