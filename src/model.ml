@@ -261,7 +261,9 @@ module Build : sig val build : 'a result -> meval end = struct
     | Subsumed
     | New of IdtSet.t
 
-  let maximally_close ~lforms ~left ~right =
+  let maximally_extend ~lforms ~left ~right ls =
+    (* let left0 = left in *)
+    let left = IdtSet.union left ls in
     let sq0 = mk_sequent ()
         ~left:(IdtSet.elements left |>
                List.map propify |>
@@ -287,12 +289,8 @@ module Build : sig val build : 'a result -> meval end = struct
         | Right -> (left, sq)
       end lforms (left, sq0) in
     (* Format.eprintf "Extended\n  %a\ninto\n  %a@." (format_sequent ()) sq0 (format_sequent ())sq ; *)
+    (* if left == left0 then Seen else New left *)
     New left
-
-  let maximally_extend ~lforms ~left ~right ls =
-    if IdtSet.subset ls left then Seen else
-    let left = IdtSet.union left ls in
-    maximally_close ~lforms ~left ~right
 
   let __indent = ref 0
   let with_indent fn =
