@@ -140,7 +140,8 @@ let dump_proof ?(pseudos=false) f res =
   | None -> failwith "Reconstruction failed"
 
 let dump_model f res =
-  match Model.create_model res with
+  (* match Model.create_model res with *)
+  match Model.Build.build res with
   | Model.Valid ->
       Debug.bugf "Countermodel reconstruction managed to prove %a" Form.format_form f
   | Model.Counter modl ->
@@ -149,7 +150,7 @@ let dump_model f res =
         Config.pprintf "%s@." (Model.dot_format_model modl)
       else
         Config.pprintf "<pre>@.%a</pre>@." Model.format_model modl ;
-      if Model.validate_model res modl then
+      if Model.Check.validate res modl then
         (* Debug.dprintf "modelcheck" "!!!!! Reconstructed model is satisfying !!!!!@." ; *)
         Debug.bugf "!!!!! Reconstructed model is satisfying !!!!!@." ;
       Config.pprintf "<hr>@."

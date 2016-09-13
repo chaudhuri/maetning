@@ -45,10 +45,12 @@ module IdtSet = struct
     | [] -> ()
     | [x] -> fprintf ff "%s" x.rep
     | x :: xs ->
-        fprintf ff "%s" x.rep ;
-        List.iter begin fun x ->
-          fprintf ff ",@ %s" x.rep
-        end xs
+        pp_open_box ff 0 ; begin
+          fprintf ff "%s" x.rep ;
+          List.iter begin fun x ->
+            fprintf ff ",@ %s" x.rep
+          end xs ;
+        end ; pp_close_box ff ()
 end
 
 module IdtMap = struct
@@ -64,10 +66,12 @@ module IdtMap = struct
     | [] -> ()
     | [x, v] -> fprintf ff "%s:%a" x.rep vfn v
     | (x, v) :: binds ->
-        fprintf ff "%s:%a" x.rep vfn v ;
-        List.iter begin fun (x, v) ->
-          fprintf ff ",@ %s:%a" x.rep vfn v
-        end binds
+        pp_open_box ff 0 ; begin
+          fprintf ff "%s:%a" x.rep vfn v ;
+          List.iter begin fun (x, v) ->
+            fprintf ff ",@ %s:%a" x.rep vfn v
+          end binds ;
+        end ; pp_close_box ff ()
 end
 
 type t = idt

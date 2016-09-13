@@ -60,14 +60,14 @@ let big_margin_fmt ff fmt =
     Format.pp_set_max_boxes ff maxbox ;
   end ff fmt
 
-let dprintf dchan =
+let dprintf ?(ind="") dchan =
   match Hashtbl.find __dchans dchan with
   | Stdout ->
       fun fmt ->
-        big_margin_fmt Format.std_formatter ("[%s] " ^^ fmt) (String.map Char.uppercase dchan)
+        big_margin_fmt Format.std_formatter ("[%s] %s" ^^ fmt) (String.map Char.uppercase dchan) ind
   | Stderr ->
       fun fmt ->
-        big_margin_fmt Format.err_formatter ("[%s] " ^^ fmt) (String.map Char.uppercase dchan)
+        big_margin_fmt Format.err_formatter ("[%s] %s" ^^ fmt) (String.map Char.uppercase dchan) ind
   | File fd ->
       if fd.status = `closed then begin
         fd.ff <- Format.formatter_of_output @@ File.open_out fd.filename ;
@@ -75,7 +75,7 @@ let dprintf dchan =
       end ;
       Format.pp_set_margin fd.ff max_int ;
       Format.pp_set_max_indent fd.ff max_int ;
-      fun fmt -> Format.fprintf fd.ff ("[%s] " ^^ fmt) (String.map Char.uppercase dchan)
+      fun fmt -> Format.fprintf fd.ff ("[%s] %s" ^^ fmt) (String.map Char.uppercase dchan) ind
   | exception Not_found -> Format.(ifprintf err_formatter)
 
 let failwithf fmt =
