@@ -492,7 +492,7 @@ module Build : sig val build : 'a result -> meval end = struct
             Valid
         | New left ->
             (* dprintf "modelbuild" "maximal_extend: new@." ; *)
-            let state = {state with left} in
+            let state = {state with left ; old_rights = IdtSet.empty} in
             let state = match state.right with
               | Some l -> {state with old_rights = IdtSet.add l state.old_rights}
               | None -> state
