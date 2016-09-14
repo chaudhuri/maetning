@@ -97,7 +97,7 @@ let process_file file =
 
 let main () =
   parse_options () ;
-  List.iter process_file !Config.input_files
+  List.iter process_file (List.rev !Config.input_files)
 
 let () =
   if not !Sys.interactive then
