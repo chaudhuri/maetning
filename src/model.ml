@@ -270,11 +270,11 @@ module Build : sig val build : 'a result -> meval end = struct
                Ft.of_list)
         ?right:(Option.map propify right)
     in
-    if Inverse.Data.subsumes sq0 then Subsumed else
+    if Inverse.Data.subsumes ~all:true sq0 then Subsumed else
     let maybe_extend l (left, sq) =
       if IdtSet.mem l left then (left, sq) else
       let new_sq = override sq ~left:(Ft.snoc sq.Sequent.left (propify l)) in
-      if Inverse.Data.subsumes new_sq then begin
+      if Inverse.Data.subsumes ~all:true new_sq then begin
         (* Format.eprintf "SUBSUMED: %a@." (format_sequent ()) new_sq ; *)
         (left, sq)
       end else begin
@@ -488,7 +488,7 @@ module Build : sig val build : 'a result -> meval end = struct
             decision ~lforms ~state
           end
         | Subsumed ->
-            (* dprintf "modelbuild" "maximal_extend: subsumed@." ; *)
+            dprintf "modelbuild" "maximal_extend: subsumed@." ;
             Valid
         | New left ->
             (* dprintf "modelbuild" "maximal_extend: new@." ; *)

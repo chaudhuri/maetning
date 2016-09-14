@@ -14,6 +14,10 @@ open Form
 let global_map : Form.form IdtMap.t ref = ref IdtMap.empty
 let pseudo_map : Form.form IdtMap.t ref = ref IdtMap.empty
 
+let reset_maps () =
+  global_map := IdtMap.empty ;
+  pseudo_map := IdtMap.empty
+
 let ensure_new x =
   if IdtMap.mem x !global_map ||
      IdtMap.mem x !pseudo_map ||
@@ -140,7 +144,6 @@ let dump_proof ?(pseudos=false) f res =
   | None -> failwith "Reconstruction failed"
 
 let dump_model f res =
-  (* match Model.create_model res with *)
   match Model.Build.build res with
   | Model.Valid ->
       Debug.bugf "Countermodel reconstruction managed to prove %a" Form.format_form f

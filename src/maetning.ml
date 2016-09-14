@@ -91,6 +91,7 @@ let rec process_file_tptp file =
   spin () ; close_in ch
 
 let process_file file =
+  Command.reset_maps () ;
   if !Config.tptp
   then process_file_tptp file
   else process_file_native file

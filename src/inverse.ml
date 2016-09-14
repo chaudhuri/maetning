@@ -25,7 +25,7 @@ module type Data = sig
   val reset : unit -> unit
   val register : Sequent.t -> unit
   val select : unit -> Sequent.t ts option
-  val subsumes : Sequent.t -> bool
+  val subsumes : ?all:bool -> Sequent.t -> bool
   val iter_active : (Sequent.t ts -> 'a) -> unit
   val iter_known : (Sequent.t ts -> 'a) -> unit
   val print_statistics : unit -> unit
@@ -54,11 +54,11 @@ module Trivial : Data = struct
   let finish_initial () = ()
     (* sos := Deque.rev !sos *)
 
-  let subsumes sq =
+  let subsumes ?(all=false) sq =
     try
       Hashtbl.iter begin
-        fun _ old ->
-          if Sequent.subsume old.th sq then
+        fun sqid old ->
+          if (all || not (Hashtbl.mem kills sqid)) && Sequent.subsume old.th sq then
             raise Not_found
       end db ; false
     with Not_found -> true
@@ -87,7 +87,7 @@ module Trivial : Data = struct
     let sqt = index sq in
     let tokill = Hashtbl.fold begin
       fun _ old tokill ->
-        if sqt.id <> old.id && Sequent.subsume sqt.th old.th
+        if sqt.id <> old.id && not (Hashtbl.mem kills old.id) && Sequent.subsume sqt.th old.th
         then Ints.add old.id tokill
         else tokill
     end db Ints.empty in
@@ -97,7 +97,7 @@ module Trivial : Data = struct
           if ksqid == sqt.id then spin wl else begin
             Hashtbl.replace kills ksqid () ;
             let oldsq = Hashtbl.find db ksqid in
-            Hashtbl.remove db ksqid ;
+            (* Hashtbl.remove db ksqid ; *)
             Hashtbl.remove active ksqid ;
             dprintf "backsub" "[%d] @[%a@]@." ksqid (format_sequent ()) oldsq.th ;
             let wl =
