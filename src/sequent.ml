@@ -72,6 +72,145 @@ end
 
 include Sq
 
+module Stats = struct
+  type stats = {
+    left_npreds : int IdtMap.t Lazy.t ;
+    right_preds : Idt.t option ;
+    left_nfuncs : int IdtMap.t Lazy.t ;
+    right_nfuncs : int IdtMap.t Lazy.t ;
+    left_dfuncs : int IdtMap.t Lazy.t ;
+    right_dfuncs : int IdtMap.t Lazy.t ;
+  }
+
+  let map_leq ml mr =
+    let ml = Lazy.force ml in
+    let mr = Lazy.force mr in
+    IdtMap.for_all begin fun l nl ->
+      match IdtMap.find l mr with
+      | nr -> nl <= nr
+      | exception Not_found -> false
+    end ml
+
+  let right_leq l r =
+    match l, r with
+    | None, _ -> true
+    | Some p, Some q -> p == q
+    | _ -> false
+
+  let leq stl str =
+    right_leq stl.right_preds str.right_preds &&
+    map_leq stl.left_npreds str.left_npreds &&
+    map_leq stl.right_nfuncs str.right_nfuncs &&
+    map_leq stl.left_nfuncs str.left_nfuncs &&
+    map_leq stl.right_dfuncs str.right_dfuncs &&
+    map_leq stl.left_dfuncs str.left_dfuncs
+
+  let compare stl str =
+    if leq stl str then
+      if leq str stl then 0 else -1
+    else +1
+
+  let get l m =
+    match IdtMap.find l m with
+    | n -> n
+    | exception Not_found -> 0
+
+  let compute sq =
+    let rec spin acc left =
+      match Ft.front left with
+      | None -> acc
+      | Some (l, (p, _)) ->
+          let acc =
+            if Form.is_pseudo p then acc else
+            IdtMap.add p (get p acc + 1) acc
+          in
+          spin acc l
+    in
+    let left_npreds = lazy (spin IdtMap.empty sq.left) in
+    let right_preds = match sq.right with
+      | Some (p, _) when not (Form.is_pseudo p) ->
+          Some p
+      | _ -> None
+    in
+    let rec walk_terms acc ts =
+      match ts with
+      | [] -> acc
+      | t :: ts ->
+          walk_terms (walk_term acc t) ts
+    and walk_term acc t =
+      match t.term with
+      | Var _ | Idx _ -> acc
+      | App (f, ts) ->
+          let acc = IdtMap.add f (get f acc + 1) acc in
+          walk_terms acc ts
+    in
+    let rec spin acc left =
+      match Ft.front left with
+      | None -> acc
+      | Some (l, (p, ts)) ->
+          let acc =
+            if Form.is_pseudo p then acc else walk_terms acc ts
+          in
+          spin acc l
+    in
+    let left_nfuncs = lazy begin
+      spin IdtMap.empty sq.left
+    end in
+    let right_nfuncs = lazy begin
+      match sq.right with
+      | Some (p, ts) when not (Form.is_pseudo p) ->
+          walk_terms IdtMap.empty ts
+      | _ -> IdtMap.empty
+    end in
+    let rec walk_term depth acc t =
+      match t.term with
+      | Var _ | Idx _ -> acc
+      | App (f, ts) ->
+          let acc = IdtMap.add f (max (get f acc) depth) acc in
+          walk_terms (depth + 1) acc ts
+    and walk_terms depth acc ts =
+      match ts with
+      | [] -> acc
+      | t :: ts ->
+          walk_terms depth (walk_term depth acc t) ts
+    in
+    let rec spin acc left =
+      match Ft.front left with
+      | None -> acc
+      | Some (l, (p, ts)) ->
+          let acc =
+            if Form.is_pseudo p then acc else walk_terms 0 acc ts
+          in
+          spin acc l
+    in
+    let left_dfuncs = lazy (spin IdtMap.empty sq.left) in
+    let right_dfuncs = lazy begin
+      match sq.right with
+      | Some (p, ts) when not (Form.is_pseudo p) ->
+          walk_terms 0 IdtMap.empty ts
+      | _ -> IdtMap.empty
+    end in
+    {left_npreds ; right_preds ;
+     left_nfuncs ; right_nfuncs ;
+     left_dfuncs ; right_dfuncs}
+
+  let format ff stats =
+    let open Format in
+    let pp_map ff m = IdtMap.pp pp_print_int ff (Lazy.force m) in
+    fprintf ff
+      "@[<v0>right_preds = %s@,left_npreds = %a@,left_nfuncs = %a@,right_nfuncs = %a@,left_dfuncs = %a@,right_nfuncs = %a@]"
+      (match stats.right_preds with
+       | None -> "."
+       | Some p -> p.rep)
+      pp_map stats.left_npreds
+      pp_map stats.left_nfuncs
+      pp_map stats.right_nfuncs
+      pp_map stats.left_dfuncs
+      pp_map stats.right_dfuncs ;
+end
+
+module StatMap = Map.Make (struct include Stats type t = stats end)
+
 let format_sequent ?max_depth () fmt sq =
   let open Format in
   pp_open_box fmt 0 ; begin
@@ -233,7 +372,15 @@ let subsume_test_right sr0 tr0 =
   | Some (p, pargs), Some (q, args) -> p == q
   | _ -> false
 
+let rec non_pseudo_length k l =
+  match Ft.front l with
+  | None -> k
+  | Some (l, (p, _)) ->
+      let k = if Form.is_pseudo p then k else k + 1 in
+      non_pseudo_length k l
+
 let subsume_test_left sl0 tl0 =
+  non_pseudo_length 0 sl0 <= non_pseudo_length 0 tl0 &&
   let rec test p l =
     match Ft.front l with
     | Some (l, (q, _)) ->

@@ -1,7 +1,7 @@
 %positive A.
 %positive B.
 
-%prove A => A.
+% prove A => A.
 % refute A.
 
 % positive p.
@@ -13,10 +13,10 @@
 % refute ((A => C) => A) => A.
 % refute (\E x. p(x)) <= ~~\E x. p(x).
 
-%prove ~(A + B) <=> ~A & ~B.
+% prove ~(A + B) <=> ~A & ~B.
 
-%prove ~(A * B) <= ~A + ~B.
-%prove ~(A & B) <= ~A + ~B.
+% prove ~(A * B) <= ~A + ~B.
+% prove ~(A & B) <= ~A + ~B.
 % refute  ~(A & B) => ~A + ~B.
 
 % drinker's formula and its Goedel-Gentzen translation

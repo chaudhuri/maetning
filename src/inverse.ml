@@ -37,7 +37,10 @@ module Trivial : Data = struct
 
   let sos : Sequent.t ts Deque.t ref = ref Deque.empty
   let active : (int, Sequent.t ts) Hashtbl.t = Hashtbl.create 19
-  let db : (int, Sequent.t ts) Hashtbl.t = Hashtbl.create 19
+  let db : (int, Sequent.t ts * Stats.stats) Hashtbl.t = Hashtbl.create 19
+  (***************************************************)
+  (* let idx : Sequent.t ts list StatMap.t ref = ref StatMap.empty *)
+  (***************************************************)
   let concs : (int, Ints.t) Hashtbl.t = Hashtbl.create 19
   let kills : (int, unit) Hashtbl.t = Hashtbl.create 19
 
@@ -47,6 +50,9 @@ module Trivial : Data = struct
     sos := Deque.empty ;
     Hashtbl.clear active ;
     Hashtbl.clear db ;
+    (***************************************************)
+    (* idx := StatMap.empty ; *)
+    (***************************************************)
     Hashtbl.clear concs ;
     Hashtbl.clear kills ;
     sqidgen#reset
@@ -56,13 +62,40 @@ module Trivial : Data = struct
 
   exception Subsumed
 
+  let stat_subsume old oldstats cur curstats =
+    (* dprintf "seqstats" "@[<v0>Stat subsume %s:@,  %a@,vs.@,  %a@]@." *)
+    (*   (if Stats.leq oldstats curstats then "clears" else "fails") *)
+    (*   (format_sequent ()) old *)
+    (*   (format_sequent ()) cur ; *)
+    Stats.leq oldstats curstats &&
+    Sequent.subsume old cur
+
   let subsumes ?(all=false) sq =
     try
+      let sqstats = Stats.compute sq in
+      (***************************************************)
+      (* let (_, same, larger) = StatMap.split sqstats !idx in *)
+      (* let check old = *)
+      (*   if (all || not (Hashtbl.mem kills old.id)) && *)
+      (*      Sequent.subsume old.th sq then *)
+      (*     raise Subsumed *)
+      (* in *)
+      (* begin match same with *)
+      (* | None -> () *)
+      (* | Some olds -> List.iter check olds *)
+      (* end ; *)
+      (* StatMap.iter begin fun _ olds -> *)
+      (*   List.iter check olds *)
+      (* end larger ; *)
+      (***************************************************)
       Hashtbl.iter begin
-        fun sqid old ->
-          if (all || not (Hashtbl.mem kills sqid)) && Sequent.subsume old.th sq then
-            raise Subsumed
-      end db ; false
+        fun sqid (old, oldstats) ->
+          if (all || not (Hashtbl.mem kills sqid)) &&
+             stat_subsume old.th oldstats sq sqstats
+          then raise Subsumed
+      end db ;
+      (***************************************************)
+      false
     with Subsumed -> true
 
   let sos_subsumes sq =
@@ -75,30 +108,60 @@ module Trivial : Data = struct
     dprintf "skeleton" "%a@." Skeleton.format_skeleton sq.skel ;
     (* let sq = Sequent.freshen sq () in *)
     let sqt = {id ; th = sq} in
-    Hashtbl.replace db id sqt ;
+    let stats = Stats.compute sq in
+    Hashtbl.replace db id (sqt, stats) ;
+    (* dprintf "seqstats" "[%d] %a@." id Stats.format stats ; *)
+    (***************************************************)
+    (* idx := begin *)
+    (*   let olds = match StatMap.find stats !idx with *)
+    (*     | olds -> olds *)
+    (*     | exception Not_found -> [] *)
+    (*   in *)
+    (*   StatMap.add stats (sqt :: olds) !idx *)
+    (* end ; *)
+    (***************************************************)
     ISet.iter begin fun ancid ->
       match Hashtbl.find concs ancid with
       | cs -> Hashtbl.replace concs ancid (Ints.add id cs)
       | exception Not_found -> Hashtbl.add concs ancid (Ints.singleton id)
     end sq.ancs ;
     sos := Deque.snoc !sos sqt ;
-    sqt
+    (sqt, stats)
 
   let register sq =
     if subsumes sq then () else
-    let sqt = index sq in
+    let (sqt, sqstats) = index sq in
+    (***************************************************)
+    (* let (smaller, same, _) = StatMap.split sqstats !idx in *)
+    (* let tokill = ref Ints.empty in *)
+    (* let mark old = *)
+    (*   if sqt.id <> old.id && not (Hashtbl.mem kills old.id) && *)
+    (*      Sequent.subsume sqt.th old.th *)
+    (*   then tokill := Ints.add old.id !tokill *)
+    (* in *)
+    (* begin match same with *)
+    (* | None -> () *)
+    (* | Some olds -> List.iter mark olds *)
+    (* end ; *)
+    (* StatMap.iter begin fun _ olds -> *)
+    (*   List.iter mark olds *)
+    (* end smaller ; *)
+    (* let tokill = !tokill in *)
+    (***************************************************)
     let tokill = Hashtbl.fold begin
-      fun _ old tokill ->
-        if sqt.id <> old.id && not (Hashtbl.mem kills old.id) && Sequent.subsume sqt.th old.th
-        then Ints.add old.id tokill
-        else tokill
-    end db Ints.empty in
+        fun _ (old, oldstats) tokill ->
+          if sqt.id <> old.id && not (Hashtbl.mem kills old.id) &&
+             stat_subsume sqt.th sqstats old.th oldstats
+          then Ints.add old.id tokill
+          else tokill
+      end db Ints.empty in
+    (***************************************************)
     let rec spin wl =
       match Ints.pop wl with
       | (ksqid, wl) ->
           if ksqid == sqt.id then spin wl else begin
             Hashtbl.replace kills ksqid () ;
-            let oldsq = Hashtbl.find db ksqid in
+            let (oldsq, _) = Hashtbl.find db ksqid in
             (* Hashtbl.remove db ksqid ; *)
             Hashtbl.remove active ksqid ;
             dprintf "backsub" "[%d] @[%a@]@." ksqid (format_sequent ()) oldsq.th ;
