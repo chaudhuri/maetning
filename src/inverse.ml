@@ -336,7 +336,7 @@ let paranoid_check ~lforms sq =
       end (IdtMap.bindings lforms)
     in
     let ctx_particular =
-      Sequent.to_list sq.left
+      Ft.to_list sq.left
       |> List.map (fun (p, ts) -> (next_local (), (p, atom (get_polarity ~lforms p) p (List.map freeze_vars ts))))
     in
     let goal = Seqproof.{

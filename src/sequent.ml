@@ -16,18 +16,117 @@ open Term
 type latm = idt * term list
 type ctx = (latm, int) Ft.fg
 
-let ctx_splits ~sc ctx =
-  let rec spin left right =
-    match Ft.front right with
-    | Some (right, x) ->
-        sc x (Ft.append left right) ;
-        spin (Ft.snoc left x) right
-    | None -> ()
-  in
-  spin Ft.empty ctx
+module Ctx : sig
+  type t
 
-let to_list : ctx -> (idt * term list) list =
-  Ft.to_list
+  val empty : t
+  val singleton : idt -> term list -> t
+  val singleton_latm : latm -> t
+
+  val add : idt -> term list -> t -> t
+  val add_latm : latm -> t -> t
+
+  val join : t -> t -> t
+
+  val pop : t -> latm * t
+
+  val replace : repl:term VMap.t -> t -> t
+
+  val map : (idt -> term list -> term list) -> t -> t
+  val iter : (idt -> term list -> unit) -> t -> unit
+
+  val fold : (idt -> term list -> 'acc -> 'acc) -> t -> 'acc -> 'acc
+
+  val to_list : t -> latm list
+
+  val pp : Format.formatter -> t -> unit
+end = struct
+  type t = term list list IdtMap.t
+
+  let empty = IdtMap.empty
+
+  let singleton p ts = IdtMap.singleton p [ts]
+
+  let singleton_latm (p, ts) = singleton p ts
+
+  let to_list ctx =
+    IdtMap.bindings ctx
+    |> List.map (fun (p, tss) -> List.map (fun ts -> (p, ts)) tss)
+    |> List.concat
+
+  let add p ts ctx =
+    let tss =
+      match IdtMap.find p ctx with
+      | tss -> tss
+      | exception Not_found -> []
+    in
+    IdtMap.add p (ts :: tss) ctx
+
+  let add_latm (p, ts) ctx = add p ts ctx
+
+  let join ctx1 ctx2 =
+    IdtMap.merge begin fun p tss1 tss2 ->
+      let tss1 = Option.default [] tss1 in
+      let tss2 = Option.default [] tss2 in
+      Some (List.rev_append tss1 tss2)
+    end ctx1 ctx2
+
+  let pop ctx =
+    let ((p, tss), ctx) = IdtMap.pop ctx in
+    match tss with
+    | [] -> bugf "Ctx.pop: empty list of spines"
+    | [ts] ->
+        ((p, ts), ctx)
+    | ts :: tss ->
+        ((p, ts), IdtMap.add p tss ctx)
+
+  let replace ~repl ctx =
+    IdtMap.map begin fun tss ->
+      List.map begin fun ts ->
+        List.map (Term.replace ~repl) ts
+      end tss
+    end ctx
+
+  let map fn ctx =
+    IdtMap.mapi begin fun p tss ->
+      List.map begin fun ts ->
+        fn p ts
+      end tss
+    end ctx
+
+  let iter fn ctx =
+    IdtMap.iter begin fun p tss ->
+      List.iter begin fun ts ->
+        fn p ts
+      end tss
+    end ctx
+
+  let fold fn ctx acc =
+    IdtMap.fold begin fun p tss acc->
+      List.fold_left begin fun acc ts ->
+        fn p ts acc
+      end acc tss
+    end ctx acc
+
+  let pp ff ctx =
+    let binds =
+      to_list ctx |>
+      List.map begin
+        fun (p, ts) () ->
+          format_term () ff (app p ts)
+      end |>
+      List.interleave begin
+        fun () ->
+          Format.pp_print_string ff "," ;
+          Format.pp_print_space ff ()
+      end
+    in
+    Format.(
+      pp_open_box ff 2 ;
+      List.iter (fun f -> f ()) binds ;
+      pp_close_box ff ()
+    )
+end
 
 module Sq : sig
   type sequent = private {
