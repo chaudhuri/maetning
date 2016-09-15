@@ -37,7 +37,7 @@ module Trivial : Data = struct
 
   let sos : Sequent.t ts Deque.t ref = ref Deque.empty
   let active : (int, Sequent.t ts) Hashtbl.t = Hashtbl.create 19
-  let db : (int, Sequent.t ts * Stats.stats) Hashtbl.t = Hashtbl.create 19
+  let db : (Sequent.t ts * Stats.stats) list ref = ref []
   (***************************************************)
   (* let idx : Sequent.t ts list StatMap.t ref = ref StatMap.empty *)
   (***************************************************)
@@ -49,7 +49,7 @@ module Trivial : Data = struct
   let reset () =
     sos := Deque.empty ;
     Hashtbl.clear active ;
-    Hashtbl.clear db ;
+    db := [] ;
     (***************************************************)
     (* idx := StatMap.empty ; *)
     (***************************************************)
@@ -88,12 +88,12 @@ module Trivial : Data = struct
       (*   List.iter check olds *)
       (* end larger ; *)
       (***************************************************)
-      Hashtbl.iter begin
-        fun sqid (old, oldstats) ->
-          if (all || not (Hashtbl.mem kills sqid)) &&
+      List.iter begin
+        fun (old, oldstats) ->
+          if (all || not (Hashtbl.mem kills old.id)) &&
              stat_subsume old.th oldstats sq sqstats
           then raise Subsumed
-      end db ;
+      end !db ;
       (***************************************************)
       false
     with Subsumed -> true
@@ -109,7 +109,7 @@ module Trivial : Data = struct
     (* let sq = Sequent.freshen sq () in *)
     let sqt = {id ; th = sq} in
     let stats = Stats.compute sq in
-    Hashtbl.replace db id (sqt, stats) ;
+    db := (sqt, stats) :: !db ;
     (* dprintf "seqstats" "[%d] %a@." id Stats.format stats ; *)
     (***************************************************)
     (* idx := begin *)
@@ -148,23 +148,22 @@ module Trivial : Data = struct
     (* end smaller ; *)
     (* let tokill = !tokill in *)
     (***************************************************)
-    let tokill = Hashtbl.fold begin
-        fun _ (old, oldstats) tokill ->
+    let tokill = List.fold_left begin
+        fun tokill (old, oldstats) ->
           if sqt.id <> old.id && not (Hashtbl.mem kills old.id) &&
              stat_subsume sqt.th sqstats old.th oldstats
           then Ints.add old.id tokill
           else tokill
-      end db Ints.empty in
+      end Ints.empty !db in
     (***************************************************)
     let rec spin wl =
       match Ints.pop wl with
       | (ksqid, wl) ->
           if ksqid == sqt.id then spin wl else begin
             Hashtbl.replace kills ksqid () ;
-            let (oldsq, _) = Hashtbl.find db ksqid in
-            (* Hashtbl.remove db ksqid ; *)
+            (* let (oldsq, _) = Hashtbl.find !db ksqid in *)
             Hashtbl.remove active ksqid ;
-            dprintf "backsub" "[%d] @[%a@]@." ksqid (format_sequent ()) oldsq.th ;
+            dprintf "backsub" "[%d]@." ksqid ;
             let wl =
               match Hashtbl.find concs ksqid with
               | ksqcons ->
@@ -209,7 +208,7 @@ module Trivial : Data = struct
     Deque.iter doit !sos
 
   let print_statistics () =
-    dprintf "stats" "@[<v0>#active = %d@,#db = %d@]@." (Hashtbl.length active) (Hashtbl.length db)
+    dprintf "stats" "@[<v0>#active = %d@,#db = %d@]@." (Hashtbl.length active) (List.length !db)
 end
 
 let rec spin_until_none get op =
