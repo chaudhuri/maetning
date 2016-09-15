@@ -54,14 +54,16 @@ module Trivial : Data = struct
   let finish_initial () = ()
     (* sos := Deque.rev !sos *)
 
+  exception Subsumed
+
   let subsumes ?(all=false) sq =
     try
       Hashtbl.iter begin
         fun sqid old ->
           if (all || not (Hashtbl.mem kills sqid)) && Sequent.subsume old.th sq then
-            raise Not_found
+            raise Subsumed
       end db ; false
-    with Not_found -> true
+    with Subsumed -> true
 
   let sos_subsumes sq =
     Deque.find (fun old -> not (Hashtbl.mem kills old.id) && Sequent.subsume old.th sq) !sos
