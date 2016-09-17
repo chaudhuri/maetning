@@ -92,20 +92,22 @@ end
 type ptree =
   | Node of (int * ptree Lazy.t) list
 
-let ptree n =
+let ptree m n =
   if n = 0 then Node [] else
-  let rec spin posns =
-    let ts = ref [] in
-    for i = 0 to n - 1 do
-      if BitSet.mem posns i then begin
-        let posns = BitSet.remove i posns in
-        let pt = lazy (spin posns) in
-        ts := (i, pt) :: !ts
+  let rec spin i avail =
+    if i >= m then Node [] else
+    let pts = ref [] in
+    for j = 0 to n - 1 do
+      if BitSet.mem avail j then begin
+        let avail = BitSet.remove j avail in
+        let pt = lazy (spin (i + 1) avail) in
+        ignore (Lazy.force pt) ;
+        pts := (j, pt) :: !pts
       end
     done ;
-    Node (List.rev !ts)
+    Node (List.rev !pts)
   in
-  spin (BitSet.create_full n)
+  spin 0 (BitSet.create_full n)
 
 exception Incompatible
 
@@ -113,7 +115,7 @@ let superpose fn (acc : 'acc) tss1 tss2 : 'acc list =
   let tss1 = Array.of_list tss1 in
   let tss2 = Array.of_list tss2 in
   if Array.length tss1 > Array.length tss2 then raise Incompatible ;
-  let ptr = ptree (Array.length tss1) in
+  let ptr = ptree (Array.length tss1) (Array.length tss2) in
   let rec process ~i ~acc (Node choices) =
     List.map begin fun (j, conseq) ->
       match fn acc tss1.(i) tss2.(j) with

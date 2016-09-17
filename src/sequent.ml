@@ -6,7 +6,6 @@
  *)
 
 open Batteries
-module Ft = FingerTree
 
 open Debug
 
@@ -14,10 +13,9 @@ open Idt
 open Term
 
 type latm = idt * term list
-type ctx = (latm, int) Ft.fg
 
 module Ctx : sig
-  type t
+  type t = private term list list IdtMap.t
 
   val empty : t
   val singleton : idt -> term list -> t
@@ -130,40 +128,51 @@ end
 
 module Sq : sig
   type sequent = private {
-    left : ctx ;
+    left : Ctx.t ;
+    pseudo : Ctx.t ;
     right : latm option ;
     vars : VSet.t ;
     (** invariant: fvs(sq.left) \cup fvs(sq.right) \subseteq sq.vars *)
     skel : Skeleton.t ;
     ancs : ISet.t ;
   }
-  val mk_sequent : ?ancs:ISet.t -> ?skel:Skeleton.t -> ?right:latm -> ?left:ctx -> unit -> sequent
-  val override : ?ancs:ISet.t -> ?skel:Skeleton.t -> ?right:latm option -> ?left:ctx -> sequent -> sequent
+  val mk_sequent : ?ancs:ISet.t -> ?skel:Skeleton.t -> ?right:latm -> ?left:Ctx.t -> ?pseudo:Ctx.t ->
+    unit -> sequent
+  val override : ?ancs:ISet.t -> ?skel:Skeleton.t -> ?right:latm option -> ?left:Ctx.t -> ?pseudo:Ctx.t ->
+    sequent -> sequent
 end = struct
   type sequent = {
-    left : ctx ;
+    left : Ctx.t ;
+    pseudo : Ctx.t ;
     right : latm option ;
     vars : VSet.t ;
     skel : Skeleton.t ;
     ancs : ISet.t ;
   }
 
-  let mk_sequent ?(ancs=ISet.empty) ?(skel=Skeleton.Prem (Skeleton.premidgen#next)) ?right ?(left=Ft.empty) () =
-    let terms = match right with
-      | None -> left
-      | Some right -> Ft.snoc left right
-    in
-    let vars = Ft.fold_left begin
-        fun vars (_, ts) ->
-          List.fold_left begin
-            fun vars t -> VSet.union vars t.Term.vars
-          end vars ts
-      end VSet.empty terms in
-    {left ; right ; vars ; skel ; ancs}
+  let terms_vars vs ts =
+    List.fold_left begin fun vs t ->
+      VSet.union vs t.Term.vars
+    end vs ts
 
-  let override ?ancs ?skel ?right ?left sq =
+  let mk_sequent
+      ?(ancs=ISet.empty)
+      ?(skel=Skeleton.Prem (Skeleton.premidgen#next))
+      ?right ?(left=Ctx.empty)
+      ?(pseudo=Ctx.empty)
+      () =
+    let vars = match right with
+      | Some (_, ts) -> terms_vars VSet.empty ts
+      | None -> VSet.empty
+    in
+    let vars = Ctx.fold (fun _ ts vs -> terms_vars vs ts) left vars in
+    let vars = Ctx.fold (fun _ ts vs -> terms_vars vs ts) pseudo vars in
+    {left ; pseudo ; right ; vars ; skel ; ancs}
+
+  let override ?ancs ?skel ?right ?left ?pseudo sq =
     mk_sequent ()
       ~left:(Option.default sq.left left)
+      ~pseudo:(Option.default sq.pseudo pseudo)
       ?right:(Option.default sq.right right)
       ~skel:(Option.default sq.skel skel)
       ~ancs:(Option.default sq.ancs ancs)
@@ -297,7 +306,8 @@ module Stats = struct
     let open Format in
     let pp_map ff m = IdtMap.pp pp_print_int ff (Lazy.force m) in
     fprintf ff
-      "@[<v0>right_preds = %s@,left_npreds = %a@,left_nfuncs = %a@,right_nfuncs = %a@,left_dfuncs = %a@,right_nfuncs = %a@]"
+      ("@[<v0>right_preds = %s@,left_npreds = %a@,left_nfuncs = %a@," ^^
+       "right_nfuncs = %a@,left_dfuncs = %a@,right_nfuncs = %a@]")
       (match stats.right_preds with
        | None -> "."
        | Some p -> p.rep)
@@ -305,7 +315,7 @@ module Stats = struct
       pp_map stats.left_nfuncs
       pp_map stats.right_nfuncs
       pp_map stats.left_dfuncs
-      pp_map stats.right_dfuncs ;
+      pp_map stats.right_dfuncs
 end
 
 module StatMap = Map.Make (struct include Stats type t = stats end)
@@ -409,6 +419,12 @@ let format_canonical ff sq =
   let repl = canonize sq in
   let sq = replace_sequent ~repl sq in
   format_sequent () ff sq
+
+let subsume_ctx ~frz ~repl cx1 cx2 =
+  let comparison_fn repl ts1 ts2 =
+    Unify.unite_lists ~frz repl ts1 ts2 |> fst
+  in
+  Perms.superpose_maps comparison_fn repl cx1 cx2
 
 let subsume_one ~frz ~repl (p, pargs) cx =
   let rec spin repls front cx =
