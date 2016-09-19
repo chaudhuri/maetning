@@ -355,12 +355,11 @@ module Build : sig val build : 'a result -> meval end = struct
     end state.left modl in
     let modl = match state.right with
       | None -> modl
-      | Some idt ->
-          let f =
-            try (IdtMap.find idt lforms).Form.skel with
-            | Not_found -> atom POS idt []
-          in
-          cross (fun () -> modl) (fun () -> focus_right ~lforms ~state f)
+      | Some idt -> begin
+          match (IdtMap.find idt lforms).Form.skel with
+          | f -> cross (fun () -> modl) (fun () -> focus_right ~lforms ~state f)
+          | exception Not_found -> modl
+        end
     in
     modl
 
@@ -406,6 +405,11 @@ module Build : sig val build : 'a result -> meval end = struct
     | True NEG ->
         Counter empty_model
     | Implies (f1, f2) -> begin
+        (* [ORDERING] Doing it in antecedent-first order is necessary for soundness *)
+        (* match focus_left ~lforms ~state f2 with *)
+        (* | Valid -> *)
+        (*     focus_right ~lforms ~state f1 *)
+        (* | Counter _ as mu -> mu *)
         match focus_right ~lforms ~state f1 with
         | Valid ->
             focus_left ~lforms ~state f2
