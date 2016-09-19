@@ -326,15 +326,13 @@ module Build : sig val build : 'a result -> meval end = struct
   type state = {
     left : IdtSet.t ;
     right : Idt.t option ;
-    old_rights : IdtSet.t ;
   }
 
   let rec decision ~lforms ~state =
     let format_state ff =
-      Format.fprintf ff "@[%a@ |- %a@ / %a@]"
+      Format.fprintf ff "@[%a@ |- %a@]"
         IdtSet.pp state.left
         format_right state.right
-        IdtSet.pp state.old_rights
     in
     with_indent begin fun ind ->
       dprintf ~ind "modelbuild" "--> decision: %t@." format_state ;
@@ -365,10 +363,9 @@ module Build : sig val build : 'a result -> meval end = struct
 
   and right_only_decision ~lforms ~state =
     let format_state ff =
-      Format.fprintf ff "@[%a@ |- %a@ / %a@]"
+      Format.fprintf ff "@[%a@ |- %a@@]"
         IdtSet.pp state.left
         format_right state.right
-        IdtSet.pp state.old_rights
     in
     with_indent begin fun ind ->
       dprintf ~ind "modelbuild" "--> right_only_decision: %t@." format_state ;
@@ -389,11 +386,10 @@ module Build : sig val build : 'a result -> meval end = struct
 
   and focus_left ~lforms ~state f =
     let format_state ff =
-      Format.fprintf ff "@[%a ; [%a]@ |- %a@ / %a@]"
+      Format.fprintf ff "@[%a ; [%a]@ |- %a@@]"
         IdtSet.pp state.left
         format_form f
         format_right state.right
-        IdtSet.pp state.old_rights
     in
     with_indent begin fun ind ->
       dprintf ~ind "modelbuild" "--> focus_left: %t@."
@@ -445,10 +441,9 @@ module Build : sig val build : 'a result -> meval end = struct
 
   and focus_right ~lforms ~state f =
     let format_state ff =
-      Format.fprintf ff "@[%a@ |- [%a]@ / %a@]"
+      Format.fprintf ff "@[%a@ |- [%a]@@]"
         IdtSet.pp state.left
         format_form f
-        IdtSet.pp state.old_rights
     in
     with_indent begin fun ind ->
       dprintf ~ind "modelbuild" "--> focus_right: %t@."
@@ -483,12 +478,11 @@ module Build : sig val build : 'a result -> meval end = struct
 
   and invert_left ~lforms ~state ?store fs =
     let format_state ff =
-      Format.fprintf ff "@[%a ;@ %a ;@ %a @ |- %a@ / %a@]"
+      Format.fprintf ff "@[%a ;@ %a ;@ %a @ |- %a@@]"
         IdtSet.pp state.left
         IdtSet.pp (Option.default IdtSet.empty store)
         format_forms fs
         format_right state.right
-        IdtSet.pp state.old_rights
     in
     with_indent begin fun ind ->
       dprintf ~ind "modelbuild" "--> invert_left: %t@."
@@ -503,10 +497,6 @@ module Build : sig val build : 'a result -> meval end = struct
     | [] -> begin
         match maximally_extend ~lforms ~left:state.left ~right:state.right store with
         | Seen -> begin
-            let state = match state.right with
-              | Some l -> {state with old_rights = IdtSet.add l state.old_rights}
-              | None -> state
-            in
             right_only_decision ~lforms ~state
           end
         | Subsumed ->
@@ -514,11 +504,7 @@ module Build : sig val build : 'a result -> meval end = struct
             Valid
         | New left ->
             (* dprintf "modelbuild" "maximal_extend: new@." ; *)
-            let state = {state with left ; old_rights = IdtSet.empty} in
-            let state = match state.right with
-              | Some l -> {state with old_rights = IdtSet.add l state.old_rights}
-              | None -> state
-            in
+            let state = {state with left} in
             forward (decision ~lforms ~state)
       end
     | f :: fs -> begin
@@ -547,11 +533,10 @@ module Build : sig val build : 'a result -> meval end = struct
 
   and invert_right ~lforms ~state ?lact f =
     let format_state ff =
-      Format.fprintf ff "@[%a ;@ %a@ |- %a@ / %a@]"
+      Format.fprintf ff "@[%a ;@ %a@ |- %a@@]"
         IdtSet.pp state.left
         format_forms (Option.default [] lact)
         format_form f
-        IdtSet.pp state.old_rights
     in
     with_indent begin fun ind ->
       dprintf ~ind "modelbuild" "--> invert_right: %t@."
@@ -664,7 +649,7 @@ module Build : sig val build : 'a result -> meval end = struct
       | New left -> left
       | Subsumed -> bugf "Goal is actually subsumed!"
     in
-    let state = {left ; right ; old_rights = IdtSet.empty} in
+    let state = {left ; right} in
     let mu = decision ~lforms ~state in
     if compress_model then compress_meval mu else mu
 
