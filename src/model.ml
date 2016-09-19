@@ -363,6 +363,30 @@ module Build : sig val build : 'a result -> meval end = struct
     in
     modl
 
+  and right_only_decision ~lforms ~state =
+    let format_state ff =
+      Format.fprintf ff "@[%a@ |- %a@ / %a@]"
+        IdtSet.pp state.left
+        format_right state.right
+        IdtSet.pp state.old_rights
+    in
+    with_indent begin fun ind ->
+      dprintf ~ind "modelbuild" "--> right_only_decision: %t@." format_state ;
+      let mu = right_only_decision_ ~lforms ~state in
+      dprintf ~ind "modelbuild" "<-- right_only_decision: @[%a@]@." format_meval mu ;
+      mu
+    end
+
+  and right_only_decision_ ~lforms ~state =
+    let modl = Counter empty_model in
+    match state.right with
+      | None -> modl
+      | Some idt -> begin
+          match (IdtMap.find idt lforms).Form.skel with
+          | f -> cross (fun () -> modl) (fun () -> focus_right ~lforms ~state f)
+          | exception Not_found -> modl
+        end
+
   and focus_left ~lforms ~state f =
     let format_state ff =
       Format.fprintf ff "@[%a ; [%a]@ |- %a@ / %a@]"
@@ -479,20 +503,14 @@ module Build : sig val build : 'a result -> meval end = struct
     | [] -> begin
         match maximally_extend ~lforms ~left:state.left ~right:state.right store with
         | Seen -> begin
-            (* dprintf "modelbuild" "maximal_extend: seen@." ; *)
-            let is_repeat = match state.right with
-              | Some r -> IdtSet.mem r state.old_rights
-              | None -> false
-            in
-            if is_repeat then Counter empty_model else
             let state = match state.right with
               | Some l -> {state with old_rights = IdtSet.add l state.old_rights}
               | None -> state
             in
-            decision ~lforms ~state
+            right_only_decision ~lforms ~state
           end
         | Subsumed ->
-            dprintf "modelbuild" "maximal_extend: subsumed@." ;
+            (* dprintf "modelbuild" "maximal_extend: subsumed@." ; *)
             Valid
         | New left ->
             (* dprintf "modelbuild" "maximal_extend: new@." ; *)
