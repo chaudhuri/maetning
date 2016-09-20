@@ -25,15 +25,65 @@ open Inverse
 
 open Debug
 
+module IMap = Map.Make (Int)
+module ISet = Set.Make (Int)
 
 (******************************************************************************)
 
-type model = {
-  assn : IdtSet.t ;
-  kids : model list ;
-}
+module Model : sig
+  type model = private {
+    assn : IdtSet.t ;
+    kids : model list ;
+    mid  : int ;
+  }
 
-let empty_model = {assn = IdtSet.empty ; kids = []}
+  val model : assn:IdtSet.t -> kids:(model list) -> model
+end = struct
+  type model = {
+    assn : IdtSet.t ;
+    kids : model list ;
+    mid  : int ;
+  }
+
+  let rec same_kids ks1 ks2 =
+    match ks1, ks2 with
+    | [], [] -> true
+    | k1 :: ks1, k2 :: ks2 ->
+        k1.mid = k2.mid && same_kids ks1 ks2
+    | _ -> false
+
+  module ModTab = Weak.Make (
+    struct
+      type t = model
+      let hash m = Hashtbl.hash (m.assn, m.kids)
+      let equal m1 m2 =
+        IdtSet.equal m1.assn m2.assn &&
+        same_kids m1.kids m2.kids
+    end)
+  let __models = ModTab.create 19
+
+  let midgen = new Namegen.namegen (fun n -> n)
+
+  let model ~assn ~kids =
+    let modl = {mid = midgen#next ; assn ; kids} in
+    ModTab.merge __models modl
+end
+
+include Model
+
+let rec insert_kid ks k =
+  match ks with
+  | [] -> [k]
+  | kk :: ks ->
+      if k.mid < kk.mid then
+        kk :: insert_kid ks k
+      else k :: kk :: ks
+
+let merge_kids ks1 ks2 = List.fold_left insert_kid ks1 ks2
+
+(******************************************************************************)
+
+let empty_model = model ~assn:IdtSet.empty ~kids:[]
 
 let rec format_model ff modl =
   let open Format in
@@ -56,16 +106,15 @@ let dot_format_model modl =
   let dotff = formatter_of_output oc in
   Format.pp_set_margin dotff max_int ;
   fprintf dotff "digraph countermodel {@.rankdir=BT;@." ;
-  let cur_world = ref (-1) in
-  let next_world () = incr cur_world ; !cur_world in
-  let rec spin_lines modl =
-    let w = next_world () in
-    let ws = List.map spin_lines modl.kids in
+  let rec spin_lines seen modl =
+    if ISet.mem modl.mid seen then seen else
+    let seen = ISet.add modl.mid seen in
+    let seen = List.fold_left spin_lines seen modl.kids in
     fprintf dotff "w%d [shape=box,fontname=\"monospace\",fontsize=10,label=\"@[%a@]\"];@."
-      w IdtSet.pp modl.assn ;
-    List.iter (fun u -> fprintf dotff "w%d -> w%d;" w u) ws ;
-    w in
-  ignore (spin_lines modl) ;
+      modl.mid IdtSet.pp modl.assn ;
+    List.iter (fun kid -> fprintf dotff "w%d -> w%d;" modl.mid kid.mid) modl.kids ;
+    seen in
+  ignore (spin_lines ISet.empty modl) ;
   fprintf dotff "}@." ;
   close_out oc ;
   let result = BatIO.read_all ic in
@@ -85,15 +134,14 @@ let cross mu1 mu2 =
       match mu2 () with
       | Valid -> Valid
       | Counter m2 ->
-          Counter {
-            assn = IdtSet.union m1.assn m2.assn ;
-            kids = m1.kids @ m2.kids ;
-          }
+          let assn = IdtSet.union m1.assn m2.assn in
+          let kids = merge_kids m1.kids m2.kids in
+          Counter (model ~assn ~kids)
     end
 
 let forward = function
   | Valid -> Valid
-  | Counter modl -> Counter {assn = IdtSet.empty ; kids = [modl]}
+  | Counter modl -> Counter (model ~assn:IdtSet.empty ~kids:[modl])
 
 (******************************************************************************)
 
@@ -229,8 +277,8 @@ module BackwardCheck : CHECK = struct
     lcheck ~ind:0 sm impl
 end
 
+
 module ForwardCheck : CHECK = struct
-  module IMap = Map.Make (Int)
   type side = L | R
   let other = function L -> R | R -> L
 
@@ -455,16 +503,10 @@ module Build : sig val build : 'a result -> meval end = struct
         | Some ll when l = ll ->
             Valid
         | _ ->
-            Counter {
-              assn = IdtSet.singleton l ;
-              kids = [] ;
-            }
+            Counter (model ~assn:(IdtSet.singleton l) ~kids:[])
       end
     | Atom (POS, l, []) ->
-        Counter {
-          assn = IdtSet.singleton l ;
-          kids = [] ;
-        }
+        Counter (model ~assn:(IdtSet.singleton l) ~kids:[])
     | And (NEG, f1, f2) ->
         cross
           (fun () -> focus_left ~lforms ~state f1)
@@ -663,14 +705,23 @@ module Build : sig val build : 'a result -> meval end = struct
     List.length m1.kids = List.length m2.kids &&
     List.for_all2 eq_models m1.kids m2.kids
 
+  let rec future futs modl =
+    let futs = ISet.add modl.mid futs in
+    List.fold_left strict_future futs modl.kids
+
+  and strict_future futs modl =
+    List.fold_left future futs modl.kids
+
   let rec compress modl =
     let kids = modl.kids |>
                List.map compress |>
                List.sort (fun m1 m2 -> IdtSet.compare m1.assn m2.assn) |>
                List.unique ~eq:eq_models in
+    let futures = List.fold_left strict_future ISet.empty kids in
+    let kids = List.filter (fun kid -> not (ISet.mem kid.mid futures)) kids in
     match kids with
     | [kid] when IdtSet.equal modl.assn kid.assn -> kid
-    | _ -> {modl with kids}
+    | _ -> model ~assn:modl.assn ~kids
 
   let compress_meval = function
     | Valid -> Valid
