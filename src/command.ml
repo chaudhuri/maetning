@@ -153,7 +153,7 @@ let dump_model f res =
         Config.pprintf "%s@." (Model.dot_format_model modl)
       else
         Config.pprintf "<pre>@.%a</pre>@." Model.format_model modl ;
-      if Model.Check.validate res modl then
+      if Model.Check.check res modl then
         (* Debug.dprintf "modelcheck" "!!!!! Reconstructed model is satisfying !!!!!@." ; *)
         Debug.bugf "!!!!! Reconstructed model is satisfying !!!!!@." ;
       Config.pprintf "<hr>@."

@@ -92,6 +92,7 @@ let rec process_file_tptp file =
 
 let process_file file =
   Command.reset_maps () ;
+  Format.printf "Processing %S\n%!" file ;
   if !Config.tptp
   then process_file_tptp file
   else process_file_native file

@@ -11,7 +11,10 @@ open Term
 type polarity = POS | NEG
 let dual_polarity = function POS -> NEG | NEG -> POS
 
+let __formidgen = new Namegen.namegen (fun n -> n)
+
 type form = {
+  formid : int ;
   form : form_ ;
   vars : VSet.t ;
   (** invariant: fvs(f) \subseteq f.vars   *)
@@ -59,8 +62,10 @@ let force pol f =
   | Shift f -> f
   | _ -> { f with form = Shift f }
 
-let shift f = { f with form = Shift f }
+let shift f = { f with formid = __formidgen#next ; form = Shift f }
+
 let atom pol pred ts = {
+  formid = __formidgen#next ;
   form = Atom (pol, pred, ts) ;
   imax = List.fold_left Term.(fun mx t -> max mx t.imax) (-1) ts ;
   vars = List.fold_left Term.(fun vs t -> VSet.union vs t.vars) VSet.empty ts ;
@@ -68,22 +73,25 @@ let atom pol pred ts = {
 
 let conj ?(pol=POS) fs =
   match fs with
-  | [] -> { form = True pol ; imax = -1 ; vars = VSet.empty }
+  | [] -> { formid = __formidgen#next ;form = True pol ; imax = -1 ; vars = VSet.empty }
   | f :: fs ->
       List.fold_left begin fun g f ->
         let f = force pol f in
-        { form = And (pol, g, f) ;
+        { formid = __formidgen#next ;
+          form = And (pol, g, f) ;
           imax = max g.imax f.imax ;
           vars = VSet.union g.vars f.vars }
       end (force pol f) fs
 
 let disj fs =
   match fs with
-  | [] -> { form = False ; imax = -1 ; vars = VSet.empty }
+  | [] -> { formid = __formidgen#next ;
+            form = False ; imax = -1 ; vars = VSet.empty }
   | f :: fs ->
       List.fold_left begin fun g f ->
         let f = force POS f in
-        { form = Or (g, f) ;
+        { formid = __formidgen#next ;
+          form = Or (g, f) ;
           imax = max g.imax f.imax ;
           vars = VSet.union g.vars f.vars }
       end (force POS f) fs
@@ -94,19 +102,22 @@ let rec implies fs g =
   | f :: fs ->
       let f = force POS f in
       let g = implies fs g in
-      { form = Implies (f, g) ;
+      { formid = __formidgen#next ;
+        form = Implies (f, g) ;
         vars = VSet.union f.vars g.vars ;
         imax = max f.imax g.imax }
 
 let forall x f =
   let f = force NEG f in
-  { form = Forall (x, f) ;
+  { formid = __formidgen#next ;
+    form = Forall (x, f) ;
     imax = max (-1) (f.imax - 1) ;
     vars = f.vars }
 
 let exists x f =
   let f = force POS f in
-  { form = Exists (x, f) ;
+  { formid = __formidgen#next ;
+    form = Exists (x, f) ;
     imax = max (-1) (f.imax - 1) ;
     vars = f.vars }
 

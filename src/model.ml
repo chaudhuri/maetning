@@ -11,7 +11,7 @@ let compress_model       = true
 
    Taus Brock-Nannestad and Kaustuv Chaudhuri, "Saturation-based
    Countermodel Construction for Propositional Intuitionistic Logic",
-   2016
+   2016.
 *)
 
 open Batteries
@@ -103,26 +103,6 @@ let first_order f =
   Format.eprintf "Cannot construct countermodels for first-order formulas@.%a@." format_form f ;
   raise Model
 
-let format_form_expanded lforms ff f =
-  let rec expand f =
-    match f.form with
-    | Atom (_, l, []) -> begin
-        match IdtMap.find l lforms with
-        | lf -> expand lf.Form.skel
-        | exception Not_found -> f
-      end
-    | And (pol, f1, f2) -> conj ~pol [expand f1 ; expand f2]
-    | True _ -> f
-    | Or (f1, f2) -> disj [expand f1 ; expand f2]
-    | False -> f
-    | Implies (f1, f2) -> implies [expand f1] (expand f2)
-    | Forall _ | Exists _ | Atom _ -> first_order f
-    | Shift f -> shift (expand f)
-  in
-  format_form ff (expand f)
-
-(* let format_form_expanded lforms ff f = format_form () ff f *)
-
 let expose lforms f =
   match f.form with
   | Atom (_, l, args) -> begin
@@ -165,10 +145,11 @@ let rec compound lforms f =
 (******************************************************************************)
 (* Model checking *)
 
-module Check : sig
-  val check : ind:int -> model -> form -> bool
-  val validate : 'a result -> model -> bool
-end = struct
+module type CHECK = sig
+  val check : 'a result -> model -> bool
+end
+
+module BackwardCheck : CHECK = struct
   type lmodel = {
     id : int ;
     lassn : IdtSet.t ;
@@ -191,7 +172,7 @@ end = struct
 
   let rec format_lmodel ff sm =
     let open Format in
-    fprintf ff "@[<hv0>w%d |= {%a},@ @[<b1>[%a]@]@]"
+    fprintf ff "@[<hv0>w%d |= {%a},@ @[<b1>[%a]@]"
       sm.id
       IdtSet.pp sm.lassn
       format_lmodels sm.lkids
@@ -235,9 +216,7 @@ end = struct
         dprintf "modelcheck" "%s`-- (w%d |= %a) %b@." indent sm.id format_form f ret ;
         ret
 
-  let check ~ind modl f = lcheck ~ind (label_model modl) f
-
-  let validate res modl =
+  let check res modl =
     let sm = label_model modl in
     let ants = IdtMap.fold begin fun l lf ants ->
         match lf.Form.place with
@@ -249,6 +228,74 @@ end = struct
     dprintf "modelcheck" "Simplified model: %a@." format_lmodel sm ;
     lcheck ~ind:0 sm impl
 end
+
+module ForwardCheck : CHECK = struct
+  module IMap = Map.Make (Int)
+  type side = L | R
+  let other = function L -> R | R -> L
+
+  let rec classically_true assn future f =
+    BitSet.mem future f.formid &&
+    match f.form with
+    | Atom (_, l, _) ->
+        IdtSet.mem l assn
+    | And (_, f1, f2) ->
+        classically_true assn future f1 &&
+        classically_true assn future f2
+    | True _ ->
+        true
+    | Or (f1, f2) ->
+        classically_true assn future f1 ||
+        classically_true assn future f2
+    | False ->
+        false
+    | Implies (f1, f2) ->
+        (not (classically_true assn future f1) || classically_true assn future f2)
+    | Shift f ->
+        classically_true assn future f
+    | Forall _ | Exists _ -> first_order f
+
+  let compute_classical assn future subfmap =
+    IMap.fold begin fun n (f, _) valu ->
+      if classically_true assn future f then
+        BitSet.add n valu
+      else valu
+    end subfmap (BitSet.create (IMap.cardinal subfmap))
+
+  let rec compute subfmap modl =
+    let valu = BitSet.create_full (IMap.cardinal subfmap) in
+    let valu = List.fold_left begin fun valu modl ->
+        BitSet.inter valu (compute subfmap modl)
+      end valu modl.kids in
+    compute_classical modl.assn valu subfmap
+
+  let check res modl =
+    let ants = IdtMap.fold begin fun l lf ants ->
+        match lf.Form.place with
+        | Left Global | Left Pseudo ->
+            expand_fully ~lforms:res.lforms lf.Form.skel :: ants
+        | _ -> ants
+      end res.lforms [] in
+    let impl = implies ants (expand_fully ~lforms:res.lforms res.goal.Form.skel) in
+    let rec walk subfmap side f =
+      let subfmap = IMap.add f.formid (f, side) subfmap in
+      match f.form with
+      | Atom _ | True _ | False -> subfmap
+      | And (_, f1, f2) | Or (f1, f2) ->
+          walk (walk subfmap side f1) side f2
+      | Implies (f1, f2) ->
+          walk (walk subfmap (other side) f1) side f2
+      | Shift f ->
+          walk subfmap side f
+      | Exists _ | Forall _ -> first_order f
+    in
+    let subfmap = walk IMap.empty R impl in
+    let trueset = compute subfmap modl in
+    BitSet.mem trueset impl.formid
+end
+
+(* module Check = BackwardCheck *)
+module Check = ForwardCheck
 
 (******************************************************************************)
 (* Model building *)
@@ -363,7 +410,7 @@ module Build : sig val build : 'a result -> meval end = struct
 
   and right_only_decision ~lforms ~state =
     let format_state ff =
-      Format.fprintf ff "@[%a@ |- %a@@]"
+      Format.fprintf ff "@[%a@ |- %a@]"
         IdtSet.pp state.left
         format_right state.right
     in
@@ -386,7 +433,7 @@ module Build : sig val build : 'a result -> meval end = struct
 
   and focus_left ~lforms ~state f =
     let format_state ff =
-      Format.fprintf ff "@[%a ; [%a]@ |- %a@@]"
+      Format.fprintf ff "@[%a ; [%a]@ |- %a@]"
         IdtSet.pp state.left
         format_form f
         format_right state.right
@@ -441,7 +488,7 @@ module Build : sig val build : 'a result -> meval end = struct
 
   and focus_right ~lforms ~state f =
     let format_state ff =
-      Format.fprintf ff "@[%a@ |- [%a]@@]"
+      Format.fprintf ff "@[%a@ |- [%a]@]"
         IdtSet.pp state.left
         format_form f
     in
@@ -478,7 +525,7 @@ module Build : sig val build : 'a result -> meval end = struct
 
   and invert_left ~lforms ~state ?store fs =
     let format_state ff =
-      Format.fprintf ff "@[%a ;@ %a ;@ %a @ |- %a@@]"
+      Format.fprintf ff "@[%a ;@ %a ;@ %a @ |- %a@]"
         IdtSet.pp state.left
         IdtSet.pp (Option.default IdtSet.empty store)
         format_forms fs
@@ -533,7 +580,7 @@ module Build : sig val build : 'a result -> meval end = struct
 
   and invert_right ~lforms ~state ?lact f =
     let format_state ff =
-      Format.fprintf ff "@[%a ;@ %a@ |- %a@@]"
+      Format.fprintf ff "@[%a ;@ %a@ |- %a@]"
         IdtSet.pp state.left
         format_forms (Option.default [] lact)
         format_form f
