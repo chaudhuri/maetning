@@ -56,6 +56,7 @@ rule token = parse
 | "<="             { P.IF }
 
 | "~" | "\\lnot"   { P.NEGATE }
+| "!" | "\\shift"  { P.BANG }
 
 | "\\A"            { P.FORALL }
 | "\\E"            { P.EXISTS }

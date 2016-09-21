@@ -23,6 +23,7 @@
 %token  IF IMP IFF NEGATE
 %token  ONE ZERO TOP
 %token  FORALL EXISTS
+%token  BANG
 
 %left     IFF
 %nonassoc PREC_QUANTIFIER
@@ -31,7 +32,7 @@
 %left     PLUS
 %left     WITH
 %left     TENSOR
-%nonassoc NEGATE
+%nonassoc NEGATE BANG
 
 %start  <Term.term> one_term
 %start  <Form.form> one_form
@@ -81,6 +82,7 @@ form:
   %prec PREC_QUANTIFIER      { Form.(make_quant forall vs f) }
 | EXISTS vs=vars DOT f=form
   %prec PREC_QUANTIFIER      { Form.(make_quant exists vs f) }
+| BANG f=form                { Form.(shift f) }
 | LPAREN f=form RPAREN       { f }
 
 one_term:
