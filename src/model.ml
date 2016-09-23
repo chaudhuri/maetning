@@ -764,7 +764,7 @@ module Build : sig val build : 'a result -> meval end = struct
         | Left (Global | Pseudo) -> IdtSet.add lf.Form.label live
         | _ -> live
       end res.lforms IdtSet.empty in
-    let state = {left ; lmax = IdtSet.empty ; right ; impos = IdtSet.empty} in
+    let state = {left = IdtSet.empty ; lmax = IdtSet.empty ; right ; impos = IdtSet.empty} in
     let state =
       match maximally_extend ~lforms ~state left with
       | Seen -> state
