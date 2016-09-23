@@ -354,6 +354,7 @@ module Build : sig val build : 'a result -> meval end = struct
 
   type state = {
     left : IdtSet.t ;
+    lmax : IdtSet.t ;
     right : Idt.t option ;
     impos : IdtSet.t ;
   }
@@ -364,33 +365,33 @@ module Build : sig val build : 'a result -> meval end = struct
     | New of state
 
   let maximally_extend ~lforms ~state ls =
+    if IdtSet.subset ls state.left then Seen else
     let left = IdtSet.union state.left ls in
     let sq0 = mk_sequent ()
-        ~left:(IdtSet.elements left |>
+        ~left:((IdtSet.elements left @ IdtSet.elements state.lmax) |>
                List.map propify |>
                Ft.of_list)
         ?right:(Option.map propify state.right)
     in
     if Inverse.Data.subsumes ~all:true sq0 then Subsumed else
-    let maybe_extend l (left, sq) =
-      if IdtSet.mem l left then (left, sq) else
+    let maybe_extend l (lmax, sq) =
+      if IdtSet.mem l left || IdtSet.mem l lmax then (lmax, sq) else
       let new_sq = override sq ~left:(Ft.snoc sq.Sequent.left (propify l)) in
       if Inverse.Data.subsumes ~all:true new_sq then begin
         (* Format.eprintf "SUBSUMED: %a@." (format_sequent ()) new_sq ; *)
-        (left, sq)
+        (lmax, sq)
       end else begin
         (* Format.eprintf  "NEW: %a@." (format_sequent ()) new_sq ; *)
-        (IdtSet.add l left, new_sq)
+        (IdtSet.add l lmax, new_sq)
       end
     in
-    let (left, sq) = IdtMap.fold begin fun _ lf (left, sq) ->
+    let (lmax, sq) = IdtMap.fold begin fun _ lf (lmax, sq) ->
         match lf.Form.place with
         | Left _ ->
-            maybe_extend lf.Form.label (left, sq)
-        | Right -> (left, sq)
-      end lforms (left, sq0) in
+            maybe_extend lf.Form.label (lmax, sq)
+        | Right -> (lmax, sq)
+      end lforms (state.lmax, sq0) in
     (* Format.eprintf "Extended\n  %a\ninto\n  %a@." (format_sequent ()) sq0 (format_sequent ())sq ; *)
-    if IdtSet.equal left state.left then Seen else begin
       let impos =
         IdtMap.fold begin fun _ lf impos ->
           match lf.Form.place with
@@ -402,24 +403,7 @@ module Build : sig val build : 'a result -> meval end = struct
               else IdtSet.add lf.Form.label impos
         end lforms IdtSet.empty
       in
-      New {state with left ; impos}
-    end
-
-  let compute_impos ~lforms ~left =
-    let sq0 = mk_sequent ()
-        ~left:(IdtSet.elements left |>
-               List.map propify |>
-               Ft.of_list)
-    in
-    IdtMap.fold begin fun _ lf impos ->
-      match lf.Form.place with
-      | Left _ -> impos
-      | Right ->
-          let new_sq = override sq0 ~right:(Some (lf.Form.label, [])) in
-          if Inverse.Data.subsumes ~all:true new_sq
-          then impos
-          else IdtSet.add lf.Form.label impos
-    end lforms IdtSet.empty
+      New {state with left ; lmax ; impos}
 
   let __indent = ref 0
   let with_indent fn =
@@ -455,7 +439,8 @@ module Build : sig val build : 'a result -> meval end = struct
 
   let rec decision ~lforms ~state =
     let format_state ff =
-      Format.fprintf ff "@[%a@ |- %a \\ %a@]"
+      Format.fprintf ff "@[%a@ || %a@ |- %a \\ %a@]"
+        IdtSet.pp state.lmax
         IdtSet.pp state.left
         format_right state.right
         IdtSet.pp state.impos
@@ -481,7 +466,8 @@ module Build : sig val build : 'a result -> meval end = struct
 
   and right_only_decision ~lforms ~state =
     let format_state ff =
-      Format.fprintf ff "@[%a@ |- %a \\ %a@]"
+      Format.fprintf ff "@[%a@ || %a@ |- %a \\ %a@]"
+        IdtSet.pp state.lmax
         IdtSet.pp state.left
         format_right state.right
         IdtSet.pp state.impos
@@ -507,7 +493,8 @@ module Build : sig val build : 'a result -> meval end = struct
 
   and focus_left ~lforms ~state f =
     let format_state ff =
-      Format.fprintf ff "@[%a ; [%a]@ |- %a \\ %a@]"
+      Format.fprintf ff "@[%a@ || %a ; [%a]@ |- %a \\ %a@]"
+        IdtSet.pp state.lmax
         IdtSet.pp state.left
         format_form f
         format_right state.right
@@ -560,7 +547,8 @@ module Build : sig val build : 'a result -> meval end = struct
 
   and focus_right ~lforms ~state f =
     let format_state ff =
-      Format.fprintf ff "@[%a@ |- [%a] \\ %a@]"
+      Format.fprintf ff "@[%a@ || %a@ |- [%a] \\ %a@]"
+        IdtSet.pp state.lmax
         IdtSet.pp state.left
         format_form f
         IdtSet.pp state.impos
@@ -578,7 +566,7 @@ module Build : sig val build : 'a result -> meval end = struct
     | Shift f ->
         invert_right ~lforms ~state f
     | Atom (POS, l, []) ->
-        if IdtSet.mem l state.left then Valid else Counter empty_model
+        if IdtSet.mem l state.left || IdtSet.mem l state.lmax then Valid else Counter empty_model
     | And (POS, f1, f2) -> begin
         match focus_right ~lforms ~state f1 with
         | Valid -> focus_right ~lforms ~state f2
@@ -598,7 +586,8 @@ module Build : sig val build : 'a result -> meval end = struct
 
   and invert_left ~lforms ~state ?store fs =
     let format_state ff =
-      Format.fprintf ff "@[%a ;@ %a ;@ %a @ |- %a \\ %a@]"
+      Format.fprintf ff "@[%a@ || %a ;@ %a ;@ %a @ |- %a \\ %a@]"
+        IdtSet.pp state.lmax
         IdtSet.pp state.left
         IdtSet.pp (Option.default IdtSet.empty store)
         format_forms fs
@@ -653,7 +642,8 @@ module Build : sig val build : 'a result -> meval end = struct
 
   and invert_right ~lforms ~state ?lact f =
     let format_state ff =
-      Format.fprintf ff "@[%a ;@ %a@ |- %a \\ %a@]"
+      Format.fprintf ff "@[%a@ || %a ;@ %a@ |- %a \\ %a@]"
+        IdtSet.pp state.lmax
         IdtSet.pp state.left
         format_forms (Option.default [] lact)
         format_form f
@@ -774,7 +764,7 @@ module Build : sig val build : 'a result -> meval end = struct
         | Left (Global | Pseudo) -> IdtSet.add lf.Form.label live
         | _ -> live
       end res.lforms IdtSet.empty in
-    let state = {left ; right ; impos = IdtSet.empty} in
+    let state = {left ; lmax = IdtSet.empty ; right ; impos = IdtSet.empty} in
     let state =
       match maximally_extend ~lforms ~state left with
       | Seen -> state
