@@ -3,8 +3,10 @@
 OCB = ocamlbuild -classic-display
 
 .PHONY: all
-all:
-	$(OCB) src/maetning.native
+all: src/maetning.native
+
+%.native: %.ml
+	$(OCB) $@
 
 .PHONY: clean
 clean:

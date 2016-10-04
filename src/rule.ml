@@ -307,7 +307,7 @@ let specialize_default ?(spec=specialize_left) ~sc_rule ~sc_fact rr idsq =
   let sc rule =
     match rule.prems with
     | [] ->
-        Factree.factor ~sc:sc_fact rule.concl
+        sc_fact rule.concl
     | _ ->
         sc_rule rule
   in

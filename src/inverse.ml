@@ -387,8 +387,9 @@ module Inv (D : Data) = struct
       let (lfs, goal_lf, gen) = Rule_gen.generate0 left pseudo right in
       let goal_seq = mk_sequent ~right:(goal_lf.label, goal_lf.args) () in
       (* Format.printf "Goal sequent: %a@." (Sequent.format_sequent ()) goal_seq ; *)
+      let initials_done = ref false in
       let add_seq sq =
-        D.register sq ;
+        Factree.factor ~sc:D.register sq ;
         if Sequent.subsume sq goal_seq then begin
           raise (Escape {lforms = lfs ;
                          goal = goal_lf ;
@@ -411,6 +412,7 @@ module Inv (D : Data) = struct
           end
       in
       gen ~sc:(fun rr -> add_rule {id = ruleidgen#next ; th = rr}) ;
+      initials_done := true ;
       D.finish_initial () ;
       dprintf "rule" "  ****************************************@." ;
       spin_until_none D.select begin fun sel ->
