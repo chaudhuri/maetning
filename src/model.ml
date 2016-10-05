@@ -146,11 +146,11 @@ let forward = function
 
 (******************************************************************************)
 
-exception Model
+exception First_order
 
 let first_order f =
   Format.eprintf "Cannot construct countermodels for first-order formulas@.%a@." format_form f ;
-  raise Model
+  raise First_order
 
 let expose lforms f =
   match f.form with
