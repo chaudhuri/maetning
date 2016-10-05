@@ -157,6 +157,9 @@ let dump_model f res =
         (* Debug.dprintf "modelcheck" "!!!!! Reconstructed model is satisfying !!!!!@." ; *)
         Debug.bugf "!!!!! Reconstructed model is satisfying !!!!!@." ;
       Config.pprintf "<hr>@."
+  | exception Model.First_order ->
+      Config.pprintf "<p>Cannot construct countermodel for first-order formula:</p>@." ;
+      Config.pprintf "<p><code>%a</code></p>@.<hr>@." Form.format_form f
 
 let prove f =
   let res = setup f in
