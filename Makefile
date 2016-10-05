@@ -3,10 +3,10 @@
 OCB = ocamlbuild -classic-display
 
 .PHONY: all
-all: src/maetning.native
+all: maetning.native formgen.native
 
-%.native: %.ml
-	$(OCB) $@
+%.native: $(wildcard src/*.ml*)
+	$(OCB) src/$@
 
 .PHONY: clean
 clean:
