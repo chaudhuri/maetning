@@ -5,7 +5,7 @@ OCB = ocamlbuild -classic-display
 .PHONY: all
 all: maetning.native formgen.native
 
-%.native: $(wildcard src/*.ml*)
+%.native: $(wildcard src/*.ml*) myocamlbuild.ml
 	$(OCB) src/$@
 
 .PHONY: clean
