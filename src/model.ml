@@ -5,8 +5,9 @@
  * See LICENSE for licensing details.
  *)
 
-let compress_model       = true
-let antecedent_first     = true
+let do_compress   = ref true
+let do_dagify     = ref true
+let do_ante_first = ref true
 
 (* Model reconstruction based on the algorithm described in:
 
@@ -67,7 +68,7 @@ end = struct
 
   let model ~assn ~kids =
     let modl = {mid = midgen#next ; assn ; kids} in
-    ModTab.merge __models modl
+    if !do_dagify then ModTab.merge __models modl else modl
 end
 
 include Model
@@ -530,7 +531,7 @@ module Build : sig val build : 'a result -> meval end = struct
     | True NEG ->
         Counter empty_model
     | Implies (f1, f2) ->
-        if antecedent_first then begin
+        if !do_ante_first then begin
           match focus_right ~lforms ~state f1 with
           | Valid ->
               focus_left ~lforms ~state f2
@@ -772,6 +773,6 @@ module Build : sig val build : 'a result -> meval end = struct
       | Subsumed -> bugf "Goal is actually subsumed!"
     in
     let mu = decision ~lforms ~state in
-    if compress_model then compress_meval mu else mu
+    if !do_compress then compress_meval mu else mu
 
 end
