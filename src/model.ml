@@ -5,7 +5,9 @@
  * See LICENSE for licensing details.
  *)
 
-let compress_model       = true
+let do_compress   = ref true
+let do_dagify     = ref true
+let do_ante_first = ref true
 
 (* Model reconstruction based on the algorithm described in:
 
@@ -66,7 +68,7 @@ end = struct
 
   let model ~assn ~kids =
     let modl = {mid = midgen#next ; assn ; kids} in
-    ModTab.merge __models modl
+    if !do_dagify then ModTab.merge __models modl else modl
 end
 
 include Model
@@ -466,17 +468,18 @@ module Build : sig val build : 'a result -> meval end = struct
           (fun () -> focus_left ~lforms ~state f2)
     | True NEG ->
         Counter empty_model
-    | Implies (f1, f2) -> begin
-        (* [ORDERING] Doing it in antecedent-first order is necessary for soundness *)
-        (* match focus_left ~lforms ~state f2 with *)
-        (* | Valid -> *)
-        (*     focus_right ~lforms ~state f1 *)
-        (* | Counter _ as mu -> mu *)
-        match focus_right ~lforms ~state f1 with
-        | Valid ->
-            focus_left ~lforms ~state f2
-        | Counter _ as mu -> mu
-      end
+    | Implies (f1, f2) ->
+        if !do_ante_first then begin
+          match focus_right ~lforms ~state f1 with
+          | Valid ->
+              focus_left ~lforms ~state f2
+          | Counter _ as mu -> mu
+        end else begin
+          match focus_left ~lforms ~state f2 with
+          | Valid ->
+              focus_right ~lforms ~state f1
+          | Counter _ as mu -> mu
+        end
     | And (POS, _, _) | True POS | Or _ | False ->
         bugf "focus_left: positive formula %a" format_form f
     | Atom _ | Forall _ | Exists _ -> first_order f
@@ -702,6 +705,6 @@ module Build : sig val build : 'a result -> meval end = struct
     in
     let state = {left ; right} in
     let mu = decision ~lforms ~state in
-    if compress_model then compress_meval mu else mu
+    if !do_compress then compress_meval mu else mu
 
 end
