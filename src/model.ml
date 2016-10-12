@@ -7,7 +7,10 @@
 
 let do_compress   = ref true
 let do_dagify     = ref true
+let do_treduce    = ref true
 let do_ante_first = ref true
+
+let save_svg_in   = None (* Some "/tmp/a.svg" *)
 
 (* Model reconstruction based on the algorithm described in:
 
@@ -123,6 +126,13 @@ let dot_format_model modl =
   let start = String.find result "<svg " in
   let result = String.sub result start (String.length result - start) in
   ignore (Unix.close_process (ic, oc)) ;
+  begin match save_svg_in with
+  | None -> ()
+  | Some loc ->
+      let oc = open_out_bin loc in
+      output_string oc result ;
+      close_out oc
+  end ;
   result
 
 type meval =
@@ -741,8 +751,11 @@ module Build : sig val build : 'a result -> meval end = struct
                List.map compress |>
                List.sort (fun m1 m2 -> IdtSet.compare m1.assn m2.assn) |>
                List.unique ~eq:eq_models in
-    let futures = List.fold_left strict_future ISet.empty kids in
-    let kids = List.filter (fun kid -> not (ISet.mem kid.mid futures)) kids in
+    let kids =
+      if not !do_treduce then kids else begin
+        let futures = List.fold_left strict_future ISet.empty kids in
+        List.filter (fun kid -> not (ISet.mem kid.mid futures)) kids
+      end in
     match kids with
     | [kid] when IdtSet.equal modl.assn kid.assn -> kid
     | _ -> model ~assn:modl.assn ~kids

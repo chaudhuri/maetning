@@ -44,7 +44,8 @@ let options = Arg.(align [
     "", Unit (fun () -> ()), " \n\t*** MODELS ***\n" ;
     "-no-model-compress", Clear Model.do_compress, " Do not compress models (default: compress)" ;
     "-no-model-dagify", Clear Model.do_dagify, " Keep models as trees (default: dagify)" ;
-    "-no-model-antefirst", Clear Model.do_ante_first, " Favor succedents of left implications (default: antefirst)" ;
+    "-no-model-treduce", Clear Model.do_treduce, " Do not perform transitive reduction on models (default: treduce)" ;
+    "-no-model-antefirst", Clear Model.do_ante_first, " Favor succedents of left implications in model generation (default: antefirst)" ;
     "", Unit (fun () -> ()), " \n\t*** DEBUG ***\n" ;
     "-timeout", Int Config.set_timeout, "<millis> Set a (soft) timeout in milliseconds" ;
     "-debug", String Config.set_debug_flags, "<flags> Enable debug flags <flags>, comma-separated" ;
