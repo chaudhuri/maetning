@@ -163,6 +163,26 @@ let first_order f =
   Format.eprintf "Cannot construct countermodels for first-order formulas@.%a@." format_form f ;
   raise First_order
 
+let format_form_expanded lforms ff f =
+  let rec expand f =
+    match f.form with
+    | Atom (_, l, []) -> begin
+        match IdtMap.find l lforms with
+        | lf -> expand lf.Form.skel
+        | exception Not_found -> f
+      end
+    | And (pol, f1, f2) -> conj ~pol [expand f1 ; expand f2]
+    | True _ -> f
+    | Or (f1, f2) -> disj [expand f1 ; expand f2]
+    | False -> f
+    | Implies (f1, f2) -> implies [expand f1] (expand f2)
+    | Forall _ | Exists _ | Atom _ -> first_order f
+    | Shift f -> shift (expand f)
+  in
+  format_form ff (expand f)
+
+(* let format_form_expanded lforms ff f = format_form () ff f *)
+
 let expose lforms f =
   match f.form with
   | Atom (_, l, args) -> begin
@@ -524,13 +544,11 @@ module Build : sig val build : 'a result -> meval end = struct
     | Shift f ->
         invert_left ~lforms ~state [f]
     | Atom (NEG, l, []) -> begin
-        let impos = match state.right with
-          | Some rl -> IdtSet.add rl state.impos
-          | None -> state.impos
-        in
-        if IdtSet.mem l impos
-        then Valid
-        else Counter (model ~assn:(IdtSet.singleton l) ~kids:[])
+        match state.right with
+        | Some ll when l = ll ->
+            Valid
+        | _ ->
+            Counter (model ~assn:(IdtSet.singleton l) ~kids:[])
       end
     | Atom (POS, l, []) ->
         Counter (model ~assn:(IdtSet.singleton l) ~kids:[])
